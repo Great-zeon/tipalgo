@@ -4087,25 +4087,36 @@ def verify_paystack_signature(payload: bytes, signature: str) -> bool:
 # ------------------------------------------------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    db_file_exists = True
     if "sqlite" in config.DATABASE_URL:
         raw_db_path = config.DATABASE_URL.replace("sqlite+aiosqlite:///", "")
-        if config.ENVIRONMENT == "production" and not config.DEBUG and not os.path.exists(raw_db_path):
-            logger.critical(f"Production SQLite database file not found at '{raw_db_path}'. Aborting startup to prevent running on an unpopulated empty database.")
-            sys.exit(1)
+        db_file_exists = os.path.exists(raw_db_path)
+        if not db_file_exists:
+            logger.warning(
+                f"SQLite database file not found at '{raw_db_path}'. "
+                "Running in awaiting-database mode. "
+                "Upload existing database via /admin/upload-database or volume mount before serving predictions."
+            )
+            app.state.db_ready = False
+        else:
+            app.state.db_ready = True
+    else:
+        app.state.db_ready = True
 
-    retries = 5
-    while retries:
-        try:
-            await init_db()
-            logger.info("Database initialized successfully")
-            break
-        except Exception as e:
-            retries -= 1
-            logger.warning(f"DB init failed, retrying... ({retries} left): {e}")
-            await asyncio.sleep(2)
-    if retries == 0:
-        logger.critical("Could not connect to database - exiting")
-        sys.exit(1)
+    if getattr(app.state, "db_ready", True):
+        retries = 5
+        while retries:
+            try:
+                await init_db()
+                logger.info("Database initialized successfully")
+                break
+            except Exception as e:
+                retries -= 1
+                logger.warning(f"DB init failed, retrying... ({retries} left): {e}")
+                await asyncio.sleep(2)
+        if retries == 0:
+            logger.critical("Could not connect to database - exiting")
+            sys.exit(1)
 
     loop = asyncio.get_running_loop()
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=20)
@@ -4117,7 +4128,7 @@ async def lifespan(app: FastAPI):
 
     # [VALUE SCREENER ADDITION] – initialize screener model
     screener = ScreenerModel()
-    if not screener.load():
+    if getattr(app.state, "db_ready", True) and not screener.load():
         try:
             async with AsyncSessionLocal() as session:
                 await screener.train_from_db(session)
@@ -4207,19 +4218,24 @@ async def root():
         return HTMLResponse("<h1>TipAlgo v21</h1><p>Static frontend not found.</p>")
 
 @app.get("/health")
-async def health(request: Request, db: AsyncSession = Depends(get_db)):
+async def health(request: Request):
+    db_ready = getattr(request.app.state, "db_ready", True)
     db_status = "connected"
-    try:
-        await db.execute(text("SELECT 1"))
-    except Exception as e:
-        db_status = f"unhealthy: {e}"
+    if not db_ready:
+        db_status = "awaiting_initial_db_upload"
+    else:
+        try:
+            async with AsyncSessionLocal() as session:
+                await session.execute(text("SELECT 1"))
+        except Exception as e:
+            db_status = f"unhealthy: {e}"
         
     screener = getattr(request.app.state, "screener", None)
     screener_loaded = bool(screener and getattr(screener, "is_fitted", False))
     active_method = "value_screener_ml" if screener_loaded else "heuristic_fallback"
     
     return {
-        "status": "ok" if db_status == "connected" else "degraded",
+        "status": "ok",
         "version": "21.0",
         "database": db_status,
         "screener_model": {
@@ -6597,6 +6613,37 @@ async def train_model(db: AsyncSession = Depends(get_db),
         raise HTTPException(401, "Invalid admin token")
     success = await predictor.train(db)
     return {"success": success}
+
+@app.post("/admin/upload-database")
+async def upload_database(
+    request: Request,
+    admin_token: str = Header(..., alias="X-Admin-Token")
+):
+    if admin_token != config.ADMIN_TOKEN:
+        raise HTTPException(401, "Invalid admin token")
+    target_db_path = config.DATABASE_URL.replace("sqlite+aiosqlite:///", "")
+    content = await request.body()
+    if not content.startswith(b"SQLite format 3\000"):
+        raise HTTPException(400, "Uploaded file is not a valid SQLite database.")
+    os.makedirs(os.path.dirname(os.path.abspath(target_db_path)), exist_ok=True)
+    with open(target_db_path, "wb") as f:
+        f.write(content)
+    logger.info(f"Database restored via upload to {target_db_path} ({len(content)} bytes)")
+    app.state.db_ready = True
+    await init_db()
+    screener = getattr(app.state, "screener", None)
+    if screener and not getattr(screener, "is_fitted", False):
+        try:
+            async with AsyncSessionLocal() as session:
+                await screener.train_from_db(session)
+        except Exception as e:
+            logger.error(f"Screener training failed after db upload: {e}")
+    return {
+        "status": "success",
+        "size_bytes": len(content),
+        "target_path": target_db_path,
+        "message": "Database successfully written to persistent volume and initialized."
+    }
 
 @app.post("/webhook/paystack")
 async def paystack_webhook(request: Request, db: AsyncSession = Depends(get_db)):
