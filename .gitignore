@@ -1,0 +1,32 @@
+# Python virtual environment
+venv/
+env/
+ENV/
+.venv/
+
+# Environment secrets and credentials
+.env
+.env.local
+.env.*.local
+
+# SQLite Databases & WAL journal files
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+
+# OS metadata
+.DS_Store
+Thumbs.db

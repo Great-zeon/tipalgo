@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="/static/style.css?v=40">
+  <link rel="stylesheet" href="/static/style.css?v=69">
 </head>
 <body class="light-platform">
 
@@ -22,73 +22,49 @@
       <!-- Left: Logo & Brand -->
       <div class="nav-left-brand">
         <a href="#" class="platform-logo" id="navBrandLogo" data-tab-target="view-calendar" title="SportyMill – Quantitative Sports Betting Intelligence">
-          <div class="logo-mark" aria-label="SportyMill Crest">
+          <div class="logo-mark" aria-label="SportyMill Quant Emblem">
             <svg viewBox="0 0 38 38" width="30" height="30" fill="none" class="sportymill-logo-svg" xmlns="http://www.w3.org/2000/svg">
               <defs>
-                <linearGradient id="smShieldBg" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#0b1329"/>
-                  <stop offset="50%" stop-color="#080e1c"/>
-                  <stop offset="100%" stop-color="#03060c"/>
+                <linearGradient id="smGradEmerald" x1="0%" y1="100%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#059669"/>
+                  <stop offset="60%" stop-color="#10b981"/>
+                  <stop offset="100%" stop-color="#34d399"/>
                 </linearGradient>
-                <linearGradient id="smBorderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#34d399"/>
-                  <stop offset="50%" stop-color="#10b981"/>
-                  <stop offset="100%" stop-color="#38bdf8"/>
+                <linearGradient id="smGradCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#38bdf8"/>
+                  <stop offset="100%" stop-color="#0284c7"/>
                 </linearGradient>
-                <linearGradient id="smPentagonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#34d399"/>
-                  <stop offset="40%" stop-color="#10b981"/>
-                  <stop offset="100%" stop-color="#059669"/>
+                <linearGradient id="smGradTile" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#111c2e"/>
+                  <stop offset="100%" stop-color="#080e1a"/>
                 </linearGradient>
-                <linearGradient id="smStrikeGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-                  <stop offset="0%" stop-color="#10b981"/>
-                  <stop offset="50%" stop-color="#38bdf8"/>
-                  <stop offset="100%" stop-color="#ffffff"/>
-                </linearGradient>
-                <filter id="smNeonGlow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="#10b981" flood-opacity="0.45"/>
-                </filter>
               </defs>
 
-              <!-- Athletic Football Shield Crest -->
-              <path d="M19 2.5 L32.5 6.8 C32.5 18 28 28.5 19 35.5 C10 28.5 5.5 18 5.5 6.8 Z" 
-                    fill="url(#smShieldBg)" stroke="url(#smBorderGrad)" stroke-width="1.8" stroke-linejoin="round"/>
+              <!-- Precision Geometric Monogram 'SM' with Quantitative Vector Geometry -->
+              <rect x="2.5" y="2.5" width="33" height="33" rx="9" fill="url(#smGradTile)" stroke="rgba(255, 255, 255, 0.12)" stroke-width="1.2"/>
               
-              <!-- Inner Shield Accent Line -->
-              <path d="M19 5 L29.5 8.5 C29.5 17.5 25.8 26 19 32 C12.2 26 8.5 17.5 8.5 8.5 Z" 
-                    fill="none" stroke="rgba(56, 189, 248, 0.22)" stroke-width="0.9"/>
-
-              <!-- Football Outer Hexagonal Facets (Truncated Icosahedron Geometry) -->
-              <path d="M19 8 L24.5 6.8 L29.5 14.8 L29.8 21.2 L25.5 28.2 L19 31.5 L12.5 28.2 L8.2 21.2 L8.5 14.8 L13.5 6.8 Z" 
-                    fill="none" stroke="rgba(255, 255, 255, 0.25)" stroke-width="1.1" stroke-linejoin="round"/>
-
-              <!-- Central Football Pentagon Panel (Heart of the Match Ball) -->
-              <polygon points="19,13.2 24.2,17 22.2,23 15.8,23 13.8,17" 
-                       fill="url(#smPentagonGrad)" stroke="#38bdf8" stroke-width="1.2" filter="url(#smNeonGlow)"/>
-
-              <!-- Radial Football Seams -->
-              <line x1="19" y1="13.2" x2="19" y2="8" stroke="#38bdf8" stroke-width="1.4" stroke-linecap="round"/>
-              <line x1="24.2" y1="17" x2="29.5" y2="14.8" stroke="#38bdf8" stroke-width="1.4" stroke-linecap="round"/>
-              <line x1="22.2" y1="23" x2="25.5" y2="28.2" stroke="#38bdf8" stroke-width="1.4" stroke-linecap="round"/>
-              <line x1="15.8" y1="23" x2="12.5" y2="28.2" stroke="#38bdf8" stroke-width="1.4" stroke-linecap="round"/>
-              <line x1="13.8" y1="17" x2="8.5" y2="14.8" stroke="#38bdf8" stroke-width="1.4" stroke-linecap="round"/>
-
-              <!-- Kinetic Quantitative Edge Strike (Ascending Momentum Apex) -->
-              <path d="M12.5 25 L21 16 L19 16 L25.5 9.5 L22 17 L24.5 17 Z" 
-                    fill="url(#smStrikeGrad)" opacity="0.95" filter="url(#smNeonGlow)"/>
-              <circle cx="28.5" cy="7.2" r="1.8" fill="#ffffff" filter="url(#smNeonGlow)"/>
+              <!-- 'S' Dynamic Momentum Curve -->
+              <path d="M11 13.5 C11 11.2 13 9.5 16 9.5 L23.5 9.5 C26 9.5 27.5 11 27.5 13 C27.5 14.8 26 16.2 24 16.8 L18 18.4 C15 19.2 13.5 20.8 13.5 23.2 C13.5 25.8 15.8 27.5 19 27.5 L26.5 27.5" 
+                    stroke="url(#smGradEmerald)" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+              
+              <!-- 'M' / Quant Apex Intersecting Vector -->
+              <path d="M21.5 13 L26.5 18.5 L26.5 27.5" 
+                    stroke="url(#smGradCyan)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+              
+              <!-- Quantum Node -->
+              <circle cx="27.5" cy="9.8" r="1.8" fill="#34d399"/>
             </svg>
           </div>
-          <span class="logo-brand">Sporty<span class="logo-brand-accent">Mill</span></span>
+          <span class="logo-brand">Sporty<span class="logo-brand-accent">Mill</span><span class="brand-tag-quant">QUANT</span></span>
         </a>
       </div>
 
       <!-- Center: Main Navigation Links -->
       <nav class="nav-center-menu">
-        <a href="#" class="top-nav-item active" data-tab-target="view-calendar" id="topNavHome">Home</a>
-        <a href="#" class="top-nav-item" data-tab-target="view-grand" id="topNavGrand">All 33 Endpoints</a>
-        <a href="#" class="top-nav-item" data-tab-target="view-about" id="topNavAbout">About</a>
-        <a href="#" class="top-nav-item" id="topNavSupport">Support</a>
+        <a href="#" class="top-nav-item active" data-tab-target="view-calendar" id="topNavHome">Matches</a>
+        <a href="#" class="top-nav-item" data-tab-target="view-grand" id="topNavGrand">33 Endpoints</a>
+        <a href="#" class="top-nav-item" data-tab-target="view-about" id="topNavAbout">About SportyMill</a>
+        <a href="#" class="top-nav-item" id="topNavSupport">Customer Care</a>
       </nav>
 
       <!-- Right: Actions Group -->
@@ -133,59 +109,88 @@
           </svg>
         </button>
 
-        <!-- eCommerce Style Bet Slip Cart Button -->
-        <button class="btn-slip-cart" id="btnHeaderSlipToggle" title="Open Bet Slip">
-          <span class="cart-icon-wrap">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v3a2 2 0 0 1-2 2 2 2 0 0 1 2 2v3c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2v-3a2 2 0 0 1 2-2 2 2 0 0 1-2-2V6c0-1.1.9-2 2-2z"></path>
-              <line x1="9" y1="9" x2="15" y2="9"></line>
-              <line x1="9" y1="15" x2="13" y2="15"></line>
-            </svg>
-          </span>
-          <span class="cart-label">Bet Slip</span>
-          <span class="cart-badge-count" id="headerSlipCount">0</span>
-        </button>
-
         <!-- Profile Avatar Button with Dropdown Trigger -->
         <div class="nav-profile-container" id="navProfileContainer">
-          <button class="header-profile-btn" id="btnHeaderProfile" title="Profile: Jonathan John">
-            <div class="header-profile-avatar" id="headerUserAvatar">JJ</div>
+          <button class="header-profile-btn" id="btnHeaderProfile" title="User Profile &amp; Settings">
+            <div class="header-profile-avatar" id="headerUserAvatar">DP</div>
           </button>
           
-          <!-- Sleek Profile Dropdown Menu -->
+          <!-- Refined Profile Dropdown Menu (Clean, Non-AI, Authentic Quant Design) -->
           <div class="profile-dropdown-menu" id="profileDropdownMenu">
             <div class="dropdown-user-header">
-              <div class="dropdown-avatar">JJ</div>
+              <div class="dropdown-avatar-wrap">
+                <div class="dropdown-avatar" id="dropdownUserAvatar">DP</div>
+                <span class="dropdown-status-dot" title="Active Model Session"></span>
+              </div>
               <div class="dropdown-user-info">
-                <span class="dropdown-name" id="dropdownUserName">Jonathan John</span>
-                <span class="dropdown-handle" id="dropdownUserHandle">demopro</span>
-                <span class="dropdown-tier-badge">PRO SUBSCRIBER</span>
+                <div class="dropdown-user-headline">
+                  <span class="dropdown-name" id="dropdownUserName">demopro</span>
+                  <span class="dropdown-tier-chip" id="dropdownTierBadge">PRO</span>
+                </div>
+                <span class="dropdown-sub-text" id="dropdownUserSub">demo@tipalgo.com</span>
               </div>
             </div>
-            <div class="dropdown-divider"></div>
-            <div class="dropdown-bankroll-row">
-              <span class="bankroll-lbl">Model Bankroll</span>
-              <span class="bankroll-val" id="dropdownBankrollVal">₦1,000,000</span>
+
+            <div class="dropdown-bankroll-card">
+              <div class="bankroll-card-row">
+                <span class="bankroll-lbl">Trading Bankroll</span>
+                <span class="bankroll-val" id="dropdownBankrollVal">₦1,000,000</span>
+              </div>
+              <div class="bankroll-card-sub">
+                <span>Safe 5% Stake Limit:</span>
+                <strong id="dropdownSafeStakeVal">₦50,000</strong>
+              </div>
             </div>
-            <div class="dropdown-divider"></div>
-            <a href="#" class="dropdown-menu-item" id="dropdownItemEditProfile">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-              <span>Edit Profile</span>
-            </a>
-            <a href="#" class="dropdown-menu-item" id="dropdownItemBankroll">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-              <span>Bankroll &amp; Risk Settings</span>
-            </a>
-            <a href="#" class="dropdown-menu-item" id="dropdownItemNotifications">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-              <span>Alert Preferences</span>
-            </a>
-            <div class="dropdown-divider"></div>
-            <a href="#" class="dropdown-menu-item signout" id="dropdownItemSignout">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#ef4444" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-              <span>Sign Out</span>
-            </a>
+
+            <!-- 3 Clean Options: Dashboard, Settings, Sign Out -->
+            <div class="dropdown-menu-list">
+              <a href="#" class="dropdown-menu-item" id="dropdownItemDashboard" data-tab-target="view-dashboard">
+                <div class="dropdown-item-icon icon-dash">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+                    <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+                    <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+                    <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+                  </svg>
+                </div>
+                <div class="dropdown-item-content">
+                  <span class="item-title">Dashboard</span>
+                  <span class="item-desc">TipAlgo v21 Screener &amp; Accu-Forge</span>
+                </div>
+                <span class="item-badge-pill">v21</span>
+              </a>
+
+              <a href="#" class="dropdown-menu-item" id="dropdownItemSettings" data-tab-target="view-profile">
+                <div class="dropdown-item-icon icon-settings">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                  </svg>
+                </div>
+                <div class="dropdown-item-content">
+                  <span class="item-title">Settings</span>
+                  <span class="item-desc">Bankroll, risk profile &amp; security</span>
+                </div>
+              </a>
+
+              <div class="dropdown-divider"></div>
+
+              <a href="#" class="dropdown-menu-item signout" id="dropdownItemSignout">
+                <div class="dropdown-item-icon icon-signout">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                  </svg>
+                </div>
+                <div class="dropdown-item-content">
+                  <span class="item-title">Sign Out</span>
+                  <span class="item-desc">End your active session</span>
+                </div>
+              </a>
+            </div>
           </div>
+        </div>
         </div>
 
         <!-- Notifications Popover -->
@@ -210,7 +215,6 @@
             <span class="notif-item-time">1 hour ago</span>
           </div>
         </div>
-      </div>
     </header>
 
     <!-- Main Content Area -->
@@ -222,58 +226,119 @@
       <section id="view-calendar" class="view-panel active">
         <div class="calendar-tool-container">
 
-          <!-- Clean Focused Calendar Controls -->
-          <div class="calendar-controls-card">
-            <!-- Row 1: Full-Width Responsive Date Navigation Strip -->
-            <div class="calendar-date-strip">
-              <button class="cal-nav-btn prev" id="btnCalPrevDate" title="Previous Date">‹</button>
-              <div class="cal-dates-list" id="calendarDatesList">
-                <!-- Populated dynamically with date pills -->
+          <!-- Clean Focused Unified Calendar Controls Bar -->
+          <div class="calendar-controls-card unified-top-bar" id="calendarControlsCard">
+            <!-- Left Group: Compact Dates Strip + Limitless Dropdown Menu Trigger (~50% width on Desktop) -->
+            <div class="calendar-dropdown-bar-wrap topbar-left-calendar" id="calendarDropdownBarWrap">
+              <button type="button" class="cal-step-day-btn prev" id="btnCalPrevDate" title="Previous Day">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+              </button>
+
+              <!-- 3 Compact Dates Strip (Yesterday, Today, Tomorrow) -->
+              <div class="cal-dates-list desktop-dates-strip compact-strip" id="calendarDatesList"></div>
+
+              <!-- Main Date Dropdown Trigger -->
+              <div class="cal-dropdown-trigger-box compact-trigger" id="calDropdownTriggerBox" role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false" title="Click to open limitless calendar dropdown menu">
+                <div class="cal-dropdown-icon">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                </div>
+                <div class="cal-dropdown-display">
+                  <span class="cal-dropdown-date-text" id="calDropdownDateText">Tuesday, 13 Oct 2026</span>
+                  <span class="cal-dropdown-date-sub" id="calDropdownDateSub">Today • 15 Matches Available</span>
+                </div>
+                <div class="cal-dropdown-chevron" id="calDropdownChevron">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </div>
               </div>
-              <button class="cal-nav-btn next" id="btnCalNextDate" title="Next Date">›</button>
-              <!-- Interactive Calendar Picker Button -->
-              <div class="cal-picker-wrapper" id="calPickerWrapper">
-                <button type="button" class="btn-cal-picker" id="btnCalPicker" title="Open Calendar to Pick Any Date">
-                  <div class="cal-picker-icon">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                      <line x1="16" y1="2" x2="16" y2="6"></line>
-                      <line x1="8" y1="2" x2="8" y2="6"></line>
-                      <line x1="3" y1="10" x2="21" y2="10"></line>
-                    </svg>
+
+              <button type="button" class="cal-step-day-btn next" id="btnCalNextDate" title="Next Day">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
+
+              <!-- LIMITLESS CALENDAR DROPDOWN MENU PANEL -->
+              <div class="calendar-limitless-dropdown-menu" id="calendarLimitlessDropdownMenu" style="display: none;" role="dialog" aria-label="Limitless Calendar Date Picker">
+                <!-- Quick Shortcut Chips -->
+                <div class="cal-menu-shortcuts">
+                  <button type="button" class="cal-shortcut-chip" data-shortcut="yesterday">Yesterday</button>
+                  <button type="button" class="cal-shortcut-chip active" data-shortcut="today">Today</button>
+                  <button type="button" class="cal-shortcut-chip" data-shortcut="tomorrow">Tomorrow</button>
+                  <button type="button" class="cal-shortcut-chip" data-shortcut="next-5-days">Next 5 Days</button>
+                </div>
+
+                <!-- Month & Year Navigation Header (Limitless Navigation) -->
+                <div class="cal-menu-month-nav">
+                  <button type="button" class="cal-nav-arrow-btn" id="btnCalMenuPrevMonth" title="Previous Month">‹</button>
+                  <div class="cal-menu-month-title-wrap">
+                    <span class="cal-menu-month-name" id="calMenuMonthYearLabel">October 2026</span>
+                    <div class="cal-menu-selectors-wrap">
+                      <select class="cal-menu-select" id="calMenuMonthSelect" aria-label="Jump to month"></select>
+                      <select class="cal-menu-select" id="calMenuYearSelect" aria-label="Jump to year"></select>
+                    </div>
                   </div>
-                  <div class="cal-picker-text-wrap">
-                    <span class="cal-picker-title" id="calPickerBtnTitle">Pick Date</span>
-                    <span class="cal-picker-sub" id="calPickerBtnSub">Calendar</span>
-                  </div>
-                </button>
-                <input type="date" id="calendarDatePicker" class="cal-native-picker" title="Click to choose any date from calendar">
+                  <button type="button" class="cal-nav-arrow-btn" id="btnCalMenuNextMonth" title="Next Month">›</button>
+                </div>
+
+                <!-- Weekdays Header (Su Mo Tu We Th Fr Sa) -->
+                <div class="cal-menu-weekdays-grid">
+                  <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+                </div>
+
+                <!-- Days Grid (Dynamically rendered via JS) -->
+                <div class="cal-menu-days-grid" id="calDaysGrid"></div>
+
+                <!-- Footer with Today & Close controls -->
+                <div class="cal-menu-footer">
+                  <button type="button" class="btn-cal-footer-today" id="btnCalMenuGoToday">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    Go to Today
+                  </button>
+                  <button type="button" class="btn-cal-footer-close" id="btnCalMenuClose">Done</button>
+                </div>
               </div>
+
+              <!-- Preserved hidden elements for backwards compatibility -->
+              <input type="date" id="calendarDatePicker" style="display: none;">
             </div>
 
-            <!-- Row 2: Clean Controls Toolbar (Search on Left, Filters & View Switcher on Right) -->
-            <div class="calendar-controls-toolbar">
+            <!-- Right Group: Search + Filter Matches + View Mode Icons (~50% width on Desktop) -->
+            <div class="topbar-right-actions">
               <div class="calendar-search-wrap">
-                <input type="text" id="inputCalendarSearchTeam" class="calendar-team-search-input" placeholder="Search team or league e.g. Arsenal, Real Madrid, Bayern...">
-              </div>
-              <div class="toolbar-right-actions">
-                <button class="btn-filter-trigger" id="btnOpenFilterDrawer" type="button" title="Filter by Probability &amp; 33 Markets">
-                  <svg class="filter-funnel-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                <div class="grand-search-input-box calendar-search-input-box">
+                  <svg class="grand-search-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                   </svg>
-                  <span>Filters</span>
-                  <span class="filter-active-badge" id="filterActiveBadge" style="display:none;">0</span>
-                </button>
-                <div class="view-mode-toggles" id="slateViewModeToggles">
-                  <button class="view-mode-btn" id="btnViewModeTable" data-mode="table" title="Sportsbook Odds Board (Table)">
-                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-                    <span>Odds Board</span>
-                  </button>
-                  <button class="view-mode-btn active" id="btnViewModeGrid" data-mode="grid" title="Cards View (Default Multi-Column Grid)">
-                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                    <span>Cards</span>
+                  <input type="text" id="inputCalendarSearchTeam" class="grand-search-input calendar-team-search-input" placeholder="Find your team or league (e.g. Arsenal, Chelsea, Madrid)...">
+                  <button type="button" class="btn-clear-cal-search" id="btnClearCalSearch" title="Clear search" style="display: none;">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                   </button>
                 </div>
+              </div>
+              <button class="btn-filter-trigger" id="btnOpenFilterDrawer" type="button" title="Filter Matches">
+                <svg class="filter-funnel-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                </svg>
+                <span>Filter Matches</span>
+                <span class="filter-active-badge" id="filterActiveBadge" style="display:none;">0</span>
+              </button>
+              <div class="view-mode-toggles icon-only-toggles" id="slateViewModeToggles">
+                <button class="view-mode-btn active" id="btnViewModeTable" data-mode="table" title="Odds Table (List View)" aria-label="Odds Table">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </button>
+                <button class="view-mode-btn" id="btnViewModeGrid" data-mode="grid" title="Match Cards (Grid View)" aria-label="Match Cards">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                </button>
               </div>
             </div>
           </div>
@@ -281,9 +346,69 @@
           <!-- Active Filter Notice Banner (if filtered or 0 matches) -->
           <div id="endpointFilterNotice" class="endpoint-notice-banner" style="display: none;"></div>
 
-          <!-- Matches Feed Container (Rendered in clean Grids of 3 or 4) -->
-          <div class="calendar-matches-feed" id="calendarMatchesFeed">
-            <!-- Dynamically populated match cards in responsive 3-4 card grids -->
+          <!-- Matches & Bet Slip Split Layout (Always Docked on Desktop) -->
+          <div class="home-main-split">
+            <div class="home-feed-col">
+              <div class="calendar-matches-feed" id="calendarMatchesFeed">
+                <!-- Dynamically populated match cards -->
+              </div>
+            </div>
+            <div class="home-slip-col" id="homeSlipCol">
+              <!-- Prediction Platform Bet Slip (Faithful to Employer Canva Mockup) -->
+              <aside class="betslip-sidebar" id="betslipSidebar">
+                <div class="betslip-header">
+                  <div class="betslip-header-title-row">
+                    <div class="betslip-main-title">
+                      <span class="slip-title-text">Bet Slip</span>
+                      <span class="betslip-count-badge" id="slipPicksCount">0</span>
+                    </div>
+                    <div class="betslip-header-actions">
+                      <button type="button" class="btn-clear-slip-simple" id="btnClearSlip" title="Clear all selections">Clear</button>
+                      <button type="button" class="btn-close-slip mobile-only" id="btnCloseBetslip" title="Close Bet Slip" aria-label="Close">&times;</button>
+                    </div>
+                  </div>
+                  <div class="betslip-header-underline"></div>
+                </div>
+
+                <div class="betslip-body">
+                  <div class="betslip-items-container" id="slipItemsContainer">
+                    <div class="slip-empty-state" id="slipEmptyState">
+                      <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#94a3b8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                      </svg>
+                      <p>Your bet slip is empty</p>
+                      <span>Click the prediction box on any match to add to your ticket</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="betslip-footer">
+                  <div class="slip-summary-table">
+                    <div class="summary-row">
+                      <span>Predictions Added:</span>
+                      <strong id="slipTotalLegs">0 Picks</strong>
+                    </div>
+                    <div class="summary-row">
+                      <span>Combined Odds:</span>
+                      <strong id="slipTotalOdds" class="accent-odds">1.00</strong>
+                    </div>
+                  </div>
+
+                  <!-- Primary Action: Validate & Print per Employer Specification -->
+                  <button type="button" class="btn-validate-print-slip" id="btnValidatePrintSlip" title="Validate predictions against model and print/export ticket">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                      <rect x="6" y="14" width="12" height="8"></rect>
+                    </svg>
+                    <span>Validate &amp; Print</span>
+                  </button>
+                </div>
+              </aside>
+            </div>
           </div>
         </div>
       </section>
@@ -411,256 +536,270 @@
         </div>
       </section>
 
-      <!-- View 1B: Full Match Analytics Deep-Dive Hub -->
+      <!-- View 1B: FootyStats-Style Full Match Analytics Hub -->
       <section id="view-match-analytics" class="view-panel">
-        <!-- Top Navigation & Return Bar -->
-        <div class="analytics-top-bar">
+        <!-- Top Back Navigation Bar -->
+        <div class="footystats-top-nav-bar">
           <button class="btn-back-overview" id="btnBackToOverview">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <line x1="19" y1="12" x2="5" y2="12"></line>
               <polyline points="12 19 5 12 12 5"></polyline>
             </svg>
-            <span id="textBackOverview">Back to Matches &amp; Slate</span>
+            <span id="textBackOverview">&larr; Back to Matches &amp; Slate</span>
           </button>
-          <div class="analytics-badge-row">
-            <span class="match-league-pill" id="analyticsLeagueBadge">PREMIER LEAGUE</span>
-            <span class="analytics-mode-pill" id="analyticsModePill">QUANT MODEL AUDIT</span>
-            <span class="analytics-time-info" id="analyticsTimeInfo">Kickoff: 20:00 · Verified Odds</span>
+          <div class="footy-nav-right">
+            <span class="footy-quant-audit-pill" id="analyticsModePill">QUANT MODEL AUDIT</span>
           </div>
         </div>
 
-        <!-- Match Showcase Clash Card with 1X2 Sportsbook Odds -->
-        <div class="match-showcase-card">
-          <div class="showcase-clash-header">
-            <div class="showcase-team home" id="showcaseHomeTeamBox">
-              <div class="showcase-crest" id="showcaseHomeCrest">H</div>
-              <div class="showcase-team-name" id="showcaseHomeName">Home Squad</div>
+        <!-- FootyStats Match Hero Banner -->
+        <div class="footystats-match-hero-card">
+          <div class="footy-meta-row">
+            <div class="footy-breadcrumb">
+              <span class="footy-globe-icon">⚽</span>
+              <span id="footyBreadcrumbLeague">CONMEBOL Libertadores Femenina</span>
             </div>
-            <div class="showcase-center-vs">
-              <span class="showcase-vs-badge">VS</span>
-              <span class="showcase-match-time" id="showcaseMatchTime">20:00</span>
+            <div class="footy-match-datetime" id="footyMatchDateTime">
+              Saturday Oct 17, 2026 - 1:00am (Africa/Lagos time)
             </div>
-            <div class="showcase-team away" id="showcaseAwayTeamBox">
-              <div class="showcase-team-name" id="showcaseAwayName">Away Squad</div>
-              <div class="showcase-crest" id="showcaseAwayCrest">A</div>
+            <div class="footy-match-venue" id="footyVenue">
+              Stats, H2H &amp; xG &bull; Stadium - Municipal
             </div>
           </div>
 
-          <!-- 1X2 Sportsbook Betting Board -->
-          <div class="showcase-odds-strip" id="analyticsOddsStrip">
-            <button class="showcase-odd-btn pick-trigger" id="btnShowcaseHomeOdds" data-market="Home Win" title="Add Home Win to slip">
-              <span class="showcase-odd-label" id="labelHomeOdds">Home (1)</span>
-              <span class="showcase-odd-val" id="valHomeOdds">1.65</span>
-            </button>
-            <button class="showcase-odd-btn pick-trigger" id="btnShowcaseDrawOdds" data-market="Draw" title="Add Draw to slip">
-              <span class="showcase-odd-label" id="labelDrawOdds">Draw (X)</span>
-              <span class="showcase-odd-val" id="valDrawOdds">3.80</span>
-            </button>
-            <button class="showcase-odd-btn pick-trigger" id="btnShowcaseAwayOdds" data-market="Away Win" title="Add Away Win to slip">
-              <span class="showcase-odd-label" id="labelAwayOdds">Away (2)</span>
-              <span class="showcase-odd-val" id="valAwayOdds">5.20</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Interactive Commentary Tone Switcher Bar -->
-        <div class="analytics-mode-switcher-bar">
-          <div class="mode-switcher-desc">
-            <span class="switcher-bar-label">SYSTEM COMMENTARY MODE:</span>
-            <span class="switcher-bar-sub">Switch between mathematical quantitative audit and authentic Naija banter mode</span>
-          </div>
-          <div class="mode-toggle-pills">
-            <button class="btn-mode-pill active" id="btnAnalyticsModePro" data-mode="PROFESSIONAL">
-              Professional Quant Mode
-            </button>
-            <button class="btn-mode-pill" id="btnAnalyticsModeBanter" data-mode="BANTER">
-              Naija Banter Mode
-            </button>
-          </div>
-        </div>
-
-        <!-- Card 1: Plain-Language Match Verdict & Probability -->
-        <div class="analytics-card analytics-verdict-card">
-          <div class="analytics-card-header">
-            <div class="verdict-header-title">
-              <h3 id="verdictHeadline">Plain-Language Match Verdict &amp; Win Probability</h3>
-              <p class="analytics-card-sub">Algorithmic analysis derived from bivariate Poisson distribution &amp; goal expectancy ratios</p>
-            </div>
-            <span class="verdict-tag" id="verdictTag">BALANCED RISK PROFILE</span>
-          </div>
-
-          <div class="verdict-narrative-box" id="verdictNarrativeBox"></div>
-          <div class="verdict-pillars-grid" id="verdictPillarsGrid"></div>
-        </div>
-
-        <!-- Card 1B: Interactive Tactical Football Pitch & Anytime Goalscorer Threat Radar -->
-        <div class="analytics-card tactical-pitch-card" id="cardTacticalPitch">
-          <div class="analytics-card-header">
-            <div>
-              <div class="card-eyebrow-chip">SIMULATED MATCH TACTICS</div>
-              <h3 id="tacticalPitchTitle">Tactical Football Pitch &amp; Goalscorer Threat Radar</h3>
-              <p class="analytics-card-sub" id="tacticalPitchSub">Visualized player field positioning, attacking channels &amp; Poisson-projected anytime goal probabilities</p>
-            </div>
-            <span class="pitch-formation-pill" id="pitchFormationBadge">4-3-3 vs 4-2-3-1</span>
-          </div>
-
-          <div class="tactical-pitch-wrapper">
-            <!-- Simulated 2D Football Grass Field with Markings -->
-            <div class="football-pitch" id="footballPitchField">
-              <!-- Field Grass Striping Effect -->
-              <div class="pitch-stripes"></div>
-              <!-- Pitch Markings -->
-              <div class="pitch-center-circle"></div>
-              <div class="pitch-center-spot"></div>
-              <div class="pitch-halfway-line"></div>
-              <div class="pitch-penalty-box home"></div>
-              <div class="pitch-goal-box home"></div>
-              <div class="pitch-penalty-spot home"></div>
-              <div class="pitch-penalty-arc home"></div>
-              <div class="pitch-penalty-box away"></div>
-              <div class="pitch-goal-box away"></div>
-              <div class="pitch-penalty-spot away"></div>
-              <div class="pitch-penalty-arc away"></div>
-              <!-- Corner Arcs -->
-              <div class="pitch-corner-arc top-left"></div>
-              <div class="pitch-corner-arc bottom-left"></div>
-              <div class="pitch-corner-arc top-right"></div>
-              <div class="pitch-corner-arc bottom-right"></div>
-
-              <!-- Interactive Player Nodes Dynamic Layer -->
-              <div class="pitch-players-layer" id="pitchPlayersLayer">
-                <!-- Injected dynamically by JS -->
+          <div class="footystats-hero-clash-row">
+            <!-- Home Hero Team -->
+            <div class="footy-hero-team home" id="footyHomeTeamBox">
+              <div class="footy-hero-badge" id="footyHomeBadge"></div>
+              <div class="footy-hero-team-details">
+                <div class="footy-rating-pill" id="footyHomeRating">1.85</div>
+                <div class="footy-form-squares" id="footyHomeSquares"></div>
+                <h2 class="footy-hero-team-name" id="footyHomeTeamName">Home Team</h2>
               </div>
             </div>
 
-            <!-- Goal Expectancy & Threat Breakdown Legend -->
-            <div class="pitch-threat-legend-bar" id="pitchThreatLegendBar">
-              <div class="threat-stat-box home">
-                <span class="threat-lbl" id="legendHomeTeamName">Home Attack</span>
-                <span class="threat-val" id="legendHomexG">1.85 xG</span>
-                <span class="threat-sub">Top Threat: <strong id="legendHomeStar">Salah (58%)</strong></span>
+            <!-- Clash Center VS & Quick Odds -->
+            <div class="footy-hero-center">
+              <span class="footy-hero-vs-badge">VS</span>
+              <div class="footy-hero-odds-strip" id="analyticsOddsStrip">
+                <button type="button" class="footy-hero-odd-btn pick-trigger" id="btnShowcaseHomeOdds" data-market="Home Win" title="Add Home Win">
+                  <span class="odd-lbl">1</span>
+                  <span class="odd-val" id="valHomeOdds">1.65</span>
+                </button>
+                <button type="button" class="footy-hero-odd-btn pick-trigger" id="btnShowcaseDrawOdds" data-market="Draw" title="Add Draw">
+                  <span class="odd-lbl">X</span>
+                  <span class="odd-val" id="valDrawOdds">3.80</span>
+                </button>
+                <button type="button" class="footy-hero-odd-btn pick-trigger" id="btnShowcaseAwayOdds" data-market="Away Win" title="Add Away Win">
+                  <span class="odd-lbl">2</span>
+                  <span class="odd-val" id="valAwayOdds">5.20</span>
+                </button>
               </div>
-              <div class="pitch-legend-divider">VS</div>
-              <div class="threat-stat-box away">
-                <span class="threat-lbl" id="legendAwayTeamName">Away Attack</span>
-                <span class="threat-val" id="legendAwayxG">1.10 xG</span>
-                <span class="threat-sub">Top Threat: <strong id="legendAwayStar">Haaland (52%)</strong></span>
+            </div>
+
+            <!-- Away Hero Team -->
+            <div class="footy-hero-team away" id="footyAwayTeamBox">
+              <div class="footy-hero-badge" id="footyAwayBadge"></div>
+              <div class="footy-hero-team-details text-right">
+                <div class="footy-rating-pill" id="footyAwayRating">2.50</div>
+                <div class="footy-form-squares" id="footyAwaySquares"></div>
+                <h2 class="footy-hero-team-name" id="footyAwayTeamName">Away Team</h2>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Card 1C: Why Trust This Quantitative Pick? (Statistical Edge & Proof) -->
-        <div class="analytics-card trust-evidence-card" id="cardWhyTrustModel">
-          <div class="analytics-card-header">
-            <div>
-              <div class="card-eyebrow-chip green">MATHEMATICAL CONVICTION</div>
-              <h3>Why Trust This Quantitative Pick?</h3>
-              <p class="analytics-card-sub">Visual comparison between Model Expectancy and Bookmaker Implied Probability</p>
-            </div>
-            <div class="model-conviction-badge" id="badgeModelConviction">
-              <span class="conviction-dot"></span>
-              <span id="textConvictionPct">86% Model Conviction</span>
-            </div>
-          </div>
-
-          <!-- Probability Comparison Bar Chart -->
-          <div class="prob-comparison-chart" id="probComparisonChart">
-            <!-- Rendered dynamically by JS: Model % vs Bookie % -->
-          </div>
-
-          <!-- 4 Pillars Explaining Why To Trust The Pick -->
-          <div class="trust-reasons-grid">
-            <div class="trust-reason-item">
-              <div class="trust-icon-box">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#10b981" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-              </div>
-              <div class="trust-text-box">
-                <span class="trust-title">Poisson Goal Independence</span>
-                <p class="trust-desc">Calculated via bivariate Poisson modeling across home/away goal distributions, decoupling false public market bias.</p>
-              </div>
-            </div>
-            <div class="trust-reason-item">
-              <div class="trust-icon-box">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#38bdf8" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
-              </div>
-              <div class="trust-text-box">
-                <span class="trust-title">Positive Mathematical Edge (+EV)</span>
-                <p class="trust-desc">Only flags bets where model probability exceeds bookmaker implied probability after deducting the bookmaker margin.</p>
-              </div>
-            </div>
-            <div class="trust-reason-item">
-              <div class="trust-icon-box">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#818cf8" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
-              </div>
-              <div class="trust-text-box">
-                <span class="trust-title">Fractional Kelly Bankroll Control</span>
-                <p class="trust-desc">Prevents over-allocation and capital drawdown by sizing stakes proportional to proven historical model calibration.</p>
-              </div>
-            </div>
-            <div class="trust-reason-item">
-              <div class="trust-icon-box">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#f59e0b" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
-              </div>
-              <div class="trust-text-box">
-                <span class="trust-title">Form Momentum Recency</span>
-                <p class="trust-desc">Applies recency weighting to recent 5 matches and venue-specific metrics rather than outdated seasonal averages.</p>
-              </div>
-            </div>
-          </div>
+        <!-- FootyStats Sub-Nav Ribbon -->
+        <div class="footystats-subnav-ribbon">
+          <nav class="footy-main-subnav">
+            <a class="footy-nav-item active" href="#stats" data-target="tab-stats">Stats</a>
+            <a class="footy-nav-item" href="#predictions" data-target="tab-predictions">Predictions</a>
+            <a class="footy-nav-item" href="#standings" data-target="tab-standings">Standings</a>
+            <a class="footy-nav-item" href="#odds" data-target="tab-odds">Odds</a>
+          </nav>
         </div>
 
-        <!-- Card 2: SportyMill High-Conviction Selections (Kelly Sizing) -->
-        <div class="analytics-card">
-          <div class="analytics-card-header">
-            <div>
-              <h3 id="textBetOptionsTitle">SportyMill High-Conviction Selections</h3>
-              <p class="analytics-card-sub" id="textBetOptionsSub">Mathematically vetted betting selections designed for maximum yield and bankroll safety under Fractional Kelly.</p>
-            </div>
-            <span class="bookie-pill">SPORTYMILL ALGORITHMIC PICKS</span>
-          </div>
-          <div class="analytics-tickets-grid" id="analyticsTicketsGrid"></div>
+        <!-- FootyStats Tag Filters -->
+        <div class="footystats-tag-pills-bar">
+          <a class="footy-tag-pill active" href="#" data-filter="all">All</a>
+          <a class="footy-tag-pill" href="#" data-filter="goals">Goals</a>
+          <a class="footy-tag-pill" href="#" data-filter="corners">Corners</a>
+          <a class="footy-tag-pill" href="#" data-filter="cards">Cards</a>
+          <a class="footy-tag-pill" href="#" data-filter="half">Half</a>
+          <a class="footy-tag-pill" href="#" data-filter="players">Players</a>
         </div>
 
-        <!-- Card 3: Form & Head-to-Head History (5 Results & Record) -->
-        <div class="analytics-card" id="cardFormH2H">
-          <div class="analytics-card-header">
-            <div>
-              <h3>Recent Form &amp; Head-to-Head Trend</h3>
-              <p class="analytics-card-sub">Last 5 competitive match results and head-to-head encounter records.</p>
+        <!-- FootyStats Two-Column Main Layout Grid -->
+        <div class="footystats-layout-grid">
+          <!-- Left Column: Primary Stats, Predictions, AI Summary, Form, Audit (~62%) -->
+          <div class="footy-main-col">
+            <!-- 1. Prediction Stats 6-Tile Box -->
+            <div class="footy-stat-card">
+              <div class="footy-card-header">
+                <h2 class="footy-card-title">
+                  Prediction Stats <span class="footy-card-subtext" id="footyPredStatsSubtitle">- Match Prediction Overview</span>
+                </h2>
+              </div>
+              <div class="footy-stat-grid-6" id="footyStatGrid6">
+                <div class="footy-grid-tile highlight">
+                  <div class="tile-strong"><span id="footyOver25Pct">55%</span> <span class="tile-label">Over 2.5</span></div>
+                  <div class="tile-sub">League Average : <span id="footyAvgOver25">48%</span></div>
+                </div>
+                <div class="footy-grid-tile great">
+                  <div class="tile-strong"><span id="footyOver15Pct">85%</span> <span class="tile-label">Over 1.5</span></div>
+                  <div class="tile-sub">League Average : <span id="footyAvgOver15">67%</span></div>
+                </div>
+                <div class="footy-grid-tile average">
+                  <div class="tile-strong"><span id="footyBttsPct">40%</span> <span class="tile-label">BTTS</span></div>
+                  <div class="tile-sub">League Average : <span id="footyAvgBtts">33%</span></div>
+                </div>
+                <div class="footy-grid-tile">
+                  <div class="tile-strong"><span id="footyGoalsMatch">3.0</span> <span class="tile-label">Goals / Match</span></div>
+                  <div class="tile-sub">League Average : <span id="footyAvgGoals">1.67</span></div>
+                </div>
+                <div class="footy-grid-tile highlight">
+                  <div class="tile-strong"><span id="footyCardsPct">55%</span> <span class="tile-label">Over 3.5 Cards</span></div>
+                  <div class="tile-sub">Projected Cards: <span id="footyAvgCards">3.8</span></div>
+                </div>
+                <div class="footy-grid-tile great">
+                  <div class="tile-strong"><span id="footyCornersPct">58%</span> <span class="tile-label">Over 9.5 Corners</span></div>
+                  <div class="tile-sub">Projected Corners: <span id="footyAvgCorners">9.8</span></div>
+                </div>
+              </div>
             </div>
-            <span class="bookie-pill">HISTORICAL FORM</span>
-          </div>
-          <div class="analytics-form-h2h-grid" id="analyticsFormH2HGrid"></div>
-        </div>
 
-        <!-- Card 4: Sub-Strategy Trap & Pattern Detection -->
-        <div class="analytics-card">
-          <div class="analytics-card-header">
-            <div>
-              <h3 id="textSubStrategyTitle">Sub-Strategy Trap &amp; Pattern Detection</h3>
-              <p class="analytics-card-sub" id="textSubStrategySub">Evaluates bookmaker pricing anomalies, false favorites, and form mismatches.</p>
+            <!-- 2. Mathematical Model Summary & Match Context -->
+            <div class="footy-stat-card footy-ai-card">
+              <div class="footy-ai-header">
+                <span class="footy-ai-badge">📊</span>
+                <h3 class="footy-ai-title">Mathematical Model Summary &amp; Match Context</h3>
+              </div>
+              <div class="footy-ai-narrative" id="footyAiSummaryText">
+                Running bivariate Poisson simulation &amp; quantitative model analysis...
+              </div>
+              <p class="footy-trailing-note" id="footyTrailingNote">
+                * Calculated from calibrated Bivariate Poisson distributions, Dixon-Coles goal expectation, and verified league data.
+              </p>
             </div>
-            <span class="bookie-pill" id="badgeSubStratCount">STRATEGY AUDIT</span>
-          </div>
-          <div class="sub-strategies-grid" id="analyticsSubStrategiesGrid"></div>
-        </div>
 
-        <!-- Card 5: Complete 33-Market Statistical Audit -->
-        <div class="analytics-card">
-          <div class="analytics-card-header">
-            <div>
-              <h3 id="textEndpointsTitle">Complete 33-Market Statistical Audit</h3>
-              <p class="analytics-card-sub" id="textEndpointsSub">Every prediction endpoint checked by the Poisson and Kelly models for this fixture.</p>
+            <!-- 3. Head to Head Record & Push-Pull Win Likelihood Bar -->
+            <div class="footy-stat-card">
+              <div class="footy-card-header">
+                <h2 class="footy-card-title">
+                  Head to Head Record &amp; Win Likelihood
+                  <span class="footy-card-subtext" id="footyH2HTitleSub"></span>
+                </h2>
+              </div>
+              <!-- Push Pull Likelihood Bar -->
+              <div class="footy-push-pull-wrap">
+                <div class="push-pull-bar">
+                  <div class="bar-home" id="pushPullHome" style="width: 48%;"></div>
+                  <div class="bar-draw" id="pushPullDraw" style="width: 26%;"></div>
+                  <div class="bar-away" id="pushPullAway" style="width: 26%;"></div>
+                </div>
+                <div class="push-pull-labels">
+                  <span id="pushPullHomeLbl">Home 48%</span>
+                  <span id="pushPullDrawLbl">Draw 26%</span>
+                  <span id="pushPullAwayLbl">Away 26%</span>
+                </div>
+              </div>
+
+              <!-- Form Tables (Overall / Home / Away) -->
+              <div class="footy-form-tables-grid" id="footyFormComparisonTables"></div>
             </div>
-            <div class="audit-filter-pills" id="auditCategoryPills">
-              <button class="audit-pill active" data-cat="all">All Markets</button>
-              <button class="audit-pill" data-cat="value">Only Value Edges</button>
-              <button class="audit-pill" data-cat="goals">Goals</button>
-              <button class="audit-pill" data-cat="outcomes">1X2 / Combos</button>
+
+            <!-- 4. Goals Scored & Conceded Matrix -->
+            <div class="footy-stat-card">
+              <div class="footy-card-header">
+                <h2 class="footy-card-title">Goals Scored &amp; Conceded Matrix</h2>
+              </div>
+              <div class="footy-goals-matrix-wrap" id="footyGoalsMatrixWrap"></div>
+            </div>
+
+            <!-- 5. ONE Sure Prediction Section (Faithful to Platform Logic) -->
+            <div class="footy-stat-card" id="footySurePickSection">
+              <div class="footy-card-header">
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                  <span style="font-size:1.15rem;">🎯</span>
+                  <h2 class="footy-card-title">Primary Algorithmic Sure Prediction</h2>
+                </div>
+                <span class="badge-sure-pick">Single Top Probability Pick</span>
+              </div>
+              <div id="analyticsSurePickContainer">
+                <!-- Dynamically populated with ONE sure prediction card: pick title, @odds, likelihood %, value edge, recommended Kelly stake, and Add to Bet Slip button -->
+              </div>
+            </div>
+
+            <!-- 6. SECTION 2: TECHNICAL ALGORITHMIC AUDIT — WHY THIS PREDICTION WAS PICKED -->
+            <div class="footy-stat-card footy-why-audit-card" id="footyWhyAuditSection">
+              <div class="why-audit-header">
+                <div class="why-badge-pill">TECHNICAL AUDIT</div>
+                <h2 class="why-audit-title">Why This Prediction Was Picked (Algorithmic Rationale)</h2>
+                <p class="why-audit-subtitle">Comprehensive mathematical justification across expected goals (xG), probability pricing, capital sizing, and all 33 predictive models.</p>
+              </div>
+
+              <!-- 3 Why Pillars: Why Winner, Why Odds/Market, Why Stake -->
+              <div class="why-pillars-grid">
+                <div class="why-pillar-card">
+                  <div class="why-pillar-num">01</div>
+                  <div class="why-pillar-icon">⚽</div>
+                  <h3 class="why-pillar-title">Why This Winner Was Picked</h3>
+                  <p class="why-pillar-desc" id="whyWinnerDesc">
+                    Bivariate Poisson simulation calculates expected attacking output against opponent defensive concession rate, factoring in recent form streaks.
+                  </p>
+                </div>
+                <div class="why-pillar-card">
+                  <div class="why-pillar-num">02</div>
+                  <div class="why-pillar-icon">📈</div>
+                  <h3 class="why-pillar-title">Why This Specific Odd &amp; Market</h3>
+                  <p class="why-pillar-desc" id="whyOddsDesc">
+                    The algorithmic probability exceeds the bookmaker implied break-even price by a positive mathematical value edge (minimum +4.0% floor), creating long-term positive expectancy.
+                  </p>
+                </div>
+                <div class="why-pillar-card">
+                  <div class="why-pillar-num">03</div>
+                  <div class="why-pillar-icon">🛡️</div>
+                  <h3 class="why-pillar-title">Why This Recommended Stake</h3>
+                  <p class="why-pillar-desc" id="whyStakeDesc">
+                    Derived strictly via fractional Kelly Criterion sizing to maximize exponential bankroll growth while providing full defense against drawdowns.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Full 33 Endpoints Technical Breakdown Table -->
+              <div class="why-endpoints-matrix-wrap">
+                <div class="why-matrix-title-row">
+                  <div>
+                    <h3 class="why-matrix-title">All 33 Quantitative Endpoints Audit</h3>
+                    <p class="why-matrix-sub">Technical comparison of model probabilities, fair pricing, bookmaker odds, value edge, and decision factors.</p>
+                  </div>
+                  <div class="why-category-filter-pills" id="auditCategoryPills">
+                    <button type="button" class="why-cat-pill active" data-cat="all">All 33 Models</button>
+                    <button type="button" class="why-cat-pill" data-cat="outcomes">Match Winners</button>
+                    <button type="button" class="why-cat-pill" data-cat="goals">Goals &amp; Totals</button>
+                    <button type="button" class="why-cat-pill" data-cat="value">Value Only</button>
+                  </div>
+                </div>
+
+                <div class="endpoints-audit-table" id="endpointsAuditTable">
+                  <!-- Dynamically rendered rows showing market, odds, prob, implied, edge, badge, and technical reason -->
+                </div>
+              </div>
             </div>
           </div>
-          <div class="endpoints-audit-table" id="endpointsAuditTable"></div>
+
+          <!-- Right Column: Authentic League Standings Widget (~38%) -->
+          <div class="footy-sidebar-col">
+            <div class="footy-stat-card footy-standings-card">
+              <div class="footy-card-header standings-header">
+                <span class="trophy-icon">🏆</span>
+                <h3 class="footy-card-title" id="footyStandingsTitle">League Standings Table</h3>
+              </div>
+              <div class="footy-standings-table-wrap" id="footyStandingsTableWrap">
+                <!-- Dynamically populated league table with Home & Away highlighted! -->
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -728,7 +867,7 @@
         <div class="screener-dribbble-card">
           <div class="screener-banner-header">
             <div>
-              <span class="pill-badge-cyan">AI Market Radar</span>
+              <span class="pill-badge-cyan">Quantitative Market Radar</span>
               <h2>Side-Agnostic Value Screener</h2>
               <p>Evaluates both home and away sides without bias to detect mispriced lines.</p>
             </div>
@@ -804,123 +943,141 @@
         </div>
       </section>
 
-      <!-- View 7: Dedicated Profile Screen (Screen 3 Template) -->
+      <!-- View 7: Dedicated Edit Profile & Capital Management Screen -->
       <section id="view-profile" class="view-panel">
         <div class="profile-view-screen">
           <div class="profile-screen-header">
-            <button class="btn-profile-back" id="btnProfileBack" title="Back to Calendar Slate">←</button>
-            <h2 class="profile-screen-title">Profile</h2>
-            <button class="btn-profile-info" id="btnProfileInfo" title="Model Methodology Info">ⓘ</button>
-          </div>
-
-          <!-- User Card -->
-          <div class="profile-user-card">
-            <div class="profile-user-main">
-              <div class="profile-avatar-big" id="profileBigAvatar">JJ</div>
-              <div class="profile-names-group">
-                <h3 id="profileBigName">Jonathan John</h3>
-                <span id="profileBigHandle">@Jonjohn · Pro Subscriber</span>
-              </div>
-            </div>
-            <button class="btn-edit-avatar" id="btnEditProfile" title="Edit Profile Details">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            <button class="btn-profile-back" id="btnProfileBack" type="button" title="Back to Matches">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              <span>Back to Matches</span>
             </button>
+            <h2 class="profile-screen-title">Account Profile &amp; Capital Management</h2>
+            <div style="width: 100px;"></div>
           </div>
 
-          <!-- 3 Stat Blocks (Screen 3) -->
-          <div class="profile-stats-grid">
-            <div class="stat-box-card primary">
-              <div class="stat-box-label">Post Views</div>
-              <div class="stat-box-value" id="statPostViews">50k</div>
-            </div>
-            <div class="stat-box-card">
-              <div class="stat-box-label">Items Found</div>
-              <div class="stat-box-value" id="statItemsFound">30</div>
-            </div>
-            <div class="stat-box-card">
-              <div class="stat-box-label">My Games</div>
-              <div class="stat-box-value" id="statMyGames">15</div>
-            </div>
-          </div>
-
-          <!-- Preferences & Settings List with Chevrons (Screen 3) -->
-          <div class="profile-settings-list">
-            <div class="setting-item-row" id="rowSettingTheme">
-              <div class="setting-left">
-                <div class="setting-icon">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><path d="M12 3v18c4.97 0 9-4.03 9-9s-4.03-9-9-9z" fill="currentColor"></path></svg>
+          <div class="profile-content-grid">
+            <!-- Left Column: User Card & Profile Edit -->
+            <div class="profile-main-col">
+              <!-- User Profile Card with Avatar Upload -->
+              <div class="profile-user-card-v2">
+                <div class="profile-avatar-wrap">
+                  <div class="profile-avatar-big" id="profileBigAvatar">
+                    <span id="profileAvatarText">JJ</span>
+                    <img id="profileAvatarImg" src="" alt="Avatar" style="display:none; width:100%; height:100%; object-fit:cover; border-radius:50%;">
+                  </div>
+                  <label class="btn-avatar-upload" for="inputProfileAvatarFile" title="Upload custom profile picture">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                    <span>Change Photo</span>
+                    <input type="file" id="inputProfileAvatarFile" accept="image/*" style="display:none;">
+                  </label>
                 </div>
-                <div>
-                  <div class="setting-title">Theme</div>
-                  <div class="setting-sub">Dark Teal Platform (Active)</div>
+                <div class="profile-user-info-text">
+                  <h3 id="profileBigName">Jonathan John</h3>
+                  <span id="profileBigHandle">@demopro · Pro Subscriber</span>
+                  <span class="profile-tier-badge">VERIFIED QUANT TRADER</span>
                 </div>
               </div>
-              <div class="setting-chevron">›</div>
-            </div>
 
-            <div class="setting-item-row" id="rowSettingLanguage">
-              <div class="setting-left">
-                <div class="setting-icon">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+              <!-- Functional Edit Profile Details Form -->
+              <div class="profile-section-card">
+                <div class="profile-section-head">
+                  <div class="prof-sec-icon">👤</div>
+                  <div>
+                    <h3>Edit Profile Details</h3>
+                    <p>Update your personal display name, username, and contact phone.</p>
+                  </div>
                 </div>
-                <div>
-                  <div class="setting-title">Language &amp; Tone</div>
-                  <div class="setting-sub" id="profileSettingTone">Professional (Naija Banter available)</div>
+                <form id="formEditProfileDetails" class="profile-form">
+                  <div class="prof-form-row">
+                    <label for="profInputUsername">Username</label>
+                    <input type="text" id="profInputUsername" class="clean-input" value="demopro" required>
+                  </div>
+                  <div class="prof-form-row">
+                    <label for="profInputPhone">Phone Number (SMS Notifications &amp; OTP)</label>
+                    <input type="tel" id="profInputPhone" class="clean-input" value="08034567890" required>
+                  </div>
+                  <div class="prof-form-row">
+                    <label for="profInputEmail">Email Address (Optional)</label>
+                    <input type="email" id="profInputEmail" class="clean-input" value="jonathan@sportymill.com">
+                  </div>
+                  <button type="submit" class="btn-pill-dark btn-save-profile" id="btnSaveProfile">Save Profile Changes →</button>
+                </form>
+              </div>
+
+              <!-- Functional Password Reset via SMS OTP -->
+              <div class="profile-section-card">
+                <div class="profile-section-head">
+                  <div class="prof-sec-icon">🔐</div>
+                  <div>
+                    <h3>Security &amp; SMS OTP Password Reset</h3>
+                    <p>Reset or update your account password using instant SMS OTP verification.</p>
+                  </div>
+                </div>
+                <div class="profile-otp-flow">
+                  <div class="otp-action-row">
+                    <div class="otp-phone-display">
+                      <span class="otp-phone-lbl">Registered Phone:</span>
+                      <strong id="profOtpTargetPhone">08034567890</strong>
+                    </div>
+                    <button type="button" class="btn-pill-dark" id="btnProfSendOtp">Send 6-Digit SMS OTP</button>
+                  </div>
+                  <div id="profOtpSuccessBanner" class="auth-alert-banner success" style="display:none; margin: 0.8rem 0;"></div>
+                  <div class="prof-otp-fields" id="profOtpFields" style="margin-top: 1rem;">
+                    <div class="prof-form-row">
+                      <label for="profOtpCode">Enter 6-Digit OTP</label>
+                      <input type="text" id="profOtpCode" class="clean-input font-mono" placeholder="123456" maxlength="6">
+                    </div>
+                    <div class="prof-form-row">
+                      <label for="profNewPass">New Password</label>
+                      <input type="password" id="profNewPass" class="clean-input" placeholder="At least 6 characters">
+                    </div>
+                    <div class="prof-form-row">
+                      <label for="profConfirmPass">Confirm New Password</label>
+                      <input type="password" id="profConfirmPass" class="clean-input" placeholder="Repeat new password">
+                    </div>
+                    <button type="button" class="btn-pill-dark" id="btnProfUpdatePassword" style="width:100%;">Verify OTP &amp; Update Password →</button>
+                  </div>
                 </div>
               </div>
-              <div class="setting-chevron">›</div>
             </div>
 
-            <div class="setting-item-row" id="rowSettingStartup">
-              <div class="setting-left">
-                <div class="setting-icon">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+            <!-- Right Column: Bankroll Allocation & Capital Management Card -->
+            <div class="profile-side-col">
+              <div class="profile-bankroll-card">
+                <div class="bankroll-card-header">
+                  <div class="bankroll-icon-badge">⚖️</div>
+                  <div>
+                    <h3 class="bankroll-card-title">Bankroll Allocation &amp; Capital Management</h3>
+                    <p class="bankroll-card-subtitle">Kelly Criterion fractional capital protection guidelines.</p>
+                  </div>
                 </div>
-                <div>
-                  <div class="setting-title">Startup Page</div>
-                  <div class="setting-sub">Calendar Slate &amp; 33 Markets</div>
-                </div>
-              </div>
-              <div class="setting-chevron">›</div>
-            </div>
 
-            <div class="setting-item-row" id="rowSettingCurrency">
-              <div class="setting-left">
-                <div class="setting-icon">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2"></circle></svg>
+                <div class="bankroll-main-display">
+                  <span class="bankroll-stat-lbl">Total Liquid Bankroll</span>
+                  <div class="bankroll-stat-amount" id="profileBankrollDisplay">₦1,000,000</div>
+                  <div class="bankroll-stat-sub">Managed under 0.25 Fractional Kelly Criterion</div>
                 </div>
-                <div>
-                  <div class="setting-title">Monetary Unit</div>
-                  <div class="setting-sub">Nigerian Naira (₦ NGN)</div>
-                </div>
-              </div>
-              <div class="setting-chevron">›</div>
-            </div>
 
-            <div class="setting-item-row" id="rowSettingSync">
-              <div class="setting-left">
-                <div class="setting-icon">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                <div class="bankroll-guidelines-box">
+                  <div class="bankroll-rule-item">
+                    <div class="rule-title">Max Allocation Per Bet</div>
+                    <div class="rule-body"><strong>5.0% maximum cap (₦50,000)</strong> prevents catastrophic drawdown.</div>
+                  </div>
+                  <div class="bankroll-rule-item">
+                    <div class="rule-title">Compounding Edge</div>
+                    <div class="rule-body">Stakes dynamically expand as wallet grows; contract during drawdowns.</div>
+                  </div>
                 </div>
-                <div>
-                  <div class="setting-title">TV Provider &amp; Live Ingestion</div>
-                  <div class="setting-sub">API-Sports Live Feed (Active to 2027)</div>
-                </div>
-              </div>
-              <div class="setting-chevron">›</div>
-            </div>
 
-            <div class="setting-item-row" id="rowSettingAuth">
-              <div class="setting-left">
-                <div class="setting-icon">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                </div>
-                <div>
-                  <div class="setting-title">Security &amp; SMS OTP</div>
-                  <div class="setting-sub">Reset Password &amp; Phone Credentials</div>
+                <!-- Custom Bankroll Setting -->
+                <div class="bankroll-custom-setting">
+                  <label for="inputCustomLiquidBankroll">Set Liquid Bankroll Capital (₦)</label>
+                  <div class="custom-bankroll-input-wrap">
+                    <input type="number" id="inputCustomLiquidBankroll" class="clean-input font-mono" value="1000000" min="5000" step="10000">
+                    <button type="button" class="btn-pill-dark" id="btnSaveCustomBankroll">Save Bankroll</button>
+                  </div>
                 </div>
               </div>
-              <div class="setting-chevron">›</div>
             </div>
           </div>
         </div>
@@ -934,36 +1091,36 @@
           <!-- Hero Section -->
           <div class="about-hero-card">
             <div class="about-hero-badge-row">
-              <span class="about-badge-pill">QUANTITATIVE BETTING ARCHITECTURE</span>
+              <span class="about-badge-pill">SMART FOOTBALL PREDICTION SYSTEM</span>
               <span class="about-badge-status">
                 <span style="background:#10b981; width:7px; height:7px; border-radius:50%; display:inline-block; margin-right:4px;"></span>
-                MODEL ENGINE V4.2 ACTIVE
+                MATCH ENGINE V4.2 ACTIVE
               </span>
             </div>
             <h1 class="about-hero-title">About Sporty<span class="logo-brand-accent">Mill</span></h1>
             <p class="about-hero-lead">
-              SportyMill is an institutional-grade quantitative sports analytics platform designed to solve the foundational flaw in sports betting: the bookmaker overround and emotional tipster speculation.
+              SportyMill is built for football lovers and smart bettors who want reliable match tips, accurate goal stats, and real value on their bet slips without relying on guesswork or emotional tipsters.
             </p>
             <div class="about-metrics-grid">
               <div class="about-metric-card">
-                <div class="about-metric-num">10,000</div>
-                <div class="about-metric-label">Monte Carlo Simulations</div>
-                <div class="about-metric-sub">Bivariate Poisson iterations per match</div>
+                <div class="about-metric-num">10,000+</div>
+                <div class="about-metric-label">Head-to-Head Matches</div>
+                <div class="about-metric-sub">Analyzed across all major football leagues</div>
               </div>
               <div class="about-metric-card">
                 <div class="about-metric-num">33</div>
-                <div class="about-metric-label">Algorithmic Endpoints</div>
-                <div class="about-metric-sub">Covering all 6 core football markets</div>
+                <div class="about-metric-label">Betting Markets</div>
+                <div class="about-metric-sub">From Home Win to Over/Under, BTTS &amp; Combos</div>
               </div>
               <div class="about-metric-card">
-                <div class="about-metric-num">+EV</div>
-                <div class="about-metric-label">Positive Expectancy Filter</div>
-                <div class="about-metric-sub">Only edges exceeding bookie margin</div>
+                <div class="about-metric-num">+EV Edge</div>
+                <div class="about-metric-label">High-Value Odds</div>
+                <div class="about-metric-sub">Only selections that beat bookmaker pricing</div>
               </div>
               <div class="about-metric-card">
-                <div class="about-metric-num">0.25x</div>
-                <div class="about-metric-label">Fractional Kelly Staking</div>
-                <div class="about-metric-sub">Mathematical bankroll preservation</div>
+                <div class="about-metric-num">Safe Stakes</div>
+                <div class="about-metric-label">Recommended Staking</div>
+                <div class="about-metric-sub">Protect your bankroll on every ticket</div>
               </div>
             </div>
           </div>
@@ -971,64 +1128,64 @@
           <!-- Section: The Problem & The Solution -->
           <div class="about-grid-two-col">
             <div class="about-card">
-              <div class="about-card-tag red">THE TRADITIONAL GAMBLING TRAP</div>
-              <h3 class="about-card-heading">Why 96% of Sports Bettors Lose</h3>
+              <div class="about-card-tag red">THE COMMON BETTING TRAP</div>
+              <h3 class="about-card-heading">Why Most Bettors Lose Money</h3>
               <p class="about-card-text">
-                Traditional bettors rely on narrative, subjective intuition, television punditry, and "gut feel." Bookmakers exploit this psychological bias by baking in a <strong>5% to 12% overround (vig)</strong> across all markets. Without a verified mathematical edge, placing random bets against an overround mathematically guarantees long-term bankroll destruction.
+                Most fans bet with emotion—backing their favorite clubs, chasing long accumulator slips, or following hyped social media tipsters. Bookmakers profit from this by baking in high margins. Betting randomly without checking team form or odds value makes it almost impossible to stay ahead.
               </p>
               <ul class="about-checklist negative">
-                <li><span>&times;</span> Emotional attachment and cognitive bias towards big clubs</li>
-                <li><span>&times;</span> Fixed staking ignoring probability distributions</li>
-                <li><span>&times;</span> Paying bookmaker margin on negative expected value (-EV) wagers</li>
-                <li><span>&times;</span> Untracked betting without variance modeling</li>
+                <li><span>&times;</span> Emotional bets placed on big-name clubs regardless of form</li>
+                <li><span>&times;</span> Staking huge amounts on risky long-shot accumulators</li>
+                <li><span>&times;</span> Accepting low bookmaker odds with zero real betting value</li>
+                <li><span>&times;</span> No staking discipline or bankroll protection</li>
               </ul>
             </div>
 
             <div class="about-card">
               <div class="about-card-tag green">THE SPORTYMILL ADVANTAGE</div>
-              <h3 class="about-card-heading">How Math Reverses The Edge</h3>
+              <h3 class="about-card-heading">How Smart Stats Give You The Edge</h3>
               <p class="about-card-text">
-                SportyMill treats football matches as dynamic statistical distributions. By modeling independent attack intensities and defensive coefficients derived from rolling expected goals (xG), we compute true fair prices. When bookmaker mispricing creates positive expected value (+EV), our screener triggers high-conviction alerts.
+                SportyMill does the heavy lifting for you before kickoff. We analyze each team's recent home and away scoring form, defensive records, and head-to-head history to find sure bankers and games where the bookmaker odds are in your favor.
               </p>
               <ul class="about-checklist positive">
-                <li><span>&check;</span> Strict +EV thresholds where model expectancy exceeds price</li>
-                <li><span>&check;</span> Fractional Kelly sizing to maximize compound capital growth</li>
-                <li><span>&check;</span> 33 simultaneous prediction endpoints across every fixture</li>
-                <li><span>&check;</span> Real-time data synchronization with official football API feeds</li>
+                <li><span>&check;</span> High-probability sure bankers with 80%+ win likelihood</li>
+                <li><span>&check;</span> Recommended safe stakes tailored to every game's confidence</li>
+                <li><span>&check;</span> 33 verified betting markets covered for every single match</li>
+                <li><span>&check;</span> Live team lineups, injuries, and real-time match stats</li>
               </ul>
             </div>
           </div>
 
           <!-- Section: The 3 Analytical Pillars -->
           <div class="about-card full-width">
-            <div class="about-card-tag cyan">MATHEMATICAL FOUNDATION</div>
-            <h3 class="about-card-heading">The Three Pillars of the SportyMill Engine</h3>
+            <div class="about-card-tag cyan">HOW IT WORKS</div>
+            <h3 class="about-card-heading">The Three Pillars of SportyMill Predictions</h3>
             <div class="pillars-container">
               <div class="pillar-box">
                 <div class="pillar-num">01</div>
-                <h4 class="pillar-title">Bivariate Poisson Simulation</h4>
+                <h4 class="pillar-title">Team Form &amp; Goal Trends</h4>
                 <p class="pillar-desc">
-                  Football is a low-scoring sport that conforms strictly to Poisson point processes. SportyMill calculates independent scoring parameters &lambda;<sub>home</sub> and &lambda;<sub>away</sub> using form-weighted offensive and defensive ratings. We then run 10,000 Monte Carlo match simulations to establish true joint probability score matrices from 0-0 through 7-5.
+                  Football is decided by goal scoring and defensive strength. We calculate how many goals both teams are expected to score based on recent attacking power, defensive leaks, and home pitch advantage to find the most probable match outcomes.
                 </p>
-                <div class="pillar-formula">P(X = k) = (&lambda;<sup>k</sup> &times; e<sup>-&lambda;</sup>) / k!</div>
+                <div class="pillar-formula">Home &amp; Away Goal Expectancy &bull; Head-to-Head Stats</div>
               </div>
 
               <div class="pillar-box">
                 <div class="pillar-num">02</div>
-                <h4 class="pillar-title">Expected Value (+EV) Filtering</h4>
+                <h4 class="pillar-title">Value Odds &amp; Edge Finder</h4>
                 <p class="pillar-desc">
-                  A bet is only qualified when the model's calculated win probability multiplied by the decimal odds exceeds 1.0 after removing the bookmaker's margin. This guarantees that over large sample sizes of hundreds of selections, the law of large numbers operates in your favor rather than the bookmaker's.
+                  A prediction is only recommended when the team's true chance of winning is high and the bookmaker's odds offer real value. This ensures you only bet on games that offer the best possible return on your money.
                 </p>
-                <div class="pillar-formula">EV = (Model_Probability &times; Bookmaker_Odds) - 1.0</div>
+                <div class="pillar-formula">High Win Likelihood &times; Best Value Odds</div>
               </div>
 
               <div class="pillar-box">
                 <div class="pillar-num">03</div>
-                <h4 class="pillar-title">Fractional Kelly Bankroll Engine</h4>
+                <h4 class="pillar-title">Safe Staking &amp; Bankroll Guide</h4>
                 <p class="pillar-desc">
-                  Even with a proven mathematical edge, bad bankroll management leads to ruin. SportyMill implements the Kelly Criterion dampened to a conservative 0.25x fraction. This mathematically sizes each wager in proportion to its edge, optimizing geometric growth while capping peak drawdown swings.
+                  Winning long-term requires smart money management. SportyMill suggests safe, sensible stake ranges for each game so you never risk too much on one ticket and keep your betting budget safe.
                 </p>
-                <div class="pillar-formula">f* = 0.25 &times; [(b &times; p - q) / b]</div>
+                <div class="pillar-formula">Recommended Safe Stake: ₦1,000 &ndash; ₦5,000</div>
               </div>
             </div>
           </div>
@@ -1177,7 +1334,698 @@
         </div>
       </section>
 
+      <!-- ===================================================================
+           VIEW: DEDICATED TIPALGO QUANT DASHBOARD (Mockup & Screen 1-4 Faithful)
+           =================================================================== -->
+      <section id="view-dashboard" class="view-panel">
+        <div class="dash-shell">
+          <!-- Desktop Sidebar Navigation (Faithful to Mockup) -->
+          <aside class="dash-sidebar" id="dashSidebar">
+            <div class="dash-sidebar-header">
+              <div class="dash-sidebar-brand">
+                <div class="dash-logo-icon">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
+                    <rect x="2" y="2" width="20" height="20" rx="5" fill="#bef264"/>
+                    <path d="M7 16V8l5 4 5-4v8" stroke="#0a0e14" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="dash-brand-meta">
+                  <span class="dash-title-brand">TipAlgo <span class="dash-ver-tag">v21</span></span>
+                  <span class="dash-subtitle-brand">QUANT PREDICTOR</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sidebar Navigation Links -->
+            <nav class="dash-menu-nav">
+              <button type="button" class="dash-menu-item active" data-dash-pane="dash-pane-overview" id="btnDashNavOverview">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                <span>Dashboard</span>
+              </button>
+              <button type="button" class="dash-menu-item" data-dash-pane="dash-pane-screener" id="btnDashNavScreener">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <span>Markets</span>
+                <span class="dash-chip-lime">HOT</span>
+              </button>
+              <button type="button" class="dash-menu-item" data-dash-pane="dash-pane-batch" id="btnDashNavBatch">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                <span>Match Scan</span>
+              </button>
+              <button type="button" class="dash-menu-item" data-dash-pane="dash-pane-accu" id="btnDashNavAccu">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                <span>Accu-Forge</span>
+              </button>
+              <button type="button" class="dash-menu-item" data-dash-pane="dash-pane-account" id="btnDashNavAccount">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <span>Account</span>
+              </button>
+              <button type="button" class="dash-menu-item dash-admin-nav" id="btnDashNavAdmin" data-dash-pane="dash-pane-admin" style="display:none;">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                <span>Admin</span>
+                <span class="dash-chip-amber">SECURE</span>
+              </button>
+            </nav>
+
+            <div class="dash-sidebar-bottom">
+              <p class="dash-disclaimer">Betting involves risk. Tips are probabilistic, not guaranteed.</p>
+            </div>
+          </aside>
+
+          <!-- Main Dashboard Stage -->
+          <div class="dash-stage">
+            <!-- Mobile Sticky Tab Bar (Transforms Sidebar into Bottom/Top Tabs on Phone) -->
+            <div class="dash-mobile-tabs-bar" id="dashMobileTabsBar">
+              <button type="button" class="dash-m-tab-btn active" data-dash-pane="dash-pane-overview">
+                <span>Dashboard</span>
+              </button>
+              <button type="button" class="dash-m-tab-btn" data-dash-pane="dash-pane-screener">
+                <span>Markets</span>
+              </button>
+              <button type="button" class="dash-m-tab-btn" data-dash-pane="dash-pane-accu">
+                <span>Accu-Forge</span>
+              </button>
+              <button type="button" class="dash-m-tab-btn" data-dash-pane="dash-pane-batch">
+                <span>Scan</span>
+              </button>
+              <button type="button" class="dash-m-tab-btn" data-dash-pane="dash-pane-account">
+                <span>Account</span>
+              </button>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- PANE 1: DASHBOARD OVERVIEW & STATISTICS    -->
+            <!-- ========================================== -->
+            <div class="dash-pane active" id="dash-pane-overview">
+              <div class="dash-pane-header">
+                <div>
+                  <h1 class="dash-pane-title">Quantitative Model Telemetry</h1>
+                  <p class="dash-pane-subtitle">Live system statistics, playable match counts, and all-time predictive analytics.</p>
+                </div>
+                <div class="dash-header-actions">
+                  <button type="button" class="btn-dash-lime btn-sm" id="btnDashQuickScreener">Run Screener →</button>
+                </div>
+              </div>
+
+              <!-- Top Telemetry Cards Grid -->
+              <div class="dash-stats-grid">
+                <div class="dash-stat-card">
+                  <div class="dash-stat-top">
+                    <span class="dash-stat-lbl">Playable Matches Today</span>
+                    <span class="dash-stat-badge live">● LIVE</span>
+                  </div>
+                  <div class="dash-stat-number" id="dashStatPlayableToday">--</div>
+                  <div class="dash-stat-footer">Positive +EV edge >= 4% across leagues</div>
+                </div>
+
+                <div class="dash-stat-card">
+                  <div class="dash-stat-top">
+                    <span class="dash-stat-lbl">Total Predictions All-Time</span>
+                    <span class="dash-stat-badge gold">18 LEAGUES</span>
+                  </div>
+                  <div class="dash-stat-number" id="dashStatTotalPredictions">--</div>
+                  <div class="dash-stat-footer">Logged &amp; tracked across global football</div>
+                </div>
+
+                <div class="dash-stat-card">
+                  <div class="dash-stat-top">
+                    <span class="dash-stat-lbl">Model Precision &amp; Win Rate</span>
+                    <span class="dash-stat-badge green">78.4%</span>
+                  </div>
+                  <div class="dash-stat-number" id="dashStatPrecision">78.4%</div>
+                  <div class="dash-stat-footer">Verified Kelly criterion backtest rate</div>
+                </div>
+
+                <div class="dash-stat-card">
+                  <div class="dash-stat-top">
+                    <span class="dash-stat-lbl">Active Architecture</span>
+                    <span class="dash-stat-badge cyan">LOGISTIC</span>
+                  </div>
+                  <div class="dash-stat-number" id="dashStatModelArch">v2.1 ML</div>
+                  <div class="dash-stat-footer">Side-agnostic Poisson &amp; ML Ensemble</div>
+                </div>
+              </div>
+
+              <!-- Quick Launchpad Banners -->
+              <div class="dash-launchpad-row">
+                <div class="dash-launchpad-card" data-dash-target="dash-pane-screener">
+                  <div class="launch-icon">🎯</div>
+                  <div class="launch-content">
+                    <h3>Value Screener</h3>
+                    <p>Detect mispriced lines and strong sides with asymmetric +EV edge.</p>
+                  </div>
+                  <span class="launch-arrow">→</span>
+                </div>
+                <div class="dash-launchpad-card" data-dash-target="dash-pane-accu">
+                  <div class="launch-icon">⚡</div>
+                  <div class="launch-content">
+                    <h3>Accu-Forge Engine</h3>
+                    <p>Assemble 3-leg to 5-leg parlay tickets with target odds and verified probabilities.</p>
+                  </div>
+                  <span class="launch-arrow">→</span>
+                </div>
+                <div class="dash-launchpad-card" data-dash-target="dash-pane-batch">
+                  <div class="launch-icon">📊</div>
+                  <div class="launch-content">
+                    <h3>Batch Match Scanner</h3>
+                    <p>Simulate upcoming fixture cards simultaneously and find bankers.</p>
+                  </div>
+                  <span class="launch-arrow">→</span>
+                </div>
+              </div>
+
+              <!-- Today's Top Playable Candidates Table / Card Grid -->
+              <div class="dash-section-box">
+                <div class="dash-box-head">
+                  <div>
+                    <h3 class="dash-box-title">Today's Model-Qualified Fixtures</h3>
+                    <p class="dash-box-sub">Upcoming fixtures available in system database. Tap any match to evaluate in Value Screener.</p>
+                  </div>
+                  <button type="button" class="btn-dash-outline btn-sm" id="btnRefreshDashStats">↻ Refresh Stats</button>
+                </div>
+                <div class="dash-fixtures-list" id="dashFixturesList">
+                  <div class="dash-loading-card">Loading live daily fixtures and system telemetry...</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- PANE 2: VALUE SCREENER (Screenshots 1 & 2) -->
+            <!-- ========================================== -->
+            <div class="dash-pane" id="dash-pane-screener">
+              <div class="dash-pane-header">
+                <div>
+                  <h1 class="dash-pane-title">Value Screener</h1>
+                  <p class="dash-pane-subtitle">Side-agnostic quantitative model identifying high-edge value picks.</p>
+                </div>
+              </div>
+
+              <div class="screener-two-col-layout" id="screenerTwoColLayout">
+                <!-- Left: Screener Form Card -->
+                <div class="screener-form-card">
+                  <div class="card-head-compact">
+                    <h2>Value Screener</h2>
+                    <p>Finds the strong side (home or away) at any price.</p>
+                  </div>
+
+                  <form id="formValueScreener" class="screener-form-body">
+                    <div class="dash-form-row two-col">
+                      <div class="dash-field-group">
+                        <label for="screenerInputHome">Home team</label>
+                        <input type="text" id="screenerInputHome" class="dash-input" value="Arsenal" required>
+                      </div>
+                      <div class="dash-field-group">
+                        <label for="screenerInputAway">Away team</label>
+                        <input type="text" id="screenerInputAway" class="dash-input" value="Brentford" required>
+                      </div>
+                    </div>
+
+                    <div class="dash-field-group">
+                      <label for="screenerSelectLeague">League</label>
+                      <select id="screenerSelectLeague" class="dash-select">
+                        <option value="PL" selected>Premier League (PL)</option>
+                        <option value="PD">La Liga (PD)</option>
+                        <option value="SA">Serie A (SA)</option>
+                        <option value="BL1">Bundesliga (BL1)</option>
+                        <option value="FL1">Ligue 1 (FL1)</option>
+                        <option value="DED">Eredivisie (DED)</option>
+                        <option value="CL">UEFA Champions League (CL)</option>
+                        <option value="UEL">UEFA Europa League (UEL)</option>
+                      </select>
+                    </div>
+
+                    <div class="dash-form-row three-col">
+                      <div class="dash-field-group">
+                        <label for="screenerInputHomeOdds">Home odds</label>
+                        <input type="number" id="screenerInputHomeOdds" class="dash-input" value="1.85" step="0.01" min="1.01" inputmode="decimal" required>
+                      </div>
+                      <div class="dash-field-group">
+                        <label for="screenerInputDrawOdds">Draw odds</label>
+                        <input type="number" id="screenerInputDrawOdds" class="dash-input" value="3.60" step="0.01" min="1.01" inputmode="decimal" required>
+                      </div>
+                      <div class="dash-field-group">
+                        <label for="screenerInputAwayOdds">Away odds</label>
+                        <input type="number" id="screenerInputAwayOdds" class="dash-input" value="4.40" step="0.01" min="1.01" inputmode="decimal" required>
+                      </div>
+                    </div>
+
+                    <div class="dash-form-row two-col">
+                      <div class="dash-field-group">
+                        <div class="dash-lbl-with-help">
+                          <label for="screenerInputMinEdge">Min edge (0 - 20%)</label>
+                          <button type="button" class="dash-help-trigger" data-tip="edge" title="Edge Explanation">?</button>
+                        </div>
+                        <input type="text" id="screenerInputMinEdge" class="dash-input" value="4%" inputmode="decimal">
+                      </div>
+                      <div class="dash-field-group">
+                        <div class="dash-lbl-with-help">
+                          <label for="screenerInputBankroll">Bankroll (optional)</label>
+                          <button type="button" class="dash-help-trigger" data-tip="bankroll" title="Kelly Staking">?</button>
+                        </div>
+                        <div class="dash-input-prefix-box">
+                          <span class="dash-prefix">₦</span>
+                          <input type="text" id="screenerInputBankroll" class="dash-input prefix-padding" value="1,000,000" inputmode="numeric">
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Presets strip -->
+                    <div class="screener-presets-row">
+                      <span class="presets-lbl">Quick Presets:</span>
+                      <button type="button" class="btn-preset-chip" data-home="Arsenal" data-away="Brentford" data-league="PL" data-h="1.85" data-d="3.60" data-a="4.40">Arsenal vs Brentford</button>
+                      <button type="button" class="btn-preset-chip" data-home="Inter" data-away="Genoa" data-league="SA" data-h="1.60" data-d="4.10" data-a="5.75">Inter vs Genoa</button>
+                      <button type="button" class="btn-preset-chip" data-home="Ajax" data-away="Utrecht" data-league="DED" data-h="1.73" data-d="3.90" data-a="4.80">Ajax vs Utrecht</button>
+                    </div>
+
+                    <button type="button" class="btn-dash-lime btn-block" id="btnGetTip">Get tip</button>
+
+                    <!-- Real States Container: Loading, 401, 403, 429, errors -->
+                    <div id="screenerStatusState" class="dash-state-msg">
+                      <span>Loading, 401, 403 (renew), 429 and error states appear here.</span>
+                    </div>
+                  </form>
+                </div>
+
+                <!-- Right: Result Card (Faithful to Screenshot 1 & 2) -->
+                <div class="screener-result-card" id="screenerResultCard">
+                  <div class="result-card-inner">
+                    <!-- Top Match Title & Badges -->
+                    <div class="result-header-row">
+                      <div>
+                        <span class="result-fixture-tag" id="resMatchFixture">Arsenal vs Brentford</span>
+                        <h2 class="result-selection-title" id="resSelectionTitle">Arsenal Win (Value)</h2>
+                        <p class="result-highlight-text" id="resHighlightText">High statistical edge detected. Strong selection.</p>
+                      </div>
+                      <div class="result-badges-col">
+                        <span class="badge-confidence very-high" id="resConfidenceBadge">VERY HIGH</span>
+                        <span class="badge-engine-pill" id="resEngineSource">value_screener_ml</span>
+                      </div>
+                    </div>
+
+                    <!-- 4-Metric Key Strip -->
+                    <div class="result-metrics-strip">
+                      <div class="metric-cell">
+                        <span class="metric-label">Probability</span>
+                        <span class="metric-val" id="resProbVal">64.2%</span>
+                      </div>
+                      <div class="metric-cell">
+                        <span class="metric-label">Edge</span>
+                        <span class="metric-val text-lime" id="resEdgeVal">+10.1%</span>
+                      </div>
+                      <div class="metric-cell">
+                        <span class="metric-label">Odds</span>
+                        <span class="metric-val" id="resOddsVal">1.85</span>
+                      </div>
+                      <div class="metric-cell">
+                        <span class="metric-label">Stake</span>
+                        <span class="metric-val" id="resStakeVal">₦24,300</span>
+                      </div>
+                    </div>
+
+                    <!-- Pattern & 1X2 Probabilities Bar -->
+                    <div class="result-pattern-box">
+                      <div class="pattern-header-line">
+                        <span class="pattern-title">Pattern: <strong id="resPatternStrength">STRONG (0.80)</strong></span>
+                      </div>
+                      <div class="prob-bar-label">1X2 probabilities</div>
+                      <div class="segmented-prob-bar">
+                        <div class="seg-home" id="segHome" style="width: 64.2%;" title="Home: 64.2%"></div>
+                        <div class="seg-draw" id="segDraw" style="width: 21.8%;" title="Draw: 21.8%"></div>
+                        <div class="seg-away" id="segAway" style="width: 14.0%;" title="Away: 14.0%"></div>
+                      </div>
+                      <div class="prob-bar-legend">
+                        <span>Home <strong id="legendHomeProb">64.2</strong></span>
+                        <span>Draw <strong id="legendDrawProb">21.8</strong></span>
+                        <span>Away <strong id="legendAwayProb">14.0</strong></span>
+                      </div>
+                    </div>
+
+                    <!-- Draw Edge / Market Warning Box -->
+                    <div class="result-warning-card" id="resWarningCard">
+                      <div class="warn-head">
+                        <span class="warn-title" id="resDrawEdgeTitle">Draw also has value (edge 4.7%)</span>
+                      </div>
+                      <p class="warn-desc" id="resMarketWarning">Market warning slot: model cautious vs market, or big underdog caution.</p>
+                    </div>
+
+                    <!-- Drivers & Risks Collapsible / Nested Grid -->
+                    <div class="result-drivers-risks-grid">
+                      <div class="intel-card drivers-card">
+                        <span class="intel-card-title">Drivers</span>
+                        <div class="intel-card-content" id="resDriversContent">
+                          Form WWLWW vs LLLWL. Edge 10.1% vs 4% threshold. No draws in last 5 for both.
+                        </div>
+                      </div>
+                      <div class="intel-card risks-card">
+                        <span class="intel-card-title">Risks</span>
+                        <div class="intel-card-content" id="resRisksContent">
+                          Early goals or red cards can shift the dynamic.
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Recent Matches Section with Responsive Phone Cards -->
+                    <div class="result-recent-matches-box">
+                      <div class="recent-matches-head">
+                        <span class="recent-title">Recent matches</span>
+                        <div class="recent-filter-tabs">
+                          <button type="button" class="recent-tab-btn active" data-filter="all">All</button>
+                          <button type="button" class="recent-tab-btn" data-filter="home">Home</button>
+                          <button type="button" class="recent-tab-btn" data-filter="away">Away</button>
+                        </div>
+                      </div>
+                      <div class="recent-matches-container" id="resRecentMatchesContainer">
+                        <!-- Desktop Table View -->
+                        <table class="recent-matches-table desktop-only">
+                          <thead>
+                            <tr>
+                              <th>Team</th>
+                              <th>Opponent</th>
+                              <th>Venue</th>
+                              <th>Score</th>
+                              <th>Result</th>
+                              <th>Date</th>
+                            </tr>
+                          </thead>
+                          <tbody id="resRecentMatchesTbody">
+                            <tr>
+                              <td>Arsenal</td>
+                              <td>Fulham</td>
+                              <td>Home</td>
+                              <td>2-0</td>
+                              <td><span class="badge-res-w">W</span></td>
+                              <td>Oct 4</td>
+                            </tr>
+                            <tr>
+                              <td>Brentford</td>
+                              <td>Spurs</td>
+                              <td>Away</td>
+                              <td>0-2</td>
+                              <td><span class="badge-res-l">L</span></td>
+                              <td>Oct 5</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                        <!-- Mobile Responsive Cards View (Phones) -->
+                        <div class="recent-matches-cards-mobile phone-only" id="resRecentMatchesMobileCards">
+                          <!-- Populated dynamically -->
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Pro Subscription Lock Overlay (For Free Users) -->
+                    <div class="pro-lock-blur-overlay" id="screenerProLockOverlay" style="display:none;">
+                      <div class="pro-lock-card">
+                        <div class="lock-icon">🔒</div>
+                        <h3>Pro Quant Model Locked</h3>
+                        <p>Upgrade to SportyMill Pro to unlock unlimited real-time side-agnostic value screening.</p>
+                        <button type="button" class="btn-dash-lime btn-open-paystack-modal">Upgrade to Pro (₦15,000/mo) →</button>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- PANE 3: ACCU-FORGE & BATCH SCAN (Mockup 3&4) -->
+            <!-- ========================================== -->
+            <div class="dash-pane" id="dash-pane-accu">
+              <div class="dash-pane-header">
+                <div>
+                  <h1 class="dash-pane-title">Accu-Forge and Batch Scan</h1>
+                  <p class="dash-pane-subtitle">Multi-leg accumulator synthesizer and full fixture slate scanner.</p>
+                </div>
+              </div>
+
+              <!-- Top KPI Metric Strip (Matches Screenshot 3) -->
+              <div class="accu-summary-strip">
+                <div class="accu-kpi-cell">
+                  <span class="accu-kpi-lbl">Target</span>
+                  <span class="accu-kpi-val" id="accuKpiTarget">5.00</span>
+                </div>
+                <div class="accu-kpi-cell">
+                  <span class="accu-kpi-lbl">Achieved</span>
+                  <span class="accu-kpi-val text-lime" id="accuKpiAchieved">5.12</span>
+                </div>
+                <div class="accu-kpi-cell">
+                  <span class="accu-kpi-lbl">Overall probability</span>
+                  <span class="accu-kpi-val" id="accuKpiProb">23.4%</span>
+                </div>
+                <div class="accu-kpi-cell">
+                  <span class="accu-kpi-lbl">Legs / scanned</span>
+                  <span class="accu-kpi-val" id="accuKpiLegsScanned">3 / 41</span>
+                </div>
+              </div>
+
+              <div class="accu-two-col-layout">
+                <!-- Left Column: Accu-Forge Form -->
+                <div class="accu-form-card">
+                  <div class="card-head-compact">
+                    <h2>Accu-Forge</h2>
+                  </div>
+
+                  <form id="formAccuForge" class="accu-form-body">
+                    <div class="dash-form-row two-col">
+                      <div class="dash-field-group">
+                        <label for="accuInputTarget">Target odds</label>
+                        <input type="number" id="accuInputTarget" class="dash-input" value="5.00" step="0.5" min="1.5" inputmode="decimal" required>
+                      </div>
+                      <div class="dash-field-group">
+                        <label for="accuInputMaxLegs">Max legs</label>
+                        <input type="number" id="accuInputMaxLegs" class="dash-input" value="4" min="2" max="10" inputmode="numeric" required>
+                      </div>
+                    </div>
+
+                    <div class="dash-form-row two-col">
+                      <div class="dash-field-group">
+                        <div class="dash-lbl-with-help">
+                          <label for="accuInputMinProb">Min probability</label>
+                          <button type="button" class="dash-help-trigger" data-tip="prob">?</button>
+                        </div>
+                        <input type="text" id="accuInputMinProb" class="dash-input" value="55%" inputmode="numeric">
+                      </div>
+                      <div class="dash-field-group">
+                        <div class="dash-lbl-with-help">
+                          <label for="accuInputMinEdge">Min edge</label>
+                          <button type="button" class="dash-help-trigger" data-tip="edge">?</button>
+                        </div>
+                        <input type="text" id="accuInputMinEdge" class="dash-input" value="1%" inputmode="decimal">
+                      </div>
+                    </div>
+
+                    <div class="dash-form-row two-col">
+                      <div class="dash-field-group">
+                        <div class="dash-lbl-with-help">
+                          <label for="accuInputTolerance">Tolerance</label>
+                          <button type="button" class="dash-help-trigger" data-tip="tolerance">?</button>
+                        </div>
+                        <input type="text" id="accuInputTolerance" class="dash-input" value="10%" inputmode="decimal">
+                      </div>
+                      <div class="dash-field-group">
+                        <div class="dash-lbl-with-help">
+                          <label for="accuInputSeed">Seed (optional)</label>
+                          <button type="button" class="dash-help-trigger" data-tip="seed">?</button>
+                        </div>
+                        <input type="number" id="accuInputSeed" class="dash-input" value="42" inputmode="numeric">
+                      </div>
+                    </div>
+
+                    <div class="dash-field-group">
+                      <div class="dash-lbl-with-help">
+                        <label for="accuSelectRandomise">Randomise candidates</label>
+                        <button type="button" class="dash-help-trigger" data-tip="randomise">?</button>
+                      </div>
+                      <select id="accuSelectRandomise" class="dash-select">
+                        <option value="false" selected>Off</option>
+                        <option value="true">On</option>
+                      </select>
+                    </div>
+
+                    <button type="button" class="btn-dash-lime btn-block" id="btnBuildAccumulator">Build accumulator</button>
+
+                    <div id="accuStatusMsg" class="dash-state-msg" style="display:none;"></div>
+                  </form>
+                </div>
+
+                <!-- Right Column: Legs Table & Cards (Matches Screenshot 3) -->
+                <div class="accu-legs-card" id="accuLegsCard">
+                  <div class="card-head-compact">
+                    <h2>Legs</h2>
+                  </div>
+
+                  <!-- Desktop Legs Table -->
+                  <div class="accu-table-wrap desktop-only">
+                    <table class="dash-legs-table">
+                      <thead>
+                        <tr>
+                          <th>Match</th>
+                          <th>Selection</th>
+                          <th>Odds</th>
+                          <th>Prob</th>
+                          <th>Edge</th>
+                        </tr>
+                      </thead>
+                      <tbody id="accuLegsTbody">
+                        <tr>
+                          <td>Arsenal vs Brentford</td>
+                          <td>Arsenal Win</td>
+                          <td>1.85</td>
+                          <td>64.2%</td>
+                          <td class="text-lime">10.1%</td>
+                        </tr>
+                        <tr>
+                          <td>Inter vs Genoa</td>
+                          <td>Inter Win</td>
+                          <td>1.60</td>
+                          <td>71.0%</td>
+                          <td class="text-lime">8.5%</td>
+                        </tr>
+                        <tr>
+                          <td>Ajax vs Utrecht</td>
+                          <td>Ajax Win</td>
+                          <td>1.73</td>
+                          <td>65.5%</td>
+                          <td class="text-lime">7.7%</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <!-- Mobile Responsive Legs Cards (Phones) -->
+                  <div class="accu-cards-wrap phone-only" id="accuLegsMobileCards">
+                    <!-- Populated dynamically -->
+                  </div>
+
+                  <!-- Action Row for Legs -->
+                  <div class="accu-legs-actions">
+                    <button type="button" class="btn-dash-outline btn-sm" id="btnCopyAccuSlip">Copy Accumulator Slip</button>
+                    <button type="button" class="btn-dash-lime btn-sm" id="btnSendAccuToBetSlip">Add to SportyBet Slip →</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Batch Scan Card Below (Matches Screenshot 3) -->
+              <div class="dash-batch-scan-section">
+                <div class="batch-section-head">
+                  <div>
+                    <h2>Batch Scan</h2>
+                    <p>Add match rows or paste CSV: teams, league, market odds. Results list each match with a tip or no tip.</p>
+                  </div>
+                  <div class="batch-head-btns">
+                    <button type="button" class="btn-dash-outline btn-sm" id="btnBatchAddMatch">+ Add match</button>
+                    <button type="button" class="btn-dash-outline btn-sm" id="btnBatchPasteCsv">Paste CSV</button>
+                    <button type="button" class="btn-dash-pill-filter active" id="btnBatchMinEdgeFilter">Min edge 1%</button>
+                    <button type="button" class="btn-dash-lime btn-sm" id="btnExecuteBatchScanNow">Run Batch Scan →</button>
+                  </div>
+                </div>
+
+                <!-- CSV / Multi-Match Input Box (collapsible) -->
+                <div class="batch-input-area" id="batchInputArea" style="display:none;">
+                  <textarea id="batchCsvTextarea" class="dash-textarea" rows="4" placeholder="home_team,away_team,league,home_odds,draw_odds,away_odds&#10;Arsenal,Brentford,PL,1.85,3.60,4.40&#10;Inter,Genoa,SA,1.60,4.10,5.75&#10;Ajax,Utrecht,DED,1.73,3.90,4.80"></textarea>
+                  <div class="batch-csv-actions">
+                    <button type="button" class="btn-dash-lime btn-sm" id="btnBatchParseRun">Parse &amp; Scan Batch</button>
+                    <button type="button" class="btn-dash-outline btn-sm" id="btnBatchCloseCsv">Cancel</button>
+                  </div>
+                </div>
+
+                <!-- Batch Scan Results Container -->
+                <div class="batch-results-wrap" id="batchResultsContainer">
+                  <div class="batch-empty-msg">No batch scan run yet. Click "Run Batch Scan" or paste match data to analyze candidates simultaneously.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- PANE 4: STANDALONE BATCH SCANNER           -->
+            <!-- ========================================== -->
+            <div class="dash-pane" id="dash-pane-batch">
+              <div class="dash-pane-header">
+                <div>
+                  <h1 class="dash-pane-title">Full Slate Batch Scanner</h1>
+                  <p class="dash-pane-subtitle">Scan all scheduled fixtures across major leagues simultaneously to pinpoint positive edge bankers.</p>
+                </div>
+                <button type="button" class="btn-dash-lime" id="btnRunFullSlateBatch">Scan All Today's Fixtures →</button>
+              </div>
+              <div id="fullSlateResultsDisplay">
+                <div class="batch-empty-msg">Tap "Scan All Today's Fixtures" to execute real-time slate analysis.</div>
+              </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- PANE 5: ACCOUNT & SETTINGS SHORTCUT        -->
+            <!-- ========================================== -->
+            <div class="dash-pane" id="dash-pane-account">
+              <div class="dash-pane-header">
+                <div>
+                  <h1 class="dash-pane-title">User Account &amp; Capital Settings</h1>
+                  <p class="dash-pane-subtitle">Manage username, password, Kelly staking bankroll, and Pro subscription.</p>
+                </div>
+              </div>
+              <div class="dash-account-card">
+                <div class="account-profile-summary">
+                  <div class="acc-avatar" id="dashAccAvatar">JJ</div>
+                  <div>
+                    <h3 id="dashAccName">Jonathan John</h3>
+                    <p id="dashAccEmail">demo@tipalgo.com · <span class="dash-chip-lime" id="dashAccTier">PRO ACTIVE</span></p>
+                  </div>
+                </div>
+                <div class="dash-account-quick-actions">
+                  <button type="button" class="btn-dash-lime" id="btnGoToFullProfile">Open Full Profile &amp; Capital Management →</button>
+                  <button type="button" class="btn-dash-outline btn-open-paystack-modal">Manage Subscription / Paystack</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- PANE 6: ADMIN ENGINE (Hidden unless admin)  -->
+            <!-- ========================================== -->
+            <div class="dash-pane" id="dash-pane-admin">
+              <div class="dash-pane-header">
+                <div>
+                  <h1 class="dash-pane-title">Administrator Controls</h1>
+                  <p class="dash-pane-subtitle">Train machine learning models, settle predictions, and synchronize live football feeds.</p>
+                </div>
+              </div>
+              <div class="dash-admin-grid">
+                <div class="admin-action-card">
+                  <h3>Model Retraining</h3>
+                  <p>Execute Poisson &amp; Logistic regression training on 45,000+ historical match outcomes.</p>
+                  <button type="button" class="btn-dash-lime btn-sm" id="btnAdminTrainModel">Trigger Retrain (/admin/train) →</button>
+                </div>
+                <div class="admin-action-card">
+                  <h3>Settle Predictions</h3>
+                  <p>Cross-reference finished match scores and settle prediction win/loss logs.</p>
+                  <button type="button" class="btn-dash-outline btn-sm" id="btnAdminSettle">Settle Predictions (/admin/settle) →</button>
+                </div>
+                <div class="admin-action-card">
+                  <h3>Live Data Ingestion</h3>
+                  <p>Fetch the latest fixture odds and league tables from football-data API.</p>
+                  <button type="button" class="btn-dash-outline btn-sm" id="btnAdminSyncLive">Sync Live Data (/api/sync-live-data) →</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
     </main>
+
+    <!-- Floating Bet Slip Popup for Mobile Phone View Faithful to User Mockup -->
+    <div class="mobile-floating-slip-popup" id="mobileFloatingSlipPopup">
+      <button type="button" class="btn-floating-slip-trigger" id="btnFloatingSlipTrigger" aria-label="Open Bet Slip" title="Open Bet Slip">
+        <span class="floating-slip-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v3a2 2 0 0 1-2 2 2 2 0 0 1 2 2v3c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2v-3a2 2 0 0 1 2-2 2 2 0 0 1-2-2V6c0-1.1.9-2 2-2z"></path>
+            <line x1="9" y1="9" x2="15" y2="9"></line>
+            <line x1="9" y1="15" x2="13" y2="15"></line>
+          </svg>
+        </span>
+        <span class="floating-slip-text">Bet Slip</span>
+        <span class="floating-slip-count-badge" id="floatingSlipCountBadge" style="display: none;">0</span>
+      </button>
+    </div>
 
     <!-- Bet Slip Off-Canvas Drawer Backdrop Overlay -->
     <div class="betslip-backdrop" id="betslipBackdrop"></div>
@@ -1186,36 +2034,80 @@
     <div class="filter-backdrop" id="filterBackdrop"></div>
 
     <!-- Left Slide-Out Drawer: Quantitative Match & Market Filters -->
-    <aside class="filter-sidebar" id="filterSidebar">
+    <aside class="filter-sidebar" id="filterSidebar" aria-label="Match and Market Filters">
       <!-- Header -->
       <div class="filter-sidebar-header">
         <div class="filter-title-wrap">
-          <span class="filter-header-icon">
+          <span class="filter-header-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
             </svg>
           </span>
           <div>
-            <h3 class="filter-sidebar-title">Match &amp; Market Filters</h3>
-            <p class="filter-sidebar-sub">Filter slate by confidence threshold &amp; 33 quantitative models</p>
+            <h3 class="filter-sidebar-title">Filter Matches</h3>
+            <p class="filter-sidebar-sub">Filter matches by league, win chance, stake size &amp; 33 betting markets</p>
           </div>
         </div>
         <button class="btn-close-filter-drawer" id="btnCloseFilterDrawer" type="button" aria-label="Close Filter Drawer">&times;</button>
       </div>
 
-      <!-- Body Content (Scrollable) -->
-      <div class="filter-sidebar-body">
-        <!-- SECTION 1: Win Probability Threshold -->
+      <!-- Body Content (Independently Scrollable) -->
+      <div class="filter-sidebar-body" id="filterSidebarBody">
+        <!-- SECTION 1: Competition & League -->
         <div class="filter-group-card">
           <div class="filter-group-header">
-            <span class="filter-group-title">Win Probability Threshold</span>
+            <span class="filter-group-title" id="filterTitleLeague">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="filter-sec-icon">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+              </svg>
+              Competition / League
+            </span>
+            <span class="filter-group-badge" id="selectedLeagueDisplay">All Leagues</span>
+          </div>
+          <p class="filter-group-desc">Select competition or tournament to view:</p>
+          <div class="filter-select-wrap">
+            <select id="calendarLeagueDropdown" class="drawer-custom-select" aria-label="Filter by League">
+              <option value="all">All Leagues</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- SECTION 2: Primary Betting Market -->
+        <div class="filter-group-card">
+          <div class="filter-group-header">
+            <span class="filter-group-title" id="filterTitleEndpoint">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="filter-sec-icon">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+              </svg>
+              Betting Market
+            </span>
+            <span class="filter-group-badge" id="selectedEndpointDisplay">All Markets</span>
+          </div>
+          <p class="filter-group-desc">Isolate fixtures for a specific betting market:</p>
+          <div class="filter-select-wrap">
+            <select id="calendarEndpointDropdown" class="drawer-custom-select" aria-label="Filter by Prediction Endpoint">
+              <option value="all">All 33 Endpoints (All Matches)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- SECTION 3: Win Likelihood & Banker Threshold -->
+        <div class="filter-group-card">
+          <div class="filter-group-header">
+            <span class="filter-group-title" id="filterTitleProb">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="filter-sec-icon">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+              Win Likelihood &amp; Bankers
+            </span>
             <span class="filter-group-badge" id="selectedProbDisplay">All Odds</span>
           </div>
-          <p class="filter-group-desc">Show predictions meeting or exceeding algorithmic confidence:</p>
+          <p class="filter-group-desc">Show predictions meeting win chance and banker confidence:</p>
           <div class="filter-prob-grid" id="filterProbGrid">
             <button type="button" class="prob-chip active" data-prob="all">
               <span class="prob-chip-pct">All</span>
-              <span class="prob-chip-lbl">Any Edge</span>
+              <span class="prob-chip-lbl">Any Odds</span>
             </button>
             <button type="button" class="prob-chip" data-prob="85">
               <span class="prob-chip-pct">85%+</span>
@@ -1223,7 +2115,7 @@
             </button>
             <button type="button" class="prob-chip" data-prob="80">
               <span class="prob-chip-pct">80%+</span>
-              <span class="prob-chip-lbl">Bankers</span>
+              <span class="prob-chip-lbl">Sure Bankers</span>
             </button>
             <button type="button" class="prob-chip" data-prob="75">
               <span class="prob-chip-pct">75%+</span>
@@ -1231,7 +2123,7 @@
             </button>
             <button type="button" class="prob-chip" data-prob="70">
               <span class="prob-chip-pct">70%+</span>
-              <span class="prob-chip-lbl">Value Edge</span>
+              <span class="prob-chip-lbl">Good Value</span>
             </button>
             <button type="button" class="prob-chip" data-prob="60">
               <span class="prob-chip-pct">60%+</span>
@@ -1240,11 +2132,48 @@
           </div>
         </div>
 
-        <!-- SECTION 2: 33 Prediction Endpoints Multi-Select Checkboxes -->
+        <!-- SECTION 4: Recommended Stake Range -->
+        <div class="filter-group-card">
+          <div class="filter-group-header">
+            <span class="filter-group-title" id="filterTitleStake">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="filter-sec-icon">
+                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                <line x1="2" y1="10" x2="22" y2="10"></line>
+              </svg>
+              Suggested Stake Range
+            </span>
+            <span class="filter-group-badge" id="selectedStakeDisplay">Any Stake</span>
+          </div>
+          <p class="filter-group-desc">Filter matches by recommended bet amount (₦):</p>
+          <div class="filter-stake-range-inputs">
+            <div class="stake-input-field">
+              <span class="stake-currency-prefix">₦</span>
+              <input type="number" id="filterMinStake" placeholder="Min" min="500" step="500" class="clean-input stake-numeric-input" aria-label="Minimum Stake">
+            </div>
+            <span class="stake-range-sep">to</span>
+            <div class="stake-input-field">
+              <span class="stake-currency-prefix">₦</span>
+              <input type="number" id="filterMaxStake" placeholder="Max" min="1000" step="500" class="clean-input stake-numeric-input" aria-label="Maximum Stake">
+            </div>
+          </div>
+          <div class="filter-stake-chips" id="filterStakeChips">
+            <button type="button" class="stake-chip active" data-min="0" data-max="0">Any Stake</button>
+            <button type="button" class="stake-chip" data-min="1000" data-max="3000">₦1k – ₦3k (Safe Play)</button>
+            <button type="button" class="stake-chip" data-min="2500" data-max="5000">₦2.5k – ₦5k (Medium)</button>
+            <button type="button" class="stake-chip" data-min="5000" data-max="50000">₦5k+ (Sure Bankers)</button>
+          </div>
+        </div>
+
+        <!-- SECTION 5: 33 Betting Markets Multi-Select Tree -->
         <div class="filter-group-card endpoints-group-card">
           <div class="filter-group-header">
-            <div style="display:flex; align-items:center; gap:0.5rem;">
-              <span class="filter-group-title">All 33 Prediction Markets</span>
+            <div style="display:flex; align-items:center; gap:0.55rem;">
+              <span class="filter-group-title" id="filterTitleTree">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="filter-sec-icon">
+                  <path d="M4 6h16M4 12h16M4 18h7"></path>
+                </svg>
+                Filter by Betting Markets
+              </span>
               <span class="endpoints-counter-pill" id="selectedEndpointsCounter">0 Selected</span>
             </div>
             <div class="endpoints-quick-actions">
@@ -1253,14 +2182,14 @@
               <button type="button" class="btn-endpoints-quick" id="btnClearAllEndpoints">Clear</button>
             </div>
           </div>
-          <p class="filter-group-desc">Check the endpoints you want to see matches from:</p>
+          <p class="filter-group-desc">Select specific betting markets to display on today's fixtures:</p>
 
           <!-- Search inside 33 Endpoints -->
           <div class="filter-search-box">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
-            <input type="text" id="inputFilterSearchEndpoints" class="filter-search-input" placeholder="Search 33 markets (e.g. Over 2.5, BTTS, Home Win)...">
+            <input type="text" id="inputFilterSearchEndpoints" class="filter-search-input" placeholder="Search 33 markets (e.g. Over 2.5, Both Teams Score, Home Win)..." aria-label="Search markets">
           </div>
 
           <!-- Multi-Checkbox Tree of 33 Endpoints -->
@@ -1279,94 +2208,7 @@
       </div>
     </aside>
 
-    <!-- ===================================================================
-         Right Slide-Out Drawer: SportyBet-Style Bet Slip
-         =================================================================== -->
-    <aside class="betslip-sidebar" id="betslipSidebar">
-      <div class="betslip-header">
-        <div class="betslip-title-row">
-          <div class="betslip-logo-title">
-            <span class="betslip-badge-icon">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-            </span>
-            <h3>SPORTY BET SLIP</h3>
-            <span class="betslip-count-pill" id="slipPicksCount">0</span>
-          </div>
-          <div class="betslip-header-actions" style="display:flex;align-items:center;gap:6px;">
-            <button class="btn-clear-slip" id="btnClearSlip" title="Clear all selections">Clear</button>
-            <button class="btn-close-slip" id="btnCloseBetslip" title="Close Bet Slip" aria-label="Close" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;border-radius:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.85rem;font-weight:700;">&times;</button>
-          </div>
-        </div>
-        <div class="betslip-code-row" id="slipBookingCodeRow">
-          <span class="code-label">Booking Code:</span>
-          <span class="code-value" id="displayBookingCode">—</span>
-          <button class="btn-copy-code" id="btnCopyBookingCode" title="Copy code">Copy</button>
-        </div>
-      </div>
-
-      <div class="betslip-body">
-        <div class="betslip-items-container" id="slipItemsContainer">
-          <div class="slip-empty-state" id="slipEmptyState">
-            <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#94a3b8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-            </svg>
-            <p>Your bet slip is empty</p>
-            <span>Click any match odds or "Add to Slip" to build your ticket</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="betslip-footer">
-        <!-- Quick Stake Chips -->
-        <div class="quick-stake-chips">
-          <button class="stake-chip" data-amt="500">+₦500</button>
-          <button class="stake-chip" data-amt="1000">+₦1,000</button>
-          <button class="stake-chip" data-amt="5000">+₦5,000</button>
-          <button class="stake-chip" data-amt="10000">+₦10,000</button>
-        </div>
-
-        <!-- Stake Input -->
-        <div class="stake-input-wrapper">
-          <label for="slipStakeInput">Stake (₦)</label>
-          <div class="stake-input-box">
-            <span class="currency-symbol">₦</span>
-            <input type="number" id="slipStakeInput" class="stake-input" value="1000" min="100" step="100">
-          </div>
-        </div>
-
-        <!-- Summary & Payout -->
-        <div class="slip-summary-table">
-          <div class="summary-row">
-            <span>Total Odds:</span>
-            <strong id="slipTotalOdds">1.00</strong>
-          </div>
-          <div class="summary-row payout-row">
-            <span>Potential Win:</span>
-            <strong id="slipPotentialWin">₦0.00</strong>
-          </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="slip-actions-group">
-          <button class="btn-validate-slip" id="btnValidateSlip">
-            <span>Validate Slip</span>
-          </button>
-          <div class="slip-secondary-actions">
-            <button class="btn-save-slip" id="btnSaveSlip">Save Slip</button>
-            <button class="btn-history-slip" id="btnSlipHistory">History</button>
-          </div>
-        </div>
-
-        <!-- Banter Commentary in Slip -->
-        <div class="slip-banter-bubble" id="slipBanterBubble">
-          <span class="banter-emoji-tag">NG</span>
-          <span id="slipBanterText">Add matches from any date to start booking your slip!</span>
-        </div>
-      </div>
-    </aside>
+    <!-- End of Bet Slip and Tool Drawers -->
 
   </div>
 
@@ -1546,8 +2388,8 @@
             <strong id="valJointProb">0%</strong>
           </div>
           <div class="ribbon-metric">
-            <span class="label">Potential Win</span>
-            <strong class="text-green" id="valPayout">₦0.00</strong>
+            <span class="label">Status</span>
+            <strong class="text-green" id="valPayout">Verified Valid</strong>
           </div>
         </div>
 
@@ -1577,10 +2419,18 @@
           </table>
         </div>
 
-        <!-- Modal Actions -->
+        <!-- Modal Actions (Print & Export) -->
         <div class="val-actions-row">
-          <button class="btn-pill-dark" id="btnSaveSlipFromModal">Save Slip to Profile</button>
-          <button class="btn-pill-light" id="btnCloseValidateModalBtn">Close Audit</button>
+          <button class="btn-pill-dark btn-print-trigger" id="btnPrintSlipModal">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:0.35rem; vertical-align:middle;">
+              <polyline points="6 9 6 2 18 2 18 9"></polyline>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+              <rect x="6" y="14" width="12" height="8"></rect>
+            </svg>
+            <span>Print Verified Slip</span>
+          </button>
+          <button class="btn-pill-light" id="btnCopySlipText">Copy Predictions</button>
+          <button class="btn-pill-light" id="btnCloseValidateModalBtn">Close</button>
         </div>
 
       </div>
@@ -1693,9 +2543,13 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
       <span>Home</span>
     </button>
-    <button class="bottom-nav-item" data-tab-target="view-grand" title="33 Prediction Markets">
+    <button class="bottom-nav-item" data-tab-target="view-dashboard" title="TipAlgo Dashboard &amp; Screener">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+      <span>Dashboard</span>
+    </button>
+    <button class="bottom-nav-item" data-tab-target="view-grand" title="33 Quantitative Endpoints">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
-      <span>Markets</span>
+      <span>33 Endpoints</span>
     </button>
     <button class="bottom-nav-item btn-open-slip-bottom" id="btnBottomSlipToggle" title="Open SportyBet Slip">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
@@ -1835,9 +2689,99 @@
     </div>
   </div>
 
+  <!-- ===================================================================
+       MODAL: DASHBOARD METRIC HELP & EXPLANATIONS (Edge, Tolerance, Seed, Randomise)
+       =================================================================== -->
+  <div class="modal-overlay" id="modalDashHelp">
+    <div class="modal-box dash-help-modal-box">
+      <div class="modal-header">
+        <div class="modal-header-title-wrap">
+          <span class="modal-badge-cyan">QUANT GLOSSARY</span>
+          <h3 id="dashHelpModalTitle">Parameter Explanation</h3>
+        </div>
+        <button type="button" class="btn-modal-close" id="btnCloseDashHelpModal" aria-label="Close Modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="dashHelpModalBody" class="dash-help-content-text">
+          <!-- Populated dynamically based on parameter clicked -->
+        </div>
+        <div class="dash-help-example-box" id="dashHelpExampleBox">
+          <span class="example-lbl">Practical Wagering Example:</span>
+          <p id="dashHelpExampleText">...</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-dash-lime" id="btnGotItDashHelp">Understood</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       MODAL: PRO PLAN UPGRADE & PAYSTACK RENEWAL (403 Handler)
+       =================================================================== -->
+  <div class="modal-overlay" id="modalPaystackUpgrade">
+    <div class="modal-box paystack-upgrade-modal-box">
+      <div class="modal-header">
+        <div class="modal-header-title-wrap">
+          <span class="modal-badge-gold">PREMIUM QUANT ACCESS</span>
+          <h3>Upgrade to TipAlgo Pro</h3>
+        </div>
+        <button type="button" class="btn-modal-close" id="btnClosePaystackModal" aria-label="Close Modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="upgrade-hero-strip">
+          <div class="upgrade-price-badge">
+            <span class="curr">₦</span><span class="amt">15,000</span><span class="period">/ 30 days</span>
+          </div>
+          <p class="upgrade-hero-desc">Unlock unrestricted access to our institutional quantitative engine, side-agnostic value screening, and automated Accu-Forge ticket generator.</p>
+        </div>
+
+        <div class="upgrade-features-list">
+          <div class="upgrade-feat-item">
+            <span class="feat-check">✓</span>
+            <div>
+              <strong>Unlimited Value Screener</strong>
+              <p>Scan any home or away line across 18 major leagues with verified ML probability.</p>
+            </div>
+          </div>
+          <div class="upgrade-feat-item">
+            <span class="feat-check">✓</span>
+            <div>
+              <strong>Accu-Forge™ Parlay Engine</strong>
+              <p>Synthesize positive expectation accumulators up to 10 legs with custom tolerance.</p>
+            </div>
+          </div>
+          <div class="upgrade-feat-item">
+            <span class="feat-check">✓</span>
+            <div>
+              <strong>Kelly Fractional Staking</strong>
+              <p>Automated capital allocation protecting your bankroll against drawdown.</p>
+            </div>
+          </div>
+          <div class="upgrade-feat-item">
+            <span class="feat-check">✓</span>
+            <div>
+              <strong>Full Slate Batch Scanning</strong>
+              <p>Simulate all scheduled matches simultaneously with instant CSV export.</p>
+            </div>
+          </div>
+        </div>
+
+        <div id="paystackStatusMsg" class="auth-alert-banner" style="display:none; margin-top:1rem;"></div>
+      </div>
+      <div class="modal-footer paystack-footer">
+        <button type="button" class="btn-paystack-checkout" id="btnPaystackInitiate">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+          <span>Pay ₦15,000 with Paystack →</span>
+        </button>
+        <span class="paystack-secure-lbl">🔒 256-Bit SSL Encrypted &amp; PCI-DSS Certified via Paystack</span>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div id="platformToast" class="platform-toast"></div>
 
-  <script src="/static/app.js?v=40"></script>
+  <script src="/static/app.js?v=69"></script>
 </body>
 </html>
