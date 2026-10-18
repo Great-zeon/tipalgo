@@ -47,14 +47,20 @@ PRO_PRICE=20000
 ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
 ```
 
-### Step 4: Seed Initial Data on the Persistent Volume (First Deploy Only)
-Before the first startup, seed the SQLite database onto the persistent disk volume `/data/tipalgo.db`:
-* In Railway, open the **Service Terminal** or CLI:
+### Step 4: Transfer Existing Database to Persistent Volume
+To preserve your production dataset without committing `tipalgo.db` to GitHub:
+* **Option A (Safest & Simplest — Direct Over HTTPS):**
+  Once your Railway service is deployed and has its public domain (e.g. `https://your-service.up.railway.app`), run this command from your local terminal:
   ```bash
-  # Copy repository starter database to the persistent mount
-  cp tipalgo.db /data/tipalgo.db
-  # Or run the seed script to build a fresh dataset
-  python3 seed.py
+  curl -X POST https://<railway-domain>/admin/upload-database \
+    -H "X-Admin-Token: <YOUR_ADMIN_TOKEN>" \
+    -H "Content-Type: application/octet-stream" \
+    --data-binary "@tipalgo.db"
+  ```
+  The server will safely stream your local `tipalgo.db` straight into `/data/tipalgo.db` on the persistent volume and initialize indexes automatically.
+* **Option B (Railway CLI):**
+  ```bash
+  railway volume put <volume-id> tipalgo.db /data/tipalgo.db
   ```
 
 ### Step 5: Deploy & Automatic Healthcheck
