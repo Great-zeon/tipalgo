@@ -2,6 +2,8 @@
 .env.*
 !.env.example
 *.db
+*.sqlite
+*.sqlite3
 *.db-shm
 *.db-wal
 venv/
@@ -10,5 +12,8 @@ node_modules/
 __pycache__/
 *.py[cod]
 .pytest_cache/
+*.log
+*.png
 .DS_Store
 Thumbs.db
+
