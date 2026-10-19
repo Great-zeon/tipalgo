@@ -12736,10 +12736,39 @@ body.banter-mode-active .sb-model-pick-pill .sb-pick-title {
    TIPALGO QUANT DASHBOARD & VALUE SCREENER ENGINE STYLES (Mockup Faithful)
    ========================================================================== */
 
+/* Full-Screen Standalone Layout for Dashboard */
+body.in-dashboard-view .top-navbar {
+  display: none !important;
+}
+
+body.in-dashboard-view .content-area {
+  padding: 0 !important;
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+body.in-dashboard-view .content-header {
+  display: none !important;
+}
+
+body.in-dashboard-view .app-wrapper {
+  padding: 0 !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: #090d12 !important;
+}
+
+body.in-dashboard-view .mobile-bottom-nav {
+  display: none !important;
+}
+
 .dash-shell {
   display: flex;
   width: 100%;
-  min-height: calc(100vh - 72px);
+  min-height: 100vh;
   background: #090d12;
   color: #f8fafc;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif;
@@ -12748,7 +12777,7 @@ body.banter-mode-active .sb-model-pick-pill .sb-pick-title {
 
 /* Desktop Sidebar */
 .dash-sidebar {
-  width: 230px;
+  width: 240px;
   flex-shrink: 0;
   background: #0d1218;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
@@ -12768,6 +12797,12 @@ body.banter-mode-active .sb-model-pick-pill .sb-pick-title {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.dash-sidebar-brand:hover {
+  opacity: 0.9;
 }
 
 .dash-logo-icon {
@@ -12777,8 +12812,8 @@ body.banter-mode-active .sb-model-pick-pill .sb-pick-title {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(190, 242, 100, 0.12);
-  border: 1px solid rgba(190, 242, 100, 0.3);
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .dash-brand-meta {
@@ -12793,11 +12828,8 @@ body.banter-mode-active .sb-model-pick-pill .sb-pick-title {
   color: #ffffff;
 }
 
-.dash-ver-tag {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: #bef264;
-  margin-left: 0.2rem;
+.dash-brand-accent {
+  color: #10b981;
 }
 
 .dash-subtitle-brand {
@@ -12843,6 +12875,38 @@ body.banter-mode-active .sb-model-pick-pill .sb-pick-title {
   font-weight: 700;
 }
 
+.dash-menu-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 0.6rem 0.2rem;
+}
+
+.dash-return-home-btn {
+  color: #94a3b8;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+  margin-top: 0.25rem;
+  font-weight: 600;
+}
+
+.dash-return-home-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(190, 242, 100, 0.3);
+  color: #bef264;
+}
+
+.dash-return-icon {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #bef264;
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+
+.dash-return-home-btn:hover .dash-return-icon {
+  transform: translateX(-3px);
+}
+
 .dash-chip-lime {
   margin-left: auto;
   font-size: 0.65rem;
@@ -12874,6 +12938,11 @@ body.banter-mode-active .sb-model-pick-pill .sb-pick-title {
   color: #64748b;
   line-height: 1.45;
   margin: 0;
+}
+
+/* Mobile Top Bar */
+.dash-mobile-top-bar {
+  display: none;
 }
 
 /* Mobile Tabs Bar */
@@ -13005,7 +13074,7 @@ body.banter-mode-active .sb-model-pick-pill .sb-pick-title {
   color: #64748b;
 }
 
-/* Launchpad Row */
+/* Launchpad Row (Sleek, Institutional Quant Modules) */
 .dash-launchpad-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -13016,22 +13085,31 @@ body.banter-mode-active .sb-model-pick-pill .sb-pick-title {
   background: #111720;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
-  padding: 1.15rem 1.25rem;
+  padding: 1.25rem 1.4rem;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  justify-content: space-between;
+  gap: 1.25rem;
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
 }
 
 .dash-launchpad-card:hover {
-  background: #17202c;
-  border-color: #bef264;
+  background: #151d28;
+  border-color: rgba(190, 242, 100, 0.4);
   transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
-.launch-icon {
-  font-size: 1.6rem;
+.launch-meta-tag {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #bef264;
+  text-transform: uppercase;
+  margin-bottom: 0.35rem;
 }
 
 .launch-content {
@@ -13039,28 +13117,39 @@ body.banter-mode-active .sb-model-pick-pill .sb-pick-title {
 }
 
 .launch-content h3 {
-  font-size: 0.96rem;
-  font-weight: 700;
-  margin: 0 0 0.2rem 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  margin: 0 0 0.35rem 0;
   color: #ffffff;
 }
 
 .launch-content p {
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   color: #94a3b8;
   margin: 0;
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
-.launch-arrow {
-  font-size: 1.2rem;
+.launch-arrow-pill {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(190, 242, 100, 0.1);
+  border: 1px solid rgba(190, 242, 100, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #bef264;
+  font-size: 0.95rem;
   font-weight: 800;
-  transition: transform 0.15s ease;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
 }
 
-.dash-launchpad-card:hover .launch-arrow {
-  transform: translateX(4px);
+.dash-launchpad-card:hover .launch-arrow-pill {
+  background: #bef264;
+  color: #0a0e14;
+  transform: translateX(3px);
 }
 
 /* Fixtures Section */
@@ -13567,7 +13656,7 @@ body.banter-mode-active .sb-model-pick-pill .sb-pick-title {
 }
 
 .seg-away {
-  background: #ef4444;
+  background: #334155;
   height: 100%;
   transition: width 0.3s ease;
 }
@@ -14175,7 +14264,51 @@ body.banter-mode-active .sb-model-pick-pill .sb-pick-title {
 
   .dash-shell {
     flex-direction: column;
-    padding-bottom: 70px; /* Space for bottom nav bar */
+    padding-bottom: 25px;
+  }
+
+  /* Dedicated Mobile Top Bar */
+  .dash-mobile-top-bar {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1rem;
+    background: #0d1218;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .dash-mobile-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+  }
+
+  .dash-mobile-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.02em;
+  }
+
+  .btn-dash-mobile-return {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #bef264;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0.45rem 0.85rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-dash-mobile-return:hover {
+    background: rgba(190, 242, 100, 0.15);
+    border-color: #bef264;
   }
 
   /* Show mobile tab switcher */
@@ -14187,7 +14320,7 @@ body.banter-mode-active .sb-model-pick-pill .sb-pick-title {
     background: #0d1218;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     position: sticky;
-    top: 60px; /* Below top header */
+    top: 54px;
     z-index: 40;
     scrollbar-width: none;
   }

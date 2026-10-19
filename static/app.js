@@ -3054,6 +3054,19 @@
     const targetView = document.getElementById(viewId);
     if (targetView) targetView.classList.add('active');
 
+    // Standalone Dashboard Layout Mode Toggle (Separate layout from homepage)
+    const siteTopNav = document.getElementById('siteTopNavbar');
+    const bottomNav = document.querySelector('.mobile-bottom-nav');
+    if (viewId === 'view-dashboard') {
+      document.body.classList.add('in-dashboard-view');
+      if (siteTopNav) siteTopNav.style.display = 'none';
+      if (bottomNav) bottomNav.style.display = 'none';
+    } else {
+      document.body.classList.remove('in-dashboard-view');
+      if (siteTopNav) siteTopNav.style.display = '';
+      if (bottomNav) bottomNav.style.display = '';
+    }
+
     // 2. Subtabs Bar
     document.querySelectorAll('.subtab-btn').forEach(b => {
       if (b.getAttribute('data-view') === viewId) b.classList.add('active');
@@ -9118,6 +9131,39 @@
         }
       });
     });
+
+    // Return to Homepage from Dashboard (Desktop Sidebar & Mobile Top Bar)
+    const btnDashReturnHome = document.getElementById('btnDashReturnHome');
+    if (btnDashReturnHome) {
+      btnDashReturnHome.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchView('view-calendar');
+      });
+    }
+
+    const dashBrandLogoHome = document.getElementById('dashBrandLogoHome');
+    if (dashBrandLogoHome) {
+      dashBrandLogoHome.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchView('view-calendar');
+      });
+    }
+
+    const btnDashMobileReturn = document.getElementById('btnDashMobileReturn');
+    if (btnDashMobileReturn) {
+      btnDashMobileReturn.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchView('view-calendar');
+      });
+    }
+
+    const dashMobileBrandHome = document.getElementById('dashMobileBrandHome');
+    if (dashMobileBrandHome) {
+      dashMobileBrandHome.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchView('view-calendar');
+      });
+    }
 
     // Mobile Horizontal Tab Switcher
     document.querySelectorAll('.dash-m-tab-btn[data-dash-pane]').forEach(btn => {

@@ -1339,50 +1339,70 @@
            =================================================================== -->
       <section id="view-dashboard" class="view-panel">
         <div class="dash-shell">
-          <!-- Desktop Sidebar Navigation (Faithful to Mockup) -->
+          <!-- Desktop Sidebar Navigation (Faithful to Mockup & User Spec) -->
           <aside class="dash-sidebar" id="dashSidebar">
             <div class="dash-sidebar-header">
-              <div class="dash-sidebar-brand">
+              <div class="dash-sidebar-brand" id="dashBrandLogoHome" role="button" tabindex="0" title="Return to SportyMill Homepage">
                 <div class="dash-logo-icon">
-                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-                    <rect x="2" y="2" width="20" height="20" rx="5" fill="#bef264"/>
-                    <path d="M7 16V8l5 4 5-4v8" stroke="#0a0e14" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <svg viewBox="0 0 38 38" width="28" height="28" fill="none" class="sportymill-logo-svg" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                      <linearGradient id="smDashGradEmerald" x1="0%" y1="100%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#059669"/>
+                        <stop offset="60%" stop-color="#10b981"/>
+                        <stop offset="100%" stop-color="#34d399"/>
+                      </linearGradient>
+                      <linearGradient id="smDashGradCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#38bdf8"/>
+                        <stop offset="100%" stop-color="#0284c7"/>
+                      </linearGradient>
+                      <linearGradient id="smDashGradTile" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#111c2e"/>
+                        <stop offset="100%" stop-color="#080e1a"/>
+                      </linearGradient>
+                    </defs>
+                    <rect x="2.5" y="2.5" width="33" height="33" rx="9" fill="url(#smDashGradTile)" stroke="rgba(255, 255, 255, 0.12)" stroke-width="1.2"/>
+                    <path d="M11 13.5 C11 11.2 13 9.5 16 9.5 L23.5 9.5 C26 9.5 27.5 11 27.5 13 C27.5 14.8 26 16.2 24 16.8 L18 18.4 C15 19.2 13.5 20.8 13.5 23.2 C13.5 25.8 15.8 27.5 19 27.5 L26.5 27.5" 
+                          stroke="url(#smDashGradEmerald)" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M21.5 13 L26.5 18.5 L26.5 27.5" 
+                          stroke="url(#smDashGradCyan)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="27.5" cy="9.8" r="1.8" fill="#34d399"/>
                   </svg>
                 </div>
                 <div class="dash-brand-meta">
-                  <span class="dash-title-brand">TipAlgo <span class="dash-ver-tag">v21</span></span>
+                  <span class="dash-title-brand">Sporty<span class="dash-brand-accent">Mill</span></span>
                   <span class="dash-subtitle-brand">QUANT PREDICTOR</span>
                 </div>
               </div>
             </div>
 
-            <!-- Sidebar Navigation Links -->
+            <!-- Sidebar Navigation Links (Clean, No-Icon Quant Terminal Layout) -->
             <nav class="dash-menu-nav">
               <button type="button" class="dash-menu-item active" data-dash-pane="dash-pane-overview" id="btnDashNavOverview">
-                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
                 <span>Dashboard</span>
               </button>
               <button type="button" class="dash-menu-item" data-dash-pane="dash-pane-screener" id="btnDashNavScreener">
-                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                 <span>Markets</span>
                 <span class="dash-chip-lime">HOT</span>
               </button>
               <button type="button" class="dash-menu-item" data-dash-pane="dash-pane-batch" id="btnDashNavBatch">
-                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
                 <span>Match Scan</span>
               </button>
               <button type="button" class="dash-menu-item" data-dash-pane="dash-pane-accu" id="btnDashNavAccu">
-                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
                 <span>Accu-Forge</span>
               </button>
               <button type="button" class="dash-menu-item" data-dash-pane="dash-pane-account" id="btnDashNavAccount">
-                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                 <span>Account</span>
               </button>
               <button type="button" class="dash-menu-item dash-admin-nav" id="btnDashNavAdmin" data-dash-pane="dash-pane-admin" style="display:none;">
-                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
                 <span>Admin</span>
                 <span class="dash-chip-amber">SECURE</span>
+              </button>
+
+              <div class="dash-menu-divider"></div>
+
+              <button type="button" class="dash-menu-item dash-return-home-btn" id="btnDashReturnHome" title="Return to SportyMill Homepage">
+                <span class="dash-return-icon">←</span>
+                <span>Return to Homepage</span>
               </button>
             </nav>
 
@@ -1393,6 +1413,16 @@
 
           <!-- Main Dashboard Stage -->
           <div class="dash-stage">
+            <!-- Mobile Top Bar for Dedicated Dashboard Layout -->
+            <div class="dash-mobile-top-bar" id="dashMobileTopBar">
+              <div class="dash-mobile-brand" id="dashMobileBrandHome" role="button" tabindex="0">
+                <span class="dash-mobile-title">Sporty<span class="dash-brand-accent">Mill</span> <span class="dash-chip-lime">QUANT</span></span>
+              </div>
+              <button type="button" class="btn-dash-mobile-return" id="btnDashMobileReturn">
+                ← Return to Home
+              </button>
+            </div>
+
             <!-- Mobile Sticky Tab Bar (Transforms Sidebar into Bottom/Top Tabs on Phone) -->
             <div class="dash-mobile-tabs-bar" id="dashMobileTabsBar">
               <button type="button" class="dash-m-tab-btn active" data-dash-pane="dash-pane-overview">
@@ -1465,31 +1495,31 @@
                 </div>
               </div>
 
-              <!-- Quick Launchpad Banners -->
+              <!-- Quick Launchpad Banners (Refined, Institutional, No Tacky Emojis) -->
               <div class="dash-launchpad-row">
                 <div class="dash-launchpad-card" data-dash-target="dash-pane-screener">
-                  <div class="launch-icon">🎯</div>
                   <div class="launch-content">
+                    <div class="launch-meta-tag">QUANT ENGINE 01</div>
                     <h3>Value Screener</h3>
                     <p>Detect mispriced lines and strong sides with asymmetric +EV edge.</p>
                   </div>
-                  <span class="launch-arrow">→</span>
+                  <div class="launch-arrow-pill" title="Open Value Screener">→</div>
                 </div>
                 <div class="dash-launchpad-card" data-dash-target="dash-pane-accu">
-                  <div class="launch-icon">⚡</div>
                   <div class="launch-content">
+                    <div class="launch-meta-tag">QUANT ENGINE 02</div>
                     <h3>Accu-Forge Engine</h3>
                     <p>Assemble 3-leg to 5-leg parlay tickets with target odds and verified probabilities.</p>
                   </div>
-                  <span class="launch-arrow">→</span>
+                  <div class="launch-arrow-pill" title="Launch Accu-Forge">→</div>
                 </div>
                 <div class="dash-launchpad-card" data-dash-target="dash-pane-batch">
-                  <div class="launch-icon">📊</div>
                   <div class="launch-content">
+                    <div class="launch-meta-tag">QUANT ENGINE 03</div>
                     <h3>Batch Match Scanner</h3>
                     <p>Simulate upcoming fixture cards simultaneously and find bankers.</p>
                   </div>
-                  <span class="launch-arrow">→</span>
+                  <div class="launch-arrow-pill" title="Open Batch Scanner">→</div>
                 </div>
               </div>
 
