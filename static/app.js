@@ -4485,7 +4485,7 @@
           topLabel = isBanter ? 'TODAY' : 'TODAY';
           subLabel = dayName;
         } else if (offset === 1) {
-          topLabel = isBanter ? 'TOMORROW' : 'TOMORROW';
+          topLabel = isBanter ? 'TMRW' : 'TMRW';
           subLabel = dayName;
         }
 
