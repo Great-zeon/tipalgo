@@ -14,6 +14,15 @@ __pycache__/
 .pytest_cache/
 *.log
 *.png
+!static/**/*.png
+!static/*.png
 .DS_Store
 Thumbs.db
-
+package.json
+package-lock.json
+audit/
+*.docx
+/test_*.py
+generate_logos.py
+generate_workflow_doc.py
+static/logo_preview.html

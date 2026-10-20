@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" width="100%" height="100%" fill="none">
+  <defs>
+    <linearGradient id="smEmOnly" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#047857"/>
+      <stop offset="45%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#34d399"/>
+    </linearGradient>
+    <linearGradient id="smCyOnly" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="55%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#0369a1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Central Football Pentagon Core -->
+  <polygon points="18,10 25.5,15.5 22.5,24.5 13.5,24.5 10.5,15.5" fill="#0b1329" stroke="url(#smCyOnly)" stroke-width="1.8" stroke-linejoin="round"/>
+  <circle cx="18" cy="18.5" r="1.8" fill="#38bdf8"/>
+
+  <!-- Top-Right Ascending Quant Arrow (+EV Edge) -->
+  <path d="M26.5 13 L34 5 L34 18 L24.5 21.5 Z" fill="url(#smEmOnly)"/>
+  <circle cx="34" cy="5" r="2.2" fill="#34d399"/>
+
+  <!-- Top-Left Dynamic Pitch Facet -->
+  <path d="M15.5 8 L8.5 2.5 L2 10 L8.5 14 Z" fill="url(#smEmOnly)"/>
+
+  <!-- Left Flank Defense Facet -->
+  <path d="M8.5 17.5 L1 14 L1 24.5 L10.5 25 Z" fill="url(#smCyOnly)"/>
+
+  <!-- Bottom-Left Trajectory Facet -->
+  <path d="M11.5 26.5 L4.5 28 L9.5 35 L17 32 Z" fill="url(#smEmOnly)"/>
+
+  <!-- Bottom-Right Quant Engine Facet -->
+  <path d="M19 32 L26.5 35 L31.5 28 L24.5 26.5 Z" fill="url(#smCyOnly)"/>
+</svg>

@@ -40,7 +40,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from fastapi import FastAPI, Request, HTTPException, Depends, Header, BackgroundTasks, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.responses import Response, HTMLResponse, JSONResponse
+from fastapi.responses import Response, HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, validator
 import uvicorn, bcrypt, jwt
@@ -4216,6 +4216,13 @@ async def root():
             return HTMLResponse(f.read())
     except FileNotFoundError:
         return HTMLResponse("<h1>TipAlgo v21</h1><p>Static frontend not found.</p>")
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    fav_path = BASE_DIR / "static" / "favicon.ico"
+    if fav_path.exists():
+        return FileResponse(fav_path, media_type="image/x-icon")
+    return Response(status_code=204)
 
 @app.get("/health")
 async def health(request: Request):

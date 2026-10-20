@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="100%" height="100%" fill="none">
+  <defs>
+    <!-- Pitch Emerald Gradient: Sporty Velocity -->
+    <linearGradient id="smEmerald" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#047857"/>
+      <stop offset="45%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#34d399"/>
+    </linearGradient>
+
+    <!-- Electric Cyan Gradient: Algorithmic Alpha / Quant Edge -->
+    <linearGradient id="smCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="55%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#0369a1"/>
+    </linearGradient>
+
+    <!-- Obsidian Tile Background -->
+    <linearGradient id="smTile" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d1527"/>
+      <stop offset="100%" stop-color="#060913"/>
+    </linearGradient>
+
+    <!-- Outer Precision Border -->
+    <linearGradient id="smBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="rgba(56, 189, 248, 0.5)"/>
+      <stop offset="40%" stop-color="rgba(16, 185, 129, 0.35)"/>
+      <stop offset="100%" stop-color="rgba(255, 255, 255, 0.08)"/>
+    </linearGradient>
+
+    <filter id="smApexGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="2" flood-color="#34d399" flood-opacity="0.8"/>
+    </filter>
+  </defs>
+
+  <!-- Dark Obsidian Squircle Tile -->
+  <rect x="2" y="2" width="44" height="44" rx="11" fill="url(#smTile)" stroke="url(#smBorder)" stroke-width="1.3"/>
+
+  <!-- Subtle Pitch Precision Reticle Accents -->
+  <line x1="24" y1="4.5" x2="24" y2="7.5" stroke="rgba(56, 189, 248, 0.5)" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="43.5" y1="24" x2="40.5" y2="24" stroke="rgba(16, 185, 129, 0.5)" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="24" y1="43.5" x2="24" y2="40.5" stroke="rgba(56, 189, 248, 0.5)" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="4.5" y1="24" x2="7.5" y2="24" stroke="rgba(16, 185, 129, 0.5)" stroke-width="1.2" stroke-linecap="round"/>
+
+  <!-- QUANT FOOTBALL PRISM (The Core Emblem) -->
+  <!-- Central Football Pentagon Core -->
+  <polygon points="24,15 32,20.5 29,30 19,30 16,20.5" fill="#090f1d" stroke="url(#smCyan)" stroke-width="1.8" stroke-linejoin="round"/>
+  
+  <!-- Algorithmic Prediction Target in Core -->
+  <circle cx="24" cy="23.8" r="2" fill="#38bdf8"/>
+
+  <!-- Top-Right Ascending Quant Arrow (+EV Edge Vector) -->
+  <path d="M33 18 L41 9.5 L41 23 L31 27 Z" fill="url(#smEmerald)"/>
+  <circle cx="41" cy="9.5" r="2.2" fill="#34d399" filter="url(#smApexGlow)"/>
+
+  <!-- Top-Left Dynamic Pitch Facet -->
+  <path d="M21.5 13 L14 7 L7 15 L14 19 Z" fill="url(#smEmerald)"/>
+
+  <!-- Left Flank Defense Facet -->
+  <path d="M14 23 L6 19 L6 30 L16 30.5 Z" fill="url(#smCyan)"/>
+
+  <!-- Bottom-Left Trajectory Facet -->
+  <path d="M17 32 L9.5 34 L15 41 L23 38 Z" fill="url(#smEmerald)"/>
+
+  <!-- Bottom-Right Quant Engine Facet -->
+  <path d="M25 38 L33 41 L38.5 34 L31 32 Z" fill="url(#smCyan)"/>
+</svg>
