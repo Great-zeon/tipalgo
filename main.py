@@ -4152,14 +4152,21 @@ async def lifespan(app: FastAPI):
     db_file_exists = True
     if "sqlite" in config.DATABASE_URL:
         raw_db_path = config.DATABASE_URL.replace("sqlite+aiosqlite:///", "")
+        os.makedirs(os.path.dirname(os.path.abspath(raw_db_path)), exist_ok=True)
         db_file_exists = os.path.exists(raw_db_path)
         if not db_file_exists:
-            logger.warning(
+            logger.info(
                 f"SQLite database file not found at '{raw_db_path}'. "
-                "Running in awaiting-database mode. "
-                "Upload existing database via /admin/upload-database or volume mount before serving predictions."
+                "Initializing fresh schema and starter records..."
             )
-            app.state.db_ready = False
+            app.state.db_ready = True
+            try:
+                await init_db()
+                from seed import seed_all
+                await seed_all()
+                logger.info("Fresh database initialized and seeded successfully.")
+            except Exception as e:
+                logger.warning(f"Starter database seeding notice: {e}")
         else:
             app.state.db_ready = True
     else:
