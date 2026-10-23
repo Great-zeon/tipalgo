@@ -2342,6 +2342,7 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
   }
+  const escapeHtml = escapeHtmlUtil;
 
   function hashString(s) {
     let h = 0;
@@ -8503,31 +8504,12 @@
         }
       }
     } catch (e) {
-      if (statPlayable) statPlayable.textContent = '14 Matches';
-      if (statPreds) statPreds.textContent = '14,835 Tips';
-      if (statPrecision) statPrecision.textContent = '78.4%';
+      console.error('DASHBOARD STATS ERROR:', e);
+      if (statPlayable) statPlayable.textContent = '--';
+      if (statPreds) statPreds.textContent = '--';
+      if (statPrecision) statPrecision.textContent = '--';
       if (fixturesContainer) {
-        fixturesContainer.innerHTML = `
-          <div class="dash-fixture-card" data-home="Arsenal" data-away="Brentford" data-league="PL" data-h="1.85" data-d="3.60" data-a="4.40">
-            <div class="dash-fixture-teams">Arsenal vs Brentford</div>
-            <div class="dash-fixture-odds-row"><span>1: <strong>1.85</strong></span> <span>X: <strong>3.60</strong></span> <span>2: <strong>4.40</strong></span> <span style="margin-left:auto; color:#bef264; font-size:0.7rem;">Evaluate →</span></div>
-          </div>
-          <div class="dash-fixture-card" data-home="Inter" data-away="Genoa" data-league="SA" data-h="1.60" data-d="4.10" data-a="5.75">
-            <div class="dash-fixture-teams">Inter vs Genoa</div>
-            <div class="dash-fixture-odds-row"><span>1: <strong>1.60</strong></span> <span>X: <strong>4.10</strong></span> <span>2: <strong>5.75</strong></span> <span style="margin-left:auto; color:#bef264; font-size:0.7rem;">Evaluate →</span></div>
-          </div>
-          <div class="dash-fixture-card" data-home="Ajax" data-away="Utrecht" data-league="DED" data-h="1.73" data-d="3.90" data-a="4.80">
-            <div class="dash-fixture-teams">Ajax vs Utrecht</div>
-            <div class="dash-fixture-odds-row"><span>1: <strong>1.73</strong></span> <span>X: <strong>3.90</strong></span> <span>2: <strong>4.80</strong></span> <span style="margin-left:auto; color:#bef264; font-size:0.7rem;">Evaluate →</span></div>
-          </div>
-        `;
-        fixturesContainer.querySelectorAll('.dash-fixture-card').forEach(card => {
-          card.addEventListener('click', () => {
-            populateScreenerForm(card.getAttribute('data-home'), card.getAttribute('data-away'), card.getAttribute('data-league'), card.getAttribute('data-h'), card.getAttribute('data-d'), card.getAttribute('data-a'));
-            switchDashPane('dash-pane-screener');
-            runValueScreenerLive();
-          });
-        });
+        fixturesContainer.innerHTML = '<div style="color:var(--dash-text-muted); font-size:0.8rem; padding:16px 12px; text-align:center;">Telemetry currently unavailable. Check network or server connection.</div>';
       }
     }
   }
@@ -8574,7 +8556,9 @@
     if (inMinEdge) {
       const cleanEdge = inMinEdge.value.replace('%', '').trim();
       const parsed = parseFloat(cleanEdge);
-      if (!isNaN(parsed)) minEdgeVal = parsed > 1 ? parsed / 100.0 : parsed;
+      if (!isNaN(parsed)) {
+        minEdgeVal = inMinEdge.value.includes('%') || parsed > 0.10 ? parsed / 100.0 : parsed;
+      }
     }
 
     let bankrollVal = 1000000;
@@ -8630,6 +8614,7 @@
           statusSlot.className = 'dash-state-msg error';
           statusSlot.textContent = res.message || 'No strong value edge detected with current criteria.';
         }
+        renderScreenerPass(res, homeTeam, awayTeam, homeOdds, drawOdds, awayOdds);
         return;
       }
 
@@ -8644,11 +8629,73 @@
         resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     } catch (err) {
-      handleScreenerError(err, statusSlot);
+      lastScreenerData = null;
+      handleScreenerError(err, statusSlot, homeTeam, awayTeam);
     }
   }
 
-  function handleScreenerError(err, statusSlot) {
+  let lastScreenerData = null;
+
+  function renderScreenerError(errorMsg, homeTeam, awayTeam) {
+    const resFixture = document.getElementById('resMatchFixture');
+    const resTitle = document.getElementById('resSelectionTitle');
+    const resHighlight = document.getElementById('resHighlightText');
+    const resConfidence = document.getElementById('resConfidenceBadge');
+    const resSource = document.getElementById('resEngineSource');
+
+    if (resFixture) resFixture.textContent = homeTeam && awayTeam ? `${homeTeam} vs ${awayTeam}` : "Evaluation Unavailable";
+    if (resTitle) resTitle.textContent = "Evaluation Unavailable";
+    if (resHighlight) resHighlight.textContent = errorMsg ? `Evaluation failed: ${errorMsg}` : "Calculation engine encountered an error or connection was interrupted.";
+    if (resConfidence) {
+      resConfidence.textContent = "ERROR";
+      resConfidence.className = "badge-confidence medium";
+    }
+    if (resSource) resSource.textContent = "unavailable";
+
+    const probVal = document.getElementById('resProbVal');
+    const edgeVal = document.getElementById('resEdgeVal');
+    const oddsVal = document.getElementById('resOddsVal');
+    const stakeVal = document.getElementById('resStakeVal');
+
+    if (probVal) probVal.textContent = "--";
+    if (edgeVal) edgeVal.textContent = "--";
+    if (oddsVal) oddsVal.textContent = "--";
+    if (stakeVal) stakeVal.textContent = "₦0";
+
+    const segHome = document.getElementById('segHome');
+    const segDraw = document.getElementById('segDraw');
+    const segAway = document.getElementById('segAway');
+    const legHome = document.getElementById('legendHomeProb');
+    const legDraw = document.getElementById('legendDrawProb');
+    const legAway = document.getElementById('legendAwayProb');
+
+    if (segHome) segHome.style.width = "33.3%";
+    if (segDraw) segDraw.style.width = "33.3%";
+    if (segAway) segAway.style.width = "33.4%";
+    if (legHome) legHome.textContent = "--";
+    if (legDraw) legDraw.textContent = "--";
+    if (legAway) legAway.textContent = "--";
+
+    const patStr = document.getElementById('resPatternStrength');
+    if (patStr) patStr.textContent = "UNAVAILABLE";
+
+    const warnCard = document.getElementById('resWarningCard');
+    const warnTitle = document.getElementById('resDrawEdgeTitle');
+    const warnDesc = document.getElementById('resMarketWarning');
+    if (warnCard) warnCard.style.display = 'block';
+    if (warnTitle) warnTitle.textContent = "Calculation Offline / Error";
+    if (warnDesc) warnDesc.textContent = "Live betting advice is withheld when calculations fail. Stale outputs are purged to protect bankroll capital.";
+
+    const driversEl = document.getElementById('resDriversContent');
+    const risksEl = document.getElementById('resRisksContent');
+    if (driversEl) driversEl.textContent = "Analysis unavailable due to network or service error.";
+    if (risksEl) risksEl.textContent = "Do not wager on unverified signals or during calculation downtime.";
+
+    renderRecentMatches(null, homeTeam, awayTeam, 'all');
+  }
+
+  function handleScreenerError(err, statusSlot, homeTeam, awayTeam) {
+    renderScreenerError(err.message || 'Analysis unavailable', homeTeam, awayTeam);
     if (!statusSlot) return;
     const status = err.status;
     const msg = err.message || '';
@@ -8680,6 +8727,132 @@
     }
   }
 
+  function renderScreenerPass(data, homeTeam, awayTeam, homeOdds, drawOdds, awayOdds) {
+    const resFixture = document.getElementById('resMatchFixture');
+    const resTitle = document.getElementById('resSelectionTitle');
+    const resHighlight = document.getElementById('resHighlightText');
+    const resConfidence = document.getElementById('resConfidenceBadge');
+    const resSource = document.getElementById('resEngineSource');
+
+    if (resFixture) resFixture.textContent = `${homeTeam} vs ${awayTeam}`;
+    if (resTitle) resTitle.textContent = "PASS (NO VALUE)";
+    if (resConfidence) {
+      resConfidence.textContent = "PASS (NO VALUE)";
+      resConfidence.className = "badge-confidence medium";
+    }
+    if (resSource) resSource.textContent = (data && data.source) || "safety_filter";
+
+    const probVal = document.getElementById('resProbVal');
+    const edgeVal = document.getElementById('resEdgeVal');
+    const oddsVal = document.getElementById('resOddsVal');
+    const stakeVal = document.getElementById('resStakeVal');
+
+    // Extract or compute model probability
+    let probNum = null;
+    if (data && data.probability != null && !isNaN(Number(data.probability))) {
+      probNum = Number(data.probability);
+    } else if (data && data.full_probabilities && data.full_probabilities.home != null) {
+      probNum = Number(data.full_probabilities.home);
+    }
+
+    // Extract or compute market odds
+    let oddsNum = null;
+    if (data && data.odds != null && !isNaN(Number(data.odds)) && Number(data.odds) > 0) {
+      oddsNum = Number(data.odds);
+    } else if (homeOdds && !isNaN(parseFloat(homeOdds)) && parseFloat(homeOdds) > 0) {
+      oddsNum = parseFloat(homeOdds);
+    }
+
+    // Extract or compute true edge (never replace with 0.0%)
+    let edgeNum = null;
+    if (data && data.edge != null && !isNaN(Number(data.edge))) {
+      edgeNum = Number(data.edge);
+    } else if (probNum !== null && oddsNum !== null && oddsNum > 0) {
+      const impliedProb = 100.0 / oddsNum;
+      edgeNum = probNum - impliedProb;
+    }
+
+    if (probVal) probVal.textContent = probNum !== null ? `${probNum.toFixed(1)}%` : "--";
+    if (oddsVal) oddsVal.textContent = oddsNum !== null ? oddsNum.toFixed(2) : "--";
+    if (stakeVal) stakeVal.textContent = "₦0";
+
+    if (edgeVal) {
+      if (edgeNum !== null) {
+        edgeVal.textContent = edgeNum > 0 ? `+${edgeNum.toFixed(2)}%` : `${edgeNum.toFixed(2)}%`;
+        edgeVal.className = "metric-val";
+        edgeVal.style.color = edgeNum < 0 ? "#f87171" : (edgeNum > 0 ? "#bef264" : "var(--dash-text-muted)");
+      } else {
+        edgeVal.textContent = "--";
+        edgeVal.className = "metric-val";
+        edgeVal.style.color = "var(--dash-text-muted)";
+      }
+    }
+
+    const segHome = document.getElementById('segHome');
+    const segDraw = document.getElementById('segDraw');
+    const segAway = document.getElementById('segAway');
+    const legHome = document.getElementById('legendHomeProb');
+    const legDraw = document.getElementById('legendDrawProb');
+    const legAway = document.getElementById('legendAwayProb');
+
+    let hp = 0, dp = 0, ap = 0;
+    if (data && data.full_probabilities) {
+      hp = Number(data.full_probabilities.home) || 0;
+      dp = Number(data.full_probabilities.draw) || 0;
+      ap = Number(data.full_probabilities.away) || 0;
+    } else if (probNum !== null) {
+      hp = probNum;
+      dp = 20.0;
+      ap = Math.max(0, 100.0 - hp - dp);
+    }
+
+    if (hp > 0 || dp > 0 || ap > 0) {
+      const tot = (hp + dp + ap) || 100;
+      if (segHome) segHome.style.width = `${((hp / tot) * 100).toFixed(1)}%`;
+      if (segDraw) segDraw.style.width = `${((dp / tot) * 100).toFixed(1)}%`;
+      if (segAway) segAway.style.width = `${((ap / tot) * 100).toFixed(1)}%`;
+      if (legHome) legHome.textContent = `${hp.toFixed(1)}%`;
+      if (legDraw) legDraw.textContent = `${dp.toFixed(1)}%`;
+      if (legAway) legAway.textContent = `${ap.toFixed(1)}%`;
+    } else {
+      if (segHome) segHome.style.width = "33.3%";
+      if (segDraw) segDraw.style.width = "33.3%";
+      if (segAway) segAway.style.width = "33.4%";
+      if (legHome) legHome.textContent = "--";
+      if (legDraw) legDraw.textContent = "--";
+      if (legAway) legAway.textContent = "--";
+    }
+
+    const patStr = document.getElementById('resPatternStrength');
+    if (patStr) patStr.textContent = "PASS (0.00)";
+
+    const warnCard = document.getElementById('resWarningCard');
+    const warnTitle = document.getElementById('resDrawEdgeTitle');
+    const warnDesc = document.getElementById('resMarketWarning');
+    if (warnCard) warnCard.style.display = 'block';
+    if (warnTitle) warnTitle.textContent = "Capital Preservation Active";
+    if (warnDesc) warnDesc.textContent = (data && data.explanation && data.explanation.rule) || (data && data.message) || "No bet advised. Strict Kelly safety rules prevent wagering without verified positive edge.";
+
+    const driversEl = document.getElementById('resDriversContent');
+    const risksEl = document.getElementById('resRisksContent');
+    if (driversEl) {
+      driversEl.textContent = edgeNum !== null
+        ? `Model calculated edge is ${edgeNum > 0 ? '+' : ''}${edgeNum.toFixed(2)}% against market price ${oddsNum ? oddsNum.toFixed(2) : '--'}. Fails safety threshold.`
+        : `Safety filter active: ${(data && data.message) || 'Criteria not met'}. No positive statistical edge beats the market vig.`;
+    }
+    if (risksEl) risksEl.textContent = "Betting without verified mathematical edge produces long-term capital loss. Capital preservation advised.";
+
+    if (resHighlight) {
+      if (edgeNum !== null) {
+        resHighlight.textContent = `Calculated edge ${edgeNum > 0 ? '+' : ''}${edgeNum.toFixed(2)}% fails minimum safety floor. Recommendation: PASS (NO VALUE) - Recommended Stake: ₦0.`;
+      } else {
+        resHighlight.textContent = (data && data.message) || "Model detected insufficient edge or safety criteria not met.";
+      }
+    }
+
+    renderRecentMatches(data, homeTeam, awayTeam, 'all');
+  }
+
   function renderScreenerResult(data, homeTeam, awayTeam, homeOdds, drawOdds, awayOdds, bankroll) {
     const resFixture = document.getElementById('resMatchFixture');
     const resTitle = document.getElementById('resSelectionTitle');
@@ -8703,14 +8876,28 @@
     const oddsVal = document.getElementById('resOddsVal');
     const stakeVal = document.getElementById('resStakeVal');
 
-    const probNum = typeof data.probability === 'number' ? data.probability : parseFloat(data.probability) || 64.2;
-    const edgeNum = typeof data.edge === 'number' ? data.edge : parseFloat(data.edge) || 10.1;
-    const oddsNum = typeof data.odds === 'number' ? data.odds : parseFloat(data.odds) || homeOdds;
-    const stakeNum = typeof data.stake === 'number' ? data.stake : parseFloat(data.stake) || 24300;
+    const probNum = typeof data.probability === 'number' ? data.probability : (parseFloat(data.probability) || 0);
+    const edgeNum = typeof data.edge === 'number' ? data.edge : (parseFloat(data.edge) || 0);
+    const oddsNum = typeof data.odds === 'number' ? data.odds : (parseFloat(data.odds) || homeOdds || 0);
+    let stakeNum = typeof data.stake === 'number' ? data.stake : (parseFloat(data.stake) || 0);
 
-    if (probVal) probVal.textContent = `${probNum.toFixed(1)}%`;
-    if (edgeVal) edgeVal.textContent = `+${edgeNum.toFixed(1)}%`;
-    if (oddsVal) oddsVal.textContent = oddsNum.toFixed(2);
+    // Absolute safety guard: non-positive edge or pattern unmatched must NEVER stake capital
+    if (edgeNum <= 0 || data.pattern_matched === false) {
+      stakeNum = 0;
+      if (resTitle) resTitle.textContent = "PASS (NO VALUE)";
+      if (resConfidence) {
+        resConfidence.textContent = "PASS (NO VALUE)";
+        resConfidence.className = "badge-confidence medium";
+      }
+    }
+
+    if (probVal) probVal.textContent = probNum > 0 ? `${probNum.toFixed(1)}%` : '--';
+    if (edgeVal) {
+      edgeVal.textContent = edgeNum > 0 ? `+${edgeNum.toFixed(2)}%` : `${edgeNum.toFixed(2)}%`;
+      edgeVal.className = "metric-val";
+      edgeVal.style.color = edgeNum < 0 ? "#f87171" : (edgeNum > 0 ? "#bef264" : "var(--dash-text-muted)");
+    }
+    if (oddsVal) oddsVal.textContent = oddsNum > 0 ? oddsNum.toFixed(2) : '--';
     if (stakeVal) stakeVal.textContent = formatNaira(stakeNum);
 
     const patStr = document.getElementById('resPatternStrength');
@@ -8721,25 +8908,25 @@
     const legDraw = document.getElementById('legendDrawProb');
     const legAway = document.getElementById('legendAwayProb');
 
-    if (patStr) patStr.textContent = `${data.pattern_strength || 'STRONG'} (${data.pattern_score !== undefined ? data.pattern_score.toFixed(2) : '0.80'})`;
+    if (patStr) patStr.textContent = `${data.pattern_strength || 'STRONG'} (${data.pattern_score !== undefined ? Number(data.pattern_score).toFixed(2) : '0.80'})`;
 
-    let hp = 64.2, dp = 21.8, ap = 14.0;
+    let hp = 0, dp = 0, ap = 0;
     if (data.full_probabilities) {
-      hp = data.full_probabilities.home || hp;
-      dp = data.full_probabilities.draw || dp;
-      ap = data.full_probabilities.away || ap;
-    } else {
+      hp = Number(data.full_probabilities.home) || 0;
+      dp = Number(data.full_probabilities.draw) || 0;
+      ap = Number(data.full_probabilities.away) || 0;
+    } else if (probNum > 0) {
       hp = probNum;
-      dp = Math.max(5, (100 - hp) * 0.55);
-      ap = Math.max(5, 100 - hp - dp);
+      dp = Math.max(0, (100 - hp) * 0.55);
+      ap = Math.max(0, 100 - hp - dp);
     }
 
     if (segHome) segHome.style.width = `${hp}%`;
     if (segDraw) segDraw.style.width = `${dp}%`;
     if (segAway) segAway.style.width = `${ap}%`;
-    if (legHome) legHome.textContent = hp.toFixed(1);
-    if (legDraw) legDraw.textContent = dp.toFixed(1);
-    if (legAway) legAway.textContent = ap.toFixed(1);
+    if (legHome) legHome.textContent = hp > 0 ? hp.toFixed(1) : '--';
+    if (legDraw) legDraw.textContent = dp > 0 ? dp.toFixed(1) : '--';
+    if (legAway) legAway.textContent = ap > 0 ? ap.toFixed(1) : '--';
 
     const warnCard = document.getElementById('resWarningCard');
     const warnTitle = document.getElementById('resDrawEdgeTitle');
@@ -8766,7 +8953,7 @@
       if (data.explanation && data.explanation.drivers && data.explanation.drivers.length) {
         driversEl.innerHTML = data.explanation.drivers.map(d => `<div style="margin-bottom:0.25rem;">• ${escapeHtml(d)}</div>`).join('');
       } else {
-        driversEl.textContent = `Form WWLWW vs LLLWL. Edge ${edgeNum.toFixed(1)}% vs threshold. No draws in last 5 for both teams.`;
+        driversEl.textContent = `Statistical edge +${edgeNum.toFixed(1)}% verified against bookmaker vig.`;
       }
     }
 
@@ -8778,52 +8965,74 @@
       }
     }
 
-    renderRecentMatches(homeTeam, awayTeam, 'all');
+    renderRecentMatches(data, homeTeam, awayTeam, 'all');
   }
 
-  function renderRecentMatches(homeTeam, awayTeam, filter = 'all') {
+  function renderRecentMatches(data, homeTeam, awayTeam, filter = 'all') {
     const tbody = document.getElementById('resRecentMatchesTbody');
     const mobileContainer = document.getElementById('resRecentMatchesMobileCards');
 
-    const sampleMatches = [
-      { team: homeTeam, opp: 'Fulham', venue: 'Home', score: '2-0', res: 'W', date: 'Oct 4' },
-      { team: awayTeam, opp: 'Spurs', venue: 'Away', score: '0-2', res: 'L', date: 'Oct 5' },
-      { team: homeTeam, opp: 'Everton', venue: 'Away', score: '3-1', res: 'W', date: 'Sep 28' },
-      { team: awayTeam, opp: 'Chelsea', venue: 'Home', score: '1-3', res: 'L', date: 'Sep 29' },
-    ];
+    let matches = [];
+    if (data && data.recent_matches) {
+      const homeMatches = (data.recent_matches.home || []).map(m => ({
+        team: homeTeam,
+        opp: m.opponent,
+        venue: m.venue === 'home' ? 'Home' : 'Away',
+        score: m.score,
+        res: m.result,
+        date: m.date ? m.date.substring(0, 10) : 'Recent'
+      }));
+      const awayMatches = (data.recent_matches.away || []).map(m => ({
+        team: awayTeam,
+        opp: m.opponent,
+        venue: m.venue === 'home' ? 'Home' : 'Away',
+        score: m.score,
+        res: m.result,
+        date: m.date ? m.date.substring(0, 10) : 'Recent'
+      }));
+      matches = [...homeMatches, ...awayMatches];
+    }
 
-    const filtered = sampleMatches.filter(m => {
+    const filtered = matches.filter(m => {
       if (filter === 'home') return m.venue === 'Home';
       if (filter === 'away') return m.venue === 'Away';
       return true;
     });
 
     if (tbody) {
-      tbody.innerHTML = filtered.map(m => `
-        <tr>
-          <td><strong>${escapeHtml(m.team)}</strong></td>
-          <td>${escapeHtml(m.opp)}</td>
-          <td>${m.venue}</td>
-          <td>${m.score}</td>
-          <td><span class="badge-res-${m.res.toLowerCase()}">${m.res}</span></td>
-          <td>${m.date}</td>
-        </tr>
-      `).join('');
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 1.5rem; color: #64748b;">No recent match history recorded in database for this fixture.</td></tr>`;
+      } else {
+        tbody.innerHTML = filtered.map(m => `
+          <tr>
+            <td><strong>${escapeHtml(m.team)}</strong></td>
+            <td>${escapeHtml(m.opp)}</td>
+            <td>${m.venue}</td>
+            <td>${m.score}</td>
+            <td><span class="badge-res-${m.res.toLowerCase()}">${m.res}</span></td>
+            <td>${m.date}</td>
+          </tr>
+        `).join('');
+      }
     }
 
     if (mobileContainer) {
-      mobileContainer.innerHTML = filtered.map(m => `
-        <div class="recent-match-card-mobile">
-          <div>
-            <div style="font-weight:700; color:#fff;">${escapeHtml(m.team)} vs ${escapeHtml(m.opp)}</div>
-            <div style="font-size:0.72rem; color:#64748b;">${m.venue} · ${m.date}</div>
+      if (!filtered.length) {
+        mobileContainer.innerHTML = `<div style="text-align:center; padding:1rem; color:#64748b; font-size:0.8rem;">No recent match history in database.</div>`;
+      } else {
+        mobileContainer.innerHTML = filtered.map(m => `
+          <div class="recent-match-card-mobile">
+            <div>
+              <div style="font-weight:700; color:#fff;">${escapeHtml(m.team)} vs ${escapeHtml(m.opp)}</div>
+              <div style="font-size:0.72rem; color:#64748b;">${m.venue} · ${m.date}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+              <strong style="color:#fff;">${m.score}</strong>
+              <span class="badge-res-${m.res.toLowerCase()}">${m.res}</span>
+            </div>
           </div>
-          <div style="display:flex; align-items:center; gap:0.5rem;">
-            <strong style="color:#fff;">${m.score}</strong>
-            <span class="badge-res-${m.res.toLowerCase()}">${m.res}</span>
-          </div>
-        </div>
-      `).join('');
+        `).join('');
+      }
     }
   }
 
@@ -8845,21 +9054,21 @@
     if (inMinProb) {
       const clean = inMinProb.value.replace('%', '').trim();
       const p = parseFloat(clean);
-      if (!isNaN(p)) minProb = p > 1 ? p / 100.0 : p;
+      if (!isNaN(p)) minProb = inMinProb.value.includes('%') || p > 1.0 ? p / 100.0 : p;
     }
 
     let minEdge = 0.01;
     if (inMinEdge) {
       const clean = inMinEdge.value.replace('%', '').trim();
       const e = parseFloat(clean);
-      if (!isNaN(e)) minEdge = e > 1 ? e / 100.0 : e;
+      if (!isNaN(e)) minEdge = inMinEdge.value.includes('%') || e > 0.10 ? e / 100.0 : e;
     }
 
     let tolerance = 0.10;
     if (inTolerance) {
       const clean = inTolerance.value.replace('%', '').trim();
       const t = parseFloat(clean);
-      if (!isNaN(t)) tolerance = t > 1 ? t / 100.0 : t;
+      if (!isNaN(t)) tolerance = inTolerance.value.includes('%') || t > 0.50 ? t / 100.0 : t;
     }
 
     const seed = inSeed && inSeed.value.trim() ? parseInt(inSeed.value) : 42;
@@ -8892,6 +9101,14 @@
           statusEl.className = 'dash-state-msg error';
           statusEl.textContent = res.message || 'Could not build accumulator. Try widening tolerance or lowering target odds.';
         }
+        const kpiAchieved = document.getElementById('accuKpiAchieved');
+        const kpiProb = document.getElementById('accuKpiProb');
+        const kpiLegs = document.getElementById('accuKpiLegsScanned');
+        const tbody = document.getElementById('accuLegsTbody');
+        if (kpiAchieved) kpiAchieved.textContent = '--';
+        if (kpiProb) kpiProb.textContent = '--';
+        if (kpiLegs) kpiLegs.textContent = `0 / ${res.total_candidates || 0}`;
+        if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 24px; color: var(--dash-text-muted);">${escapeHtml(res.message || 'No qualifying selections found meeting criteria.')}</td></tr>`;
         return;
       }
 
@@ -8919,18 +9136,14 @@
     const kpiLegs = document.getElementById('accuKpiLegsScanned');
 
     if (kpiTarget) kpiTarget.textContent = (data.target_odds || targetOdds).toFixed(2);
-    if (kpiAchieved) kpiAchieved.textContent = (data.achieved_odds || 5.12).toFixed(2);
-    if (kpiProb) kpiProb.textContent = data.overall_probability || '23.4%';
-    if (kpiLegs) kpiLegs.textContent = `${data.number_of_legs || 3} / ${data.total_candidates_scanned || 41}`;
+    if (kpiAchieved) kpiAchieved.textContent = (data.achieved_odds !== undefined ? Number(data.achieved_odds).toFixed(2) : '--');
+    if (kpiProb) kpiProb.textContent = data.overall_probability || '--';
+    if (kpiLegs) kpiLegs.textContent = `${data.number_of_legs || 0} / ${data.total_candidates_scanned || 0}`;
 
     const tbody = document.getElementById('accuLegsTbody');
     const mobileCards = document.getElementById('accuLegsMobileCards');
 
-    const legs = data.legs || [
-      { match: 'Arsenal vs Brentford', selection: 'Arsenal Win', odds: 1.85, probability_percentage: '64.2%', edge_percentage: '10.1%' },
-      { match: 'Inter vs Genoa', selection: 'Inter Win', odds: 1.60, probability_percentage: '71.0%', edge_percentage: '8.5%' },
-      { match: 'Ajax vs Utrecht', selection: 'Ajax Win', odds: 1.73, probability_percentage: '65.5%', edge_percentage: '7.7%' }
-    ];
+    const legs = Array.isArray(data.legs) ? data.legs : [];
 
     if (tbody) {
       tbody.innerHTML = legs.map(leg => `
@@ -9030,7 +9243,7 @@
     bankroll: {
       title: "What is Bankroll & Kelly Staking?",
       desc: "Your total betting bankroll. TipAlgo computes fractional Kelly Criterion staking to determine the exact Naira stake that maximizes logarithmic capital growth while mitigating drawdown risk.",
-      example: "On a ₦1,000,000 bankroll with a +10.1% edge on 1.85 odds, the optimal recommended Kelly stake is ₦24,300 (2.43% of bankroll)."
+      example: "On a ₦1,000,000 bankroll with 64.2% model win probability on 1.85 odds (edge +10.1%), Quarter-Kelly yields 5.52% allocation, so the optimal recommended stake is ₦55,200."
     },
     prob: {
       title: "What is 'Min Probability'?",
@@ -9229,9 +9442,9 @@
         document.querySelectorAll('.recent-tab-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         const filter = btn.getAttribute('data-filter') || 'all';
-        const inHome = document.getElementById('screenerInputHome')?.value || 'Arsenal';
-        const inAway = document.getElementById('screenerInputAway')?.value || 'Brentford';
-        renderRecentMatches(inHome, inAway, filter);
+        const inHome = document.getElementById('screenerInputHome')?.value || '';
+        const inAway = document.getElementById('screenerInputAway')?.value || '';
+        renderRecentMatches(lastScreenerData, inHome, inAway, filter);
       });
     });
 
@@ -9248,7 +9461,21 @@
     const btnCopyAccu = document.getElementById('btnCopyAccuSlip');
     if (btnCopyAccu) {
       btnCopyAccu.addEventListener('click', () => {
-        const text = `TipAlgo Accu-Forge Slip\nTarget: 5.00 | Achieved: 5.12 | Prob: 23.4%\n- Arsenal vs Brentford: Arsenal Win (1.85)\n- Inter vs Genoa: Inter Win (1.60)\n- Ajax vs Utrecht: Ajax Win (1.73)`;
+        const target = document.getElementById('accuKpiTarget')?.textContent || '--';
+        const achieved = document.getElementById('accuKpiAchieved')?.textContent || '--';
+        const prob = document.getElementById('accuKpiProb')?.textContent || '--';
+        const tbody = document.getElementById('accuLegsTbody');
+        const rows = tbody ? Array.from(tbody.querySelectorAll('tr')) : [];
+        const validRows = rows.filter(r => r.querySelectorAll('td').length >= 5);
+        if (!validRows.length || achieved === '--') {
+          toast('No active accumulator ticket forged to copy.');
+          return;
+        }
+        const legsText = validRows.map(r => {
+          const cells = r.querySelectorAll('td');
+          return `- ${cells[0].textContent.trim()}: ${cells[1].textContent.trim()} (${cells[2].textContent.trim()})`;
+        }).join('\n');
+        const text = `TipAlgo Accu-Forge Slip\nTarget: ${target} | Achieved: ${achieved} | Prob: ${prob}\n${legsText}`;
         navigator.clipboard.writeText(text).then(() => toast('Accumulator ticket copied to clipboard!')).catch(() => toast('Ticket copied!'));
       });
     }
@@ -9257,9 +9484,16 @@
     const btnSendAccuToBetSlip = document.getElementById('btnSendAccuToBetSlip');
     if (btnSendAccuToBetSlip) {
       btnSendAccuToBetSlip.addEventListener('click', () => {
-        toast('Added 3 value legs to SportyBet slip!');
-        const popup = document.getElementById('mobileFloatingSlipPopup');
-        if (popup) popup.classList.add('visible');
+        const tbody = document.getElementById('accuLegsTbody');
+        const rows = tbody ? Array.from(tbody.querySelectorAll('tr')).filter(r => r.querySelectorAll('td').length >= 5) : [];
+        const count = rows.length;
+        if (count > 0) {
+          toast(`Added ${count} value legs to SportyBet slip!`);
+          const popup = document.getElementById('mobileFloatingSlipPopup');
+          if (popup) popup.classList.add('visible');
+        } else {
+          toast('No accumulator legs to send. Forge a ticket first.');
+        }
       });
     }
 

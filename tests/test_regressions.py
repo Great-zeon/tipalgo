@@ -299,6 +299,184 @@ class TestRegressions(unittest.IsolatedAsyncioTestCase):
                 self.assertIn("Aston Villa", match_str)
                 self.assertNotIn("Newcastle", match_str)
 
+    # REGRESSION-016: Elimination of hardcoded mock values (₦24,300, 64.2%, 10.1%, 23.4%) from live UI fallbacks
+    async def test_regression_016_no_hardcoded_live_prediction_fallbacks(self):
+        with open("static/index.html", "r") as f:
+            html = f.read()
+        with open("static/app.js", "r") as f:
+            js = f.read()
+
+        # index.html must not contain the mock result card values
+        self.assertNotIn("₦24,300", html)
+        self.assertNotIn("Arsenal Win (Value)", html)
+        self.assertNotIn("resProbVal\">64.2%", html)
+        self.assertNotIn("resEdgeVal\">+10.1%", html)
+        self.assertNotIn("accuKpiAchieved\">5.12", html)
+        self.assertNotIn("accuKpiProb\">23.4%", html)
+
+        # app.js must not contain fallback 24300 or mock numbers in live renderers
+        self.assertNotIn("|| 24300", js)
+        self.assertNotIn("|| 64.2", js)
+        self.assertNotIn("|| 10.1", js)
+        self.assertNotIn("hp = 64.2", js)
+        self.assertNotIn("Target: 5.00 | Achieved: 5.12 | Prob: 23.4%", js)
+
+    # REGRESSION-017: Independent Mathematical Verification of Kelly and Edge Calculations
+    async def test_regression_017_kelly_and_edge_mathematics(self):
+        from main import _calculate_kelly_stake
+
+        # Test Case A: Valid positive edge
+        # Model prob: 0.60, Odds: 2.00 (implied 0.50, edge +0.10, EV = 0.20)
+        # Full Kelly: (0.60*1.0 - 0.40) / 1.0 = 0.20
+        # Quarter Kelly: 0.20 * 0.25 = 0.05 (5%)
+        # Cap: min(0.05, 0.08) = 0.05
+        # On ₦1,000,000 bankroll -> ₦50,000.00
+        stake_a = _calculate_kelly_stake(0.60, 2.00, 1000000.0)
+        self.assertEqual(stake_a, 50000.00)
+
+        # Test Case B: Edge capped at 8% allocation
+        # Model prob: 0.85, Odds: 2.00 (Full Kelly = 0.70, Quarter Kelly = 0.175)
+        # Final allocation capped at 0.08
+        # On ₦1,000,000 bankroll -> ₦80,000.00
+        stake_b = _calculate_kelly_stake(0.85, 2.00, 1000000.0)
+        self.assertEqual(stake_b, 80000.00)
+
+        # Test Case C: Zero edge (prob == implied)
+        # Model prob: 0.50, Odds: 2.00 (edge 0.0) -> stake must be 0
+        stake_c = _calculate_kelly_stake(0.50, 2.00, 1000000.0)
+        self.assertEqual(stake_c, 0.0)
+
+        # Test Case D: Negative edge (prob < implied)
+        # Model prob: 0.40, Odds: 2.00 (edge -0.10) -> stake must be 0
+        stake_d = _calculate_kelly_stake(0.40, 2.00, 1000000.0)
+        self.assertEqual(stake_d, 0.0)
+
+        # Test Case E: Invalid odds (<= 1.0)
+        self.assertEqual(_calculate_kelly_stake(0.60, 1.00, 1000000.0), 0.0)
+        self.assertEqual(_calculate_kelly_stake(0.60, 0.90, 1000000.0), 0.0)
+        self.assertEqual(_calculate_kelly_stake(0.60, -1.50, 1000000.0), 0.0)
+
+        # Test Case F: Negative or zero bankroll
+        self.assertEqual(_calculate_kelly_stake(0.60, 2.00, 0.0), 0.0)
+        self.assertEqual(_calculate_kelly_stake(0.60, 2.00, -50000.0), 0.0)
+        self.assertEqual(_calculate_kelly_stake(0.60, 2.00, None), 0.0)
+
+        # Test Case G: Invalid probabilities outside (0, 1]
+        self.assertEqual(_calculate_kelly_stake(0.0, 2.00, 1000000.0), 0.0)
+        self.assertEqual(_calculate_kelly_stake(-0.10, 2.00, 1000000.0), 0.0)
+        self.assertEqual(_calculate_kelly_stake(1.50, 2.00, 1000000.0), 0.0)
+
+    # REGRESSION-018: Arsenal vs Brentford live inputs recalculation consistency
+    async def test_regression_018_arsenal_brentford_calculation_consistency(self):
+        from main import _calculate_kelly_stake
+
+        # Reported case: Arsenal odds 1.48, Model prob 64.2%
+        odds = 1.48
+        model_prob = 0.642
+        implied_prob = 1.0 / odds # 0.675675... (67.57%)
+        edge = model_prob - implied_prob # -0.033675... (-3.37%)
+        self.assertLess(edge, 0.0, "Arsenal vs Brentford has negative edge on 1.48 odds")
+
+        # Because edge is negative, Kelly stake MUST be ₦0
+        stake = _calculate_kelly_stake(model_prob, odds, 1000000.0)
+        self.assertEqual(stake, 0.0, "Negative edge must never yield a positive Kelly stake")
+
+        # Now test educational case: Arsenal odds 1.85, Model prob 64.2%
+        odds_hypo = 1.85
+        implied_hypo = 1.0 / odds_hypo # 0.54054... (54.05%)
+        edge_hypo = model_prob - implied_hypo # +0.10145... (+10.15%)
+        self.assertAlmostEqual(edge_hypo, 0.1015, places=3)
+        b = odds_hypo - 1.0 # 0.85
+        full_kelly = (model_prob * b - (1.0 - model_prob)) / b # 0.2208235...
+        quarter_kelly = 0.25 * full_kelly # 0.0552058... (~5.52%)
+        stake_hypo = _calculate_kelly_stake(model_prob, odds_hypo, 1000000.0)
+        self.assertEqual(stake_hypo, 55205.88)
+        # It is definitively ₦55,206 (5.52%), NOT the previously reported mockup value ₦24,300 (2.43%)
+        self.assertNotEqual(stake_hypo, 24300.0)
+
+    # REGRESSION-019: Value Screener Minimum Edge Floor and Zero Stake on Failure
+    async def test_regression_019_value_screener_edge_floor_and_zero_stake(self):
+        resp = await self.client.post("/predict/value-screener", json={
+            "home_team": "Arsenal",
+            "away_team": "Brentford",
+            "league_id": "PL",
+            "home_odds": 1.48,
+            "draw_odds": 4.50,
+            "away_odds": 6.50,
+            "bankroll": 1000000.0,
+            "min_edge": 0.04
+        }, headers=self.auth_headers)
+
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        if data.get("pattern_matched") is False:
+            self.assertFalse(data.get("pattern_matched"))
+            # If pattern matched is false, stake cannot be positive
+            self.assertEqual(data.get("stake", 0), 0)
+        else:
+            # If qualified, edge must strictly exceed or meet the 4% threshold
+            self.assertGreaterEqual(data["edge"], 4.0)
+            self.assertGreater(data["stake"], 0)
+
+    # REGRESSION-020: Accumulator Correlated Legs Rejection (DEF-001)
+    async def test_regression_020_accumulator_no_duplicate_matches(self):
+        resp = await self.client.post("/predict/accumulator", json={
+            "target_odds": 5.0,
+            "max_legs": 4,
+            "min_probability": 0.40,
+            "min_edge": 0.01,
+            "tolerance": 0.25
+        }, headers=self.auth_headers)
+
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        legs = data.get("legs", [])
+        if legs:
+            matches = [leg["match"] for leg in legs]
+            unique_matches = set(matches)
+            self.assertEqual(len(matches), len(unique_matches), "Accumulator ticket must not contain duplicate matches")
+
+    # REGRESSION-021: Negative Edge (-3.37%) Is Preserved and Not Silently Replaced With 0.0%
+    async def test_regression_021_value_screener_negative_edge_not_silently_zeroed(self):
+        # 1. Exact mathematical formula check for 64.2% prob at 1.48 odds
+        model_prob = 0.642
+        decimal_odds = 1.48
+        implied_prob = 1.0 / decimal_odds # 0.675675675...
+        calculated_edge = model_prob - implied_prob # -0.033675675... (-3.37%)
+        
+        # Format to percentage rounded to 2 decimal places
+        formatted_edge_pct = round(calculated_edge * 100, 2)
+        self.assertEqual(formatted_edge_pct, -3.37, "64.2% probability at 1.48 odds must yield exactly -3.37% edge")
+        self.assertNotEqual(formatted_edge_pct, 0.0, "Negative edge must never be silently zeroed to 0.0%")
+
+        # 2. Verify ResponseBuilder formatting preserves negative edge
+        from main import ResponseBuilder, _calculate_kelly_stake
+        resp = ResponseBuilder.failure(
+            "value_screener", "Arsenal vs Brentford", "Negative value edge",
+            probability=64.2,
+            edge=formatted_edge_pct,
+            odds=decimal_odds,
+            stake=0,
+            stake_suggestion="₦0",
+            selection="PASS (NO VALUE)",
+            confidence="PASS"
+        )
+        self.assertEqual(resp["edge"], -3.37)
+        self.assertEqual(resp["selection"], "PASS (NO VALUE)")
+        self.assertEqual(resp["stake_suggestion"], "₦0")
+        self.assertEqual(resp["pattern_matched"], False)
+
+        # 3. Kelly stake check
+        stake = _calculate_kelly_stake(model_prob, decimal_odds, 1000000.0)
+        self.assertEqual(stake, 0.0)
+
+        # 4. Verify static app.js has no hardcoded '0.0%' fallback for edgeVal
+        with open("static/app.js", "r") as f:
+            app_js = f.read()
+        self.assertNotIn('if (edgeVal) edgeVal.textContent = "0.0%";', app_js)
+        self.assertIn('edgeVal.textContent = edgeNum > 0 ? `+${edgeNum.toFixed(2)}%` : `${edgeNum.toFixed(2)}%`;', app_js)
+
 
 if __name__ == "__main__":
     unittest.main()
+

@@ -121,7 +121,7 @@ async def seed():
 
         # 4. Seed Historical Matches (Past 60+ matches for form / ML training)
         now = datetime.now(timezone.utc)
-        res_hm = await db.execute(select(HistoricalMatch).limit(5))
+        res_hm = await db.execute(select(HistoricalMatch).where(HistoricalMatch.home_score.isnot(None)).limit(10))
         if len(res_hm.scalars().all()) < 10:
             hist_matches = [
                 ("HM-001", "Arsenal", "Chelsea", 3, 1, "PL", now - timedelta(days=12), 1.55, 5.80, 4.30),

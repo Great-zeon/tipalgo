@@ -612,11 +612,11 @@ def estimate_draw_probability(home_form_score: float, away_form_score: float, le
     return min(0.45, max(0.15, baseline + adjustment))
 
 def _calculate_kelly_stake(probability: float, odds: float, bankroll: Optional[float]) -> float:
-    if not bankroll or odds <= 1:
-        return 0
-    b = odds - 1
-    kelly = (probability * b - (1 - probability)) / b if b > 0 else 0
-    stake_frac = min(max(0, kelly * config.KELLY_FRACTION), 0.08)
+    if not bankroll or bankroll <= 0 or odds <= 1 or not (0 < probability <= 1.0):
+        return 0.0
+    b = odds - 1.0
+    kelly = (probability * b - (1.0 - probability)) / b if b > 0 else 0.0
+    stake_frac = min(max(0.0, kelly * config.KELLY_FRACTION), 0.08)
     return round(bankroll * stake_frac, 2)
 
 # Form pattern helpers
@@ -2171,9 +2171,9 @@ class ResponseBuilder:
         if edge == 0 or edge == 0.0:
             formatted_edge = 0.0
         elif -1.0 < edge < 1.0:
-            formatted_edge = round(edge * 100, 1)
+            formatted_edge = round(edge * 100, 2)
         else:
-            formatted_edge = round(edge, 1)
+            formatted_edge = round(edge, 2)
 
         response = {
             "pattern_matched": True,
@@ -3327,16 +3327,45 @@ async def generate_value_screener_tip(db, predictor, home_team, away_team, leagu
     # 1. Fetch recent matches
     home_recent = await get_team_recent_matches(db, home_team, None, 5)
     away_recent = await get_team_recent_matches(db, away_team, None, 5)
+
+    # Pre-calculate base probabilities and market odds for consistent reporting on PASS
+    try:
+        base_probs = await predictor.get_probabilities(db, home_team, away_team, league_id)
+        base_home_prob = base_probs.get("home_prob", 0.50)
+        base_home_edge = base_home_prob - (1.0 / home_odds if home_odds > 0 else 0.0)
+        base_extra = {
+            "probability": round(base_home_prob * 100, 1),
+            "edge": round(base_home_edge * 100, 2),
+            "odds": round(home_odds, 2),
+            "stake": 0,
+            "stake_suggestion": "₦0",
+            "selection": "PASS (NO VALUE)",
+            "recommendation": "PASS (NO VALUE)",
+            "confidence": "PASS",
+            "full_probabilities": {
+                "home": round(base_probs.get("home_prob", 0.33) * 100, 1),
+                "draw": round(base_probs.get("draw_prob", 0.33) * 100, 1),
+                "away": round(base_probs.get("away_prob", 0.33) * 100, 1)
+            },
+            "recent_matches": {"home": home_recent, "away": away_recent}
+        }
+    except Exception:
+        base_extra = {}
+
     if len(home_recent) < 5 or len(away_recent) < 5:
         return ResponseBuilder.failure("value_screener", f"{home_team} vs {away_team}",
-                                       "Insufficient recent matches for filtering.")
+                                       "Insufficient recent matches for filtering.",
+                                       personality_mode=personality_mode, locale=locale,
+                                       **base_extra)
     home_form = ''.join([r['result'] for r in home_recent])
     away_form = ''.join([r['result'] for r in away_recent])
 
     # 2. Hard filters: no draws
     if 'D' in home_form or 'D' in away_form:
         return ResponseBuilder.failure("value_screener", f"{home_team} vs {away_team}",
-                                       "Both teams must have no draws in last 5.")
+                                       "Both teams must have no draws in last 5.",
+                                       personality_mode=personality_mode, locale=locale,
+                                       **base_extra)
 
     # 3. Determine strong side (symmetric)
     home_wins = home_form.count('W')
@@ -3349,7 +3378,9 @@ async def generate_value_screener_tip(db, predictor, home_team, away_team, leagu
 
     if not home_strong and not away_strong:
         return ResponseBuilder.failure("value_screener", f"{home_team} vs {away_team}",
-                                       f"Home: {home_wins}W/{home_losses}L | Away: {away_wins}W/{away_losses}L – no strong side")
+                                       f"Home: {home_wins}W/{home_losses}L | Away: {away_wins}W/{away_losses}L – no strong side",
+                                       personality_mode=personality_mode, locale=locale,
+                                       **base_extra)
     
     # 4. Choose target
     if home_strong:
@@ -3375,7 +3406,9 @@ async def generate_value_screener_tip(db, predictor, home_team, away_team, leagu
     except Exception as e:
         logger.error(f"Value screener probability error: {e}", exc_info=True)
         return ResponseBuilder.failure("value_screener", f"{home_team} vs {away_team}",
-                                       "Could not compute probability.")
+                                       "Could not compute probability.",
+                                       personality_mode=personality_mode, locale=locale,
+                                       **base_extra)
 
     # 6. Try ML screener if available
     if screener_model and screener_model.is_fitted:
@@ -3437,7 +3470,23 @@ async def generate_value_screener_tip(db, predictor, home_team, away_team, leagu
 
     if edge < min_edge and draw_edge < min_edge:
         return ResponseBuilder.failure("value_screener", f"{home_team} vs {away_team}",
-                                       f"Target edge {edge*100:.1f}% below minimum {min_edge*100:.1f}%")
+                                       f"Target edge {edge*100:.2f}% below minimum {min_edge*100:.1f}%",
+                                       personality_mode=personality_mode, locale=locale,
+                                       probability=round(target_prob * 100, 1),
+                                       edge=round(edge * 100, 2),
+                                       odds=round(target_odds, 2),
+                                       stake=0,
+                                       stake_suggestion="₦0",
+                                       selection="PASS (NO VALUE)",
+                                       recommendation="PASS (NO VALUE)",
+                                       confidence="PASS",
+                                       source="value_screener_ml" if (screener_model and screener_model.is_fitted) else "heuristic",
+                                       recent_matches={"home": home_recent, "away": away_recent},
+                                       full_probabilities={
+                                           "home": round(probs["home_prob"] * 100, 1),
+                                           "draw": round(probs["draw_prob"] * 100, 1),
+                                           "away": round(probs["away_prob"] * 100, 1)
+                                       })
 
     # 9. Pattern strength indicator
     pattern_score = (home_wins + away_losses) / 10 if home_strong else (away_wins + home_losses) / 10
@@ -3508,6 +3557,11 @@ async def generate_value_screener_tip(db, predictor, home_team, away_team, leagu
     
     if market_warning:
         response["market_warning"] = market_warning
+    
+    response["recent_matches"] = {
+        "home": home_recent,
+        "away": away_recent
+    }
     
     return response
 
@@ -3664,6 +3718,9 @@ def build_accumulator_from_candidates(candidates: List[Dict], target_odds: float
     for bet in candidates_sorted:
         if max_legs and len(selected) >= max_legs:
             break
+        # Enforce distinct match selection (no correlated bets from the same fixture)
+        if any(s.get('match') == bet.get('match') for s in selected):
+            continue
         new_odds = current_odds * bet['odds']
         if new_odds <= upper_bound:
             selected.append(bet)
@@ -3673,6 +3730,9 @@ def build_accumulator_from_candidates(candidates: List[Dict], target_odds: float
         for i, bet in enumerate(selected):
             for alt in remaining:
                 if alt['odds'] > bet['odds']:
+                    # Ensure replacement leg does not collide with other selected matches
+                    if any(s.get('match') == alt.get('match') for j, s in enumerate(selected) if j != i):
+                        continue
                     new_odds = (current_odds / bet['odds']) * alt['odds']
                     if new_odds <= upper_bound:
                         selected[i] = alt
@@ -4079,6 +4139,8 @@ async def verify_payment(reference: str) -> Dict:
             return data["data"]
 
 def verify_paystack_signature(payload: bytes, signature: str) -> bool:
+    if not config.PAYSTACK_SECRET_KEY or not signature:
+        return False
     expected = hmac.new(config.PAYSTACK_SECRET_KEY.encode('utf-8'), payload, hashlib.sha512).hexdigest()
     return hmac.compare_digest(expected, signature)
 
@@ -5952,6 +6014,8 @@ async def get_match_analytics(
     def calc_stake(p, o):
         b = o - 1.0
         kf = max(0.0, (p * b - (1.0 - p)) / b) if b > 0 else 0.0
+        if kf <= 0.0:
+            return "₦0"
         return f"₦{max(500, min(user_bankroll * kf * config.KELLY_FRACTION, user_bankroll * 0.05)):,.0f}"
 
     recommended_tickets = [

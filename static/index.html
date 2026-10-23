@@ -1663,13 +1663,13 @@
                     <!-- Top Match Title & Badges -->
                     <div class="result-header-row">
                       <div>
-                        <span class="result-fixture-tag" id="resMatchFixture">Arsenal vs Brentford</span>
-                        <h2 class="result-selection-title" id="resSelectionTitle">Arsenal Win (Value)</h2>
-                        <p class="result-highlight-text" id="resHighlightText">High statistical edge detected. Strong selection.</p>
+                        <span class="result-fixture-tag" id="resMatchFixture">Select or Configure Fixture</span>
+                        <h2 class="result-selection-title" id="resSelectionTitle">Awaiting Evaluation</h2>
+                        <p class="result-highlight-text" id="resHighlightText">Configure match odds on the left and click "Run Model &amp; Screener" to compute live value edge and Kelly stake.</p>
                       </div>
                       <div class="result-badges-col">
-                        <span class="badge-confidence very-high" id="resConfidenceBadge">VERY HIGH</span>
-                        <span class="badge-engine-pill" id="resEngineSource">value_screener_ml</span>
+                        <span class="badge-confidence" id="resConfidenceBadge" style="background:rgba(255,255,255,0.06); color:var(--dash-text-muted);">READY</span>
+                        <span class="badge-engine-pill" id="resEngineSource">TipAlgo v21 ML</span>
                       </div>
                     </div>
 
@@ -1677,46 +1677,46 @@
                     <div class="result-metrics-strip">
                       <div class="metric-cell">
                         <span class="metric-label">Probability</span>
-                        <span class="metric-val" id="resProbVal">64.2%</span>
+                        <span class="metric-val" id="resProbVal">--</span>
                       </div>
                       <div class="metric-cell">
                         <span class="metric-label">Edge</span>
-                        <span class="metric-val text-lime" id="resEdgeVal">+10.1%</span>
+                        <span class="metric-val text-lime" id="resEdgeVal">--</span>
                       </div>
                       <div class="metric-cell">
                         <span class="metric-label">Odds</span>
-                        <span class="metric-val" id="resOddsVal">1.85</span>
+                        <span class="metric-val" id="resOddsVal">--</span>
                       </div>
                       <div class="metric-cell">
                         <span class="metric-label">Stake</span>
-                        <span class="metric-val" id="resStakeVal">₦24,300</span>
+                        <span class="metric-val" id="resStakeVal">₦0</span>
                       </div>
                     </div>
 
                     <!-- Pattern & 1X2 Probabilities Bar -->
                     <div class="result-pattern-box">
                       <div class="pattern-header-line">
-                        <span class="pattern-title">Pattern: <strong id="resPatternStrength">STRONG (0.80)</strong></span>
+                        <span class="pattern-title">Pattern: <strong id="resPatternStrength">--</strong></span>
                       </div>
                       <div class="prob-bar-label">1X2 probabilities</div>
                       <div class="segmented-prob-bar">
-                        <div class="seg-home" id="segHome" style="width: 64.2%;" title="Home: 64.2%"></div>
-                        <div class="seg-draw" id="segDraw" style="width: 21.8%;" title="Draw: 21.8%"></div>
-                        <div class="seg-away" id="segAway" style="width: 14.0%;" title="Away: 14.0%"></div>
+                        <div class="seg-home" id="segHome" style="width: 33.3%;" title="Home: --"></div>
+                        <div class="seg-draw" id="segDraw" style="width: 33.3%;" title="Draw: --"></div>
+                        <div class="seg-away" id="segAway" style="width: 33.4%;" title="Away: --"></div>
                       </div>
                       <div class="prob-bar-legend">
-                        <span>Home <strong id="legendHomeProb">64.2</strong></span>
-                        <span>Draw <strong id="legendDrawProb">21.8</strong></span>
-                        <span>Away <strong id="legendAwayProb">14.0</strong></span>
+                        <span>Home <strong id="legendHomeProb">--</strong></span>
+                        <span>Draw <strong id="legendDrawProb">--</strong></span>
+                        <span>Away <strong id="legendAwayProb">--</strong></span>
                       </div>
                     </div>
 
                     <!-- Draw Edge / Market Warning Box -->
                     <div class="result-warning-card" id="resWarningCard">
                       <div class="warn-head">
-                        <span class="warn-title" id="resDrawEdgeTitle">Draw also has value (edge 4.7%)</span>
+                        <span class="warn-title" id="resDrawEdgeTitle">Market Signals &amp; Alerts</span>
                       </div>
-                      <p class="warn-desc" id="resMarketWarning">Market warning slot: model cautious vs market, or big underdog caution.</p>
+                      <p class="warn-desc" id="resMarketWarning">Market cautions, underdog signals, and value alerts will display here after model execution.</p>
                     </div>
 
                     <!-- Drivers & Risks Collapsible / Nested Grid -->
@@ -1724,13 +1724,13 @@
                       <div class="intel-card drivers-card">
                         <span class="intel-card-title">Drivers</span>
                         <div class="intel-card-content" id="resDriversContent">
-                          Form WWLWW vs LLLWL. Edge 10.1% vs 4% threshold. No draws in last 5 for both.
+                          Awaiting quantitative evaluation.
                         </div>
                       </div>
                       <div class="intel-card risks-card">
                         <span class="intel-card-title">Risks</span>
                         <div class="intel-card-content" id="resRisksContent">
-                          Early goals or red cards can shift the dynamic.
+                          Awaiting quantitative evaluation.
                         </div>
                       </div>
                     </div>
@@ -1760,20 +1760,9 @@
                           </thead>
                           <tbody id="resRecentMatchesTbody">
                             <tr>
-                              <td>Arsenal</td>
-                              <td>Fulham</td>
-                              <td>Home</td>
-                              <td>2-0</td>
-                              <td><span class="badge-res-w">W</span></td>
-                              <td>Oct 4</td>
-                            </tr>
-                            <tr>
-                              <td>Brentford</td>
-                              <td>Spurs</td>
-                              <td>Away</td>
-                              <td>0-2</td>
-                              <td><span class="badge-res-l">L</span></td>
-                              <td>Oct 5</td>
+                              <td colspan="6" style="text-align:center; padding: 1.5rem; color: var(--dash-text-muted);">
+                                Run evaluation to load verified match history.
+                              </td>
                             </tr>
                           </tbody>
                         </table>
@@ -1818,15 +1807,15 @@
                 </div>
                 <div class="accu-kpi-cell">
                   <span class="accu-kpi-lbl">Achieved</span>
-                  <span class="accu-kpi-val text-lime" id="accuKpiAchieved">5.12</span>
+                  <span class="accu-kpi-val text-lime" id="accuKpiAchieved">--</span>
                 </div>
                 <div class="accu-kpi-cell">
                   <span class="accu-kpi-lbl">Overall probability</span>
-                  <span class="accu-kpi-val" id="accuKpiProb">23.4%</span>
+                  <span class="accu-kpi-val" id="accuKpiProb">--</span>
                 </div>
                 <div class="accu-kpi-cell">
                   <span class="accu-kpi-lbl">Legs / scanned</span>
-                  <span class="accu-kpi-val" id="accuKpiLegsScanned">3 / 41</span>
+                  <span class="accu-kpi-val" id="accuKpiLegsScanned">0 / 0</span>
                 </div>
               </div>
 
@@ -1920,25 +1909,7 @@
                       </thead>
                       <tbody id="accuLegsTbody">
                         <tr>
-                          <td>Arsenal vs Brentford</td>
-                          <td>Arsenal Win</td>
-                          <td>1.85</td>
-                          <td>64.2%</td>
-                          <td class="text-lime">10.1%</td>
-                        </tr>
-                        <tr>
-                          <td>Inter vs Genoa</td>
-                          <td>Inter Win</td>
-                          <td>1.60</td>
-                          <td>71.0%</td>
-                          <td class="text-lime">8.5%</td>
-                        </tr>
-                        <tr>
-                          <td>Ajax vs Utrecht</td>
-                          <td>Ajax Win</td>
-                          <td>1.73</td>
-                          <td>65.5%</td>
-                          <td class="text-lime">7.7%</td>
+                          <td colspan="5" style="text-align:center; padding: 24px; color: var(--dash-text-muted);">Configure parameters on the left and click "Build accumulator" to synthesize live candidates.</td>
                         </tr>
                       </tbody>
                     </table>
