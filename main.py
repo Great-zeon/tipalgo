@@ -80,7 +80,17 @@ class Config:
     ENVIRONMENT = os.getenv("ENVIRONMENT", "development").lower()
     _db_path = os.getenv("DATABASE_PATH", "").strip()
     if _db_path:
-        DATABASE_URL = f"sqlite+aiosqlite:///{_db_path}"
+        _target_dir = os.path.dirname(os.path.abspath(_db_path))
+        try:
+            os.makedirs(_target_dir, exist_ok=True)
+            _test_f = os.path.join(_target_dir, ".write_test")
+            with open(_test_f, "w") as _f:
+                _f.write("ok")
+            os.remove(_test_f)
+            DATABASE_URL = f"sqlite+aiosqlite:///{_db_path}"
+        except (PermissionError, OSError):
+            _fallback = str(BASE_DIR / "tipalgo.db")
+            DATABASE_URL = f"sqlite+aiosqlite:///{_fallback}"
     else:
         DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite+aiosqlite:///{str(BASE_DIR / 'tipalgo.db')}")
     DB_POOL_SIZE = int(os.getenv("DB_POOL_SIZE", "10"))
@@ -4152,7 +4162,10 @@ async def lifespan(app: FastAPI):
     db_file_exists = True
     if "sqlite" in config.DATABASE_URL:
         raw_db_path = config.DATABASE_URL.replace("sqlite+aiosqlite:///", "")
-        os.makedirs(os.path.dirname(os.path.abspath(raw_db_path)), exist_ok=True)
+        try:
+            os.makedirs(os.path.dirname(os.path.abspath(raw_db_path)), exist_ok=True)
+        except (PermissionError, OSError):
+            pass
         db_file_exists = os.path.exists(raw_db_path)
         if not db_file_exists:
             logger.info(
@@ -5720,17 +5733,31 @@ async def get_leagues_and_teams(db: AsyncSession = Depends(get_db)):
 
 @app.get("/api/upcoming-fixtures")
 async def get_upcoming_fixtures(db: AsyncSession = Depends(get_db)):
+    now = datetime.now(timezone.utc)
     cached = upcoming_fixtures_cache.get("all")
     if cached is not None:
-        return Response(content=cached, media_type="application/json")
-    now = datetime.now(timezone.utc)
+        try:
+            cached_list = json.loads(cached)
+            def _parse_fixture_date(ds: str) -> datetime:
+                d = datetime.fromisoformat(ds.replace("Z", "+00:00"))
+                if d.tzinfo is None:
+                    d = d.replace(tzinfo=timezone.utc)
+                return d
+            valid_cached = [
+                f for f in cached_list
+                if _parse_fixture_date(f["match_date"]) >= now
+            ]
+            if valid_cached:
+                return JSONResponse(content=valid_cached)
+        except Exception:
+            pass
     major_leagues = ["PL", "PD", "SA", "BL1", "FL1", "CL", "UNL", "BSA", "ARG", "COL", "ELC", "DED", "PPL"]
     priority_order = case({lid: i for i, lid in enumerate(major_leagues)}, value=HistoricalMatch.league_id, else_=99)
     res = await db.execute(
         select(HistoricalMatch)
         .where(
             HistoricalMatch.status == "scheduled",
-            HistoricalMatch.match_date >= now
+            HistoricalMatch.match_date >= now.replace(tzinfo=None)
         )
         .order_by(priority_order, HistoricalMatch.match_date.asc())
         .limit(40)
@@ -5742,7 +5769,7 @@ async def get_upcoming_fixtures(db: AsyncSession = Depends(get_db)):
         "away_team": f.away_team,
         "league_id": f.league_id,
         "league_name": format_league_display_name(f.league_id),
-        "match_date": f.match_date.isoformat(),
+        "match_date": (f.match_date if f.match_date.tzinfo else f.match_date.replace(tzinfo=timezone.utc)).isoformat(),
         "home_odds": f.home_odds,
         "away_odds": f.away_odds,
         "draw_odds": f.draw_odds,
