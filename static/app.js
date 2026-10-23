@@ -2353,6 +2353,208 @@
     return h;
   }
 
+  // Helper: Form Run Pills (W/D/L badges)
+  function renderFormRunPills(formArray) {
+    if (!Array.isArray(formArray) || !formArray.length) {
+      formArray = ['W', 'D', 'W', 'L', 'W'];
+    }
+    return `<div class="em-form-pills-row">
+      ${formArray.slice(0, 5).map(res => {
+        const ch = (String(res).charAt(0) || 'D').toUpperCase();
+        const cls = ch === 'W' ? 'w' : (ch === 'L' ? 'l' : 'd');
+        const title = ch === 'W' ? 'Win' : (ch === 'L' ? 'Loss' : 'Draw');
+        return `<span class="em-form-pill ${cls}" title="${title}">${ch}</span>`;
+      }).join('')}
+    </div>`;
+  }
+
+  // Helper: Unified Employer Mockup Match Card (Canva Layout)
+  function renderSportsbookTableRow(m, rowIdx, lg, customEndpoint) {
+    const esc = escapeHtmlUtil;
+    const isBanter = state.personalityMode === 'BANTER';
+
+    let topTip = null;
+    if (customEndpoint && m.tips && m.tips.length) {
+      topTip = m.tips.find(t => t.endpoint_id === customEndpoint || (t.market && t.market.toLowerCase().includes(customEndpoint.replace(/-/g, ' '))));
+    }
+    if (customEndpoint && !topTip) {
+      if (customEndpoint === 'home-win' || customEndpoint === 'straight-home-win') {
+        topTip = (m.tips || []).find(t => t.market && t.market.includes('Win') && !t.market.includes('Draw') && !t.market.includes(m.away_team)) || {
+          label: `${m.home_team} Win`,
+          odds: m.home_odds || 2.10,
+          prob_pct: m.top_prob || 65,
+          market: `${m.home_team} Win`
+        };
+      } else if (customEndpoint === 'away-win' || customEndpoint === 'away-underdog') {
+        topTip = (m.tips || []).find(t => t.market && t.market.includes(m.away_team)) || {
+          label: `${m.away_team} Win`,
+          odds: m.away_odds || 3.10,
+          prob_pct: Math.round((1.0 / (m.away_odds || 3.10)) * 85),
+          market: `${m.away_team} Win`
+        };
+      } else if (customEndpoint === 'draw') {
+        topTip = {
+          label: 'Match Draw (X)',
+          odds: m.draw_odds || 3.30,
+          prob_pct: Math.round((1.0 / (m.draw_odds || 3.30)) * 88),
+          market: 'Draw'
+        };
+      } else if (customEndpoint === 'double-chance' || customEndpoint === 'strong-home-dc') {
+        topTip = (m.tips || []).find(t => t.market && (t.market.includes('Double Chance') || t.market.includes('1X') || t.market.includes('X2')));
+      } else if (customEndpoint === 'over-1-5') {
+        topTip = (m.tips || []).find(t => t.market === 'Over 1.5 Goals');
+      } else if (customEndpoint === 'over-2-5') {
+        topTip = (m.tips || []).find(t => t.market === 'Over 2.5 Goals');
+      } else if (customEndpoint === 'under-2-5' || customEndpoint === 'no-three-goals') {
+        topTip = (m.tips || []).find(t => t.market === 'Under 2.5 Goals');
+      } else if (customEndpoint === 'btts-yes') {
+        topTip = (m.tips || []).find(t => t.market === 'Both Teams to Score' || t.market === 'BTTS: Yes');
+      }
+    }
+
+    if (!topTip) {
+      const qualifiedTips = (m.tips || []).filter(t => t.qualified);
+      topTip = m.top_tip || (qualifiedTips.length ? qualifiedTips[0] : (m.tips && m.tips.length ? m.tips[0] : {
+        label: `${m.home_team} Win`,
+        odds: m.home_odds || 2.10,
+        prob_pct: m.top_prob || 50,
+        market: `${m.home_team} Win`
+      }));
+    }
+
+    const inSlipTop = state.betslip.items.some(i => i.match === `${m.home_team} vs ${m.away_team}` && i.market === topTip.market);
+    const isBanker = (topTip.prob_pct >= 80) || m.is_banker_80;
+    const isFinished = m.status === 'finished';
+    const isLive = m.status === 'live';
+
+    let timeColText = m.time || '15:00';
+    let statusColText = isBanker ? 'BANKER' : 'PRE';
+    if (isFinished) {
+      timeColText = 'FT';
+      statusColText = 'FINAL';
+    } else if (isLive) {
+      timeColText = 'LIVE';
+      statusColText = 'IN-PLAY';
+    }
+
+    const country = m.country || (lg && lg.country) || 'International';
+    const leagueName = m.league_name || (lg && lg.name) || 'League Pro';
+
+    let dateDisplay = 'October 24, 2026';
+    const rawDate = m.match_date || state.calendar.selectedDate;
+    if (rawDate) {
+      try {
+        const dateStr = String(rawDate).slice(0, 10);
+        const parts = dateStr.split('-');
+        if (parts.length === 3) {
+          const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+          dateDisplay = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        }
+      } catch(e) {}
+    }
+
+    return `
+      <div class="employer-match-card ${isBanker ? 'is-banker' : ''}" data-match-id="${m.id || rowIdx}">
+        <!-- Card Header: Country - League on left, Date on right -->
+        <div class="em-card-header">
+          <div class="em-header-left">
+            <span class="em-league-tag">${esc(country)} - ${esc(leagueName)}</span>
+          </div>
+          <div class="em-header-right">
+            <span class="em-date-tag">${esc(dateDisplay)}</span>
+          </div>
+        </div>
+
+        <!-- Card Body: Kickoff, Teams Clash, Form Sequences & Predicted Odd Pill -->
+        <div class="em-card-body">
+          <!-- Left Column: Time & Teams with Form Stats Stacked Directly Under Each Club -->
+          <div class="em-main-left">
+            <div class="em-matchup-meta">
+              <div class="em-time-box">
+                <span class="em-time-val">${timeColText}</span>
+                <span class="em-status-badge ${isFinished ? 'ft' : (isLive ? 'live' : '')}">${statusColText}</span>
+              </div>
+            </div>
+
+            <!-- Two Team Columns (Stats directly under each club) -->
+            <div class="em-clubs-duel-table">
+              <!-- Home Club Column -->
+              <div class="em-club-duel-col home">
+                <div class="em-team-unit home">
+                  ${getClubBadge(m.home_team, m.home_logo)}
+                  <span class="em-team-title" title="${esc(m.home_team)}">${esc(m.home_team)}</span>
+                  ${(isFinished || isLive) && m.home_score != null ? `<span class="em-score-digit">${m.home_score}</span>` : ''}
+                </div>
+                <div class="em-team-form-col">
+                  <div class="em-form-row">
+                    ${renderFormRunPills(m.home_form)}
+                    <span class="em-form-text-lbl">last 5 Games</span>
+                  </div>
+                  <div class="em-form-row">
+                    ${renderFormRunPills(m.home_venue_form)}
+                    <span class="em-form-text-lbl">last 5 Home Games</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Center VS Divider -->
+              <div class="em-duel-vs-divider">
+                <span class="em-vs-sep">vs.</span>
+              </div>
+
+              <!-- Away Club Column -->
+              <div class="em-club-duel-col away">
+                <div class="em-team-unit away">
+                  ${getClubBadge(m.away_team, m.away_logo)}
+                  <span class="em-team-title" title="${esc(m.away_team)}">${esc(m.away_team)}</span>
+                  ${(isFinished || isLive) && m.away_score != null ? `<span class="em-score-digit">${m.away_score}</span>` : ''}
+                </div>
+                <div class="em-team-form-col">
+                  <div class="em-form-row">
+                    ${renderFormRunPills(m.away_form)}
+                    <span class="em-form-text-lbl">last 5 Games</span>
+                  </div>
+                  <div class="em-form-row">
+                    ${renderFormRunPills(m.away_venue_form)}
+                    <span class="em-form-text-lbl">last 5 Away Games</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: ONE SURE PREDICTION (Pill with Odds, Progress Bar, and Circular (i) info button) per Canva Mockup -->
+          <div class="em-main-right">
+            <!-- Line 1: Prediction pick label + @odds button/pill (clickable to toggle Bet Slip) -->
+            <div class="em-canva-pred-row pick-trigger ${inSlipTop ? 'in-slip' : ''}"
+              data-home="${esc(m.home_team)}" data-away="${esc(m.away_team)}" data-league="${m.league_id || ''}" data-market="${esc(topTip.market)}" data-odds="${topTip.odds}"
+              title="${inSlipTop ? 'Click to remove prediction from Bet Slip' : 'Click to add prediction to Bet Slip'}">
+              <span class="em-canva-pick-label">${esc(topTip.label)}.</span>
+              <span class="em-canva-odds-badge ${inSlipTop ? 'in-slip' : ''}">@${Number(topTip.odds).toFixed(2)}</span>
+            </div>
+
+            <!-- Line 2: Standalone Probability Bar + Circular (i) Button side-by-side -->
+            <div class="em-canva-bar-row">
+              <div class="em-canva-bar-track" title="Model Win Confidence: ${topTip.prob_pct}%">
+                <div class="em-canva-bar-fill" style="width: ${topTip.prob_pct}%;">
+                  <span class="em-canva-bar-text">${topTip.prob_pct}%</span>
+                </div>
+                <div class="em-canva-bar-rem" style="width: ${100 - topTip.prob_pct}%;"></div>
+              </div>
+
+              <!-- Circular (i) info button taking directly to analytics -->
+              <button type="button" class="em-info-circle-btn btn-grid-details"
+                data-home="${esc(m.home_team)}" data-away="${esc(m.away_team)}" data-league="${m.league_id || ''}" data-idx="${rowIdx}"
+                title="View Analytics, Head-to-Head &amp; Standings" aria-label="View In-Depth Analytics">
+                <span class="info-letter">i</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   function renderSingleGridMatchCard(m, cardIdx, customEndpoint) {
     const isBanter = state.personalityMode === 'BANTER';
     
@@ -2845,13 +3047,19 @@
 
         let topLabel = mStr;
         let subLabel = dayName;
-        if (offset === -1) {
+        let extraClass = 'pill-extended';
+        if (offset === -2 || offset === 2) {
+          extraClass = 'pill-extended pill-far';
+        } else if (offset === -1) {
           subLabel = 'Yesterday';
+          extraClass = 'pill-core pill-yesterday';
         } else if (offset === 0) {
           topLabel = 'TODAY';
           subLabel = dayName;
+          extraClass = 'pill-core pill-today';
         } else if (offset === 1) {
           subLabel = 'Tomorrow';
+          extraClass = 'pill-core pill-tomorrow';
         }
 
         pills.push({
@@ -2859,7 +3067,8 @@
           top: topLabel,
           day: dayNum,
           sub: subLabel,
-          isToday: isToday
+          isToday: isToday,
+          extraClass: extraClass
         });
       }
 
@@ -2869,7 +3078,8 @@
         top: 'UPCOMING',
         day: '5-DAY',
         sub: 'Top Slate',
-        isToday: false
+        isToday: false,
+        extraClass: 'pill-extended'
       });
 
       // If user picked a date outside the pills, add it
@@ -2882,7 +3092,8 @@
             top: monthNames[dObj.getUTCMonth()],
             day: String(dObj.getUTCDate()).padStart(2, '0'),
             sub: dayNames[dObj.getUTCDay()],
-            isToday: false
+            isToday: false,
+            extraClass: 'pill-core'
           });
         } catch (e) {}
       }
@@ -2890,7 +3101,7 @@
       datesStrip.innerHTML = pills.map(p => {
         const isActive = p.id === currDate;
         return `
-          <div class="cal-date-pill ${isActive ? 'active' : ''} ${p.isToday ? 'is-today' : ''}" data-date="${p.id}" role="button" tabindex="0">
+          <div class="cal-date-pill ${p.extraClass || ''} ${isActive ? 'active' : ''} ${p.isToday ? 'is-today' : ''}" data-date="${p.id}" role="button" tabindex="0">
             <div class="pill-month-bar">
               ${p.isToday ? '<span class="today-pulse-dot"></span>' : ''}
               ${p.top}
@@ -2997,10 +3208,39 @@
         return;
       }
 
-      // Render responsive grid cards identical to home page!
+      // Render matches using the same employer-match-card layout grouped by league as home screen!
+      const leagueMap = new Map();
+      const leagueList = [];
+      matches.forEach(m => {
+        const lid = m.league_id || 'OTHER';
+        if (!leagueMap.has(lid)) {
+          const item = {
+            id: lid,
+            name: m.league_name || 'International Pro',
+            country: m.country || 'International',
+            matches: []
+          };
+          leagueMap.set(lid, item);
+          leagueList.push(item);
+        }
+        leagueMap.get(lid).matches.push(m);
+      });
+
       feed.innerHTML = `
-        <div class="cards-grid-3col">
-          ${matches.map((m, idx) => renderSingleGridMatchCard(m, idx, endpointId)).join('')}
+        <div class="table-view-container grand-drilldown-table-slate">
+          ${leagueList.map((lg, lgIdx) => `
+            <div class="sb-league-block" id="grand_lg_${lg.id}">
+              <div class="sb-league-header">
+                <div class="sb-league-info">
+                  <span class="sb-country-tag">${escapeHtmlUtil(lg.country)}</span>
+                  <h3 class="sb-league-title">${escapeHtmlUtil(lg.name)}</h3>
+                </div>
+              </div>
+              <div class="em-league-matches-list">
+                ${lg.matches.map((m, idx) => renderSportsbookTableRow(m, `grand_${lg.id}_${idx}`, lg, endpointId)).join('')}
+              </div>
+            </div>
+          `).join('')}
         </div>
       `;
 
@@ -4475,8 +4715,12 @@
         let extraClass = 'pill-extended';
         if (offset === -2 || offset === 3) {
           extraClass = 'pill-extended pill-far';
-        } else if (offset >= -1 && offset <= 1) {
-          extraClass = 'pill-core';
+        } else if (offset === -1) {
+          extraClass = 'pill-core pill-yesterday';
+        } else if (offset === 0) {
+          extraClass = 'pill-core pill-today';
+        } else if (offset === 1) {
+          extraClass = 'pill-core pill-tomorrow';
         }
 
         if (offset === -1) {
@@ -5512,170 +5756,6 @@
       }
       leagueMap.get(lid).matches.push(m);
     });
-
-    // Helper: Form Run Pills (W/D/L badges)
-    function renderFormRunPills(formArray) {
-      if (!Array.isArray(formArray) || !formArray.length) {
-        formArray = ['W', 'D', 'W', 'L', 'W'];
-      }
-      return `<div class="em-form-pills-row">
-        ${formArray.slice(0, 5).map(res => {
-          const ch = (String(res).charAt(0) || 'D').toUpperCase();
-          const cls = ch === 'W' ? 'w' : (ch === 'L' ? 'l' : 'd');
-          const title = ch === 'W' ? 'Win' : (ch === 'L' ? 'Loss' : 'Draw');
-          return `<span class="em-form-pill ${cls}" title="${title}">${ch}</span>`;
-        }).join('')}
-      </div>`;
-    }
-
-    // Helper: Employer Mockup Match Card (Canva Layout)
-    function renderSportsbookTableRow(m, rowIdx, lg) {
-      const isBanter = state.personalityMode === 'BANTER';
-      const qualifiedTips = (m.tips || []).filter(t => t.qualified);
-      const topTip = m.top_tip || (qualifiedTips.length ? qualifiedTips[0] : (m.tips && m.tips.length ? m.tips[0] : {
-        label: `${m.home_team} Win`,
-        odds: m.home_odds || 2.10,
-        prob_pct: m.top_prob || 50,
-        market: `${m.home_team} Win`
-      }));
-
-      const inSlipHome = state.betslip.items.some(i => i.match === `${m.home_team} vs ${m.away_team}` && i.market === `${m.home_team} Win`);
-      const inSlipDraw = state.betslip.items.some(i => i.match === `${m.home_team} vs ${m.away_team}` && (i.market === 'Draw' || i.market === 'Match Draw'));
-      const inSlipAway = state.betslip.items.some(i => i.match === `${m.home_team} vs ${m.away_team}` && i.market === `${m.away_team} Win`);
-      const inSlipTop = state.betslip.items.some(i => i.match === `${m.home_team} vs ${m.away_team}` && i.market === topTip.market);
-      const isBanker = (topTip.prob_pct >= 80) || m.is_banker_80;
-      const isFinished = m.status === 'finished';
-      const isLive = m.status === 'live';
-
-      let timeColText = m.time || '15:00';
-      let statusColText = isBanker ? 'BANKER' : 'PRE';
-      if (isFinished) {
-        timeColText = 'FT';
-        statusColText = 'FINAL';
-      } else if (isLive) {
-        timeColText = 'LIVE';
-        statusColText = 'IN-PLAY';
-      }
-
-      const country = m.country || (lg && lg.country) || 'Spain';
-      const leagueName = m.league_name || (lg && lg.name) || 'La Liga';
-
-      // Format date for card header per Canva mockup: e.g. "October 16, 2026"
-      let dateDisplay = 'October 16, 2026';
-      const rawDate = m.match_date || state.calendar.selectedDate;
-      if (rawDate) {
-        try {
-          const dateStr = String(rawDate).slice(0, 10);
-          const parts = dateStr.split('-');
-          if (parts.length === 3) {
-            const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
-            dateDisplay = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-          }
-        } catch(e) {}
-      }
-
-      return `
-        <div class="employer-match-card ${isBanker ? 'is-banker' : ''}" data-match-id="${m.id || rowIdx}">
-          <!-- Card Header: Country - League on left, Date on right -->
-          <div class="em-card-header">
-            <div class="em-header-left">
-              <span class="em-league-tag">${esc(country)} - ${esc(leagueName)}</span>
-            </div>
-            <div class="em-header-right">
-              <span class="em-date-tag">${esc(dateDisplay)}</span>
-            </div>
-          </div>
-
-          <!-- Card Body: Kickoff, Teams Clash, Form Sequences & Predicted Odd Pill -->
-          <div class="em-card-body">
-            <!-- Left Column: Time & Teams with Form Stats Stacked Directly Under Each Club -->
-            <div class="em-main-left">
-              <div class="em-matchup-meta">
-                <div class="em-time-box">
-                  <span class="em-time-val">${timeColText}</span>
-                  <span class="em-status-badge ${isFinished ? 'ft' : (isLive ? 'live' : '')}">${statusColText}</span>
-                </div>
-              </div>
-
-              <!-- Two Team Columns (Stats directly under each club) -->
-              <div class="em-clubs-duel-table">
-                <!-- Home Club Column -->
-                <div class="em-club-duel-col home">
-                  <div class="em-team-unit home">
-                    ${getClubBadge(m.home_team, m.home_logo)}
-                    <span class="em-team-title" title="${esc(m.home_team)}">${esc(m.home_team)}</span>
-                    ${(isFinished || isLive) && m.home_score != null ? `<span class="em-score-digit">${m.home_score}</span>` : ''}
-                  </div>
-                  <div class="em-team-form-col">
-                    <div class="em-form-row">
-                      ${renderFormRunPills(m.home_form)}
-                      <span class="em-form-text-lbl">last 5 Games</span>
-                    </div>
-                    <div class="em-form-row">
-                      ${renderFormRunPills(m.home_venue_form)}
-                      <span class="em-form-text-lbl">last 5 Home Games</span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Center VS Divider -->
-                <div class="em-duel-vs-divider">
-                  <span class="em-vs-sep">vs.</span>
-                </div>
-
-                <!-- Away Club Column -->
-                <div class="em-club-duel-col away">
-                  <div class="em-team-unit away">
-                    ${getClubBadge(m.away_team, m.away_logo)}
-                    <span class="em-team-title" title="${esc(m.away_team)}">${esc(m.away_team)}</span>
-                    ${(isFinished || isLive) && m.away_score != null ? `<span class="em-score-digit">${m.away_score}</span>` : ''}
-                  </div>
-                  <div class="em-team-form-col">
-                    <div class="em-form-row">
-                      ${renderFormRunPills(m.away_form)}
-                      <span class="em-form-text-lbl">last 5 Games</span>
-                    </div>
-                    <div class="em-form-row">
-                      ${renderFormRunPills(m.away_venue_form)}
-                      <span class="em-form-text-lbl">last 5 Away Games</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Right Column: ONE SURE PREDICTION (Pill with Odds, Progress Bar, and Circular (i) info button) per Canva Mockup -->
-            <!-- Right Column: Faithful to Canva Mockup (Line 1: Prediction + Odds; Line 2: Standalone Bar + Adjacent (i) Button) -->
-            <div class="em-main-right">
-              <!-- Line 1: Prediction pick label + @odds button/pill (clickable to toggle Bet Slip) -->
-              <div class="em-canva-pred-row pick-trigger ${inSlipTop ? 'in-slip' : ''}"
-                data-home="${esc(m.home_team)}" data-away="${esc(m.away_team)}" data-league="${m.league_id || ''}" data-market="${esc(topTip.market)}" data-odds="${topTip.odds}"
-                title="${inSlipTop ? 'Click to remove prediction from Bet Slip' : 'Click to add prediction to Bet Slip'}">
-                <span class="em-canva-pick-label">${esc(topTip.label)}.</span>
-                <span class="em-canva-odds-badge ${inSlipTop ? 'in-slip' : ''}">@${Number(topTip.odds).toFixed(2)}</span>
-              </div>
-
-              <!-- Line 2: Standalone Probability Bar + Circular (i) Button side-by-side -->
-              <div class="em-canva-bar-row">
-                <div class="em-canva-bar-track" title="Model Win Confidence: ${topTip.prob_pct}%">
-                  <div class="em-canva-bar-fill" style="width: ${topTip.prob_pct}%;">
-                    <span class="em-canva-bar-text">${topTip.prob_pct}%</span>
-                  </div>
-                  <div class="em-canva-bar-rem" style="width: ${100 - topTip.prob_pct}%;"></div>
-                </div>
-
-                <!-- Circular (i) info button taking directly to analytics -->
-                <button type="button" class="em-info-circle-btn btn-grid-details"
-                  data-home="${esc(m.home_team)}" data-away="${esc(m.away_team)}" data-league="${m.league_id || ''}" data-idx="${rowIdx}"
-                  title="View Analytics, Head-to-Head &amp; Standings" aria-label="View In-Depth Analytics">
-                  <span class="info-letter">i</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-    }
 
     // Helper: Card View (Delegates to unified renderSingleGridMatchCard)
     function renderMatchCard(m, cardIdx, customEndpoint) {
