@@ -4240,11 +4240,13 @@ async def lifespan(app: FastAPI):
         try:
             async with AsyncSessionLocal() as session:
                 predictor = PredictorService()
+                today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                await get_calendar_daily_slate(date=today_str, endpoint="all", db=session, predictor=predictor)
                 await get_calendar_daily_slate(date="2026-10-13", endpoint="all", db=session, predictor=predictor)
                 await get_calendar_daily_slate(date="2026-10-09", endpoint="all", db=session, predictor=predictor)
                 await get_leagues_and_teams(db=session)
                 await get_banker_slate(db=session, predictor=predictor)
-                logger.info("Startup cache successfully pre-warmed for today (2026-10-13), 2026-10-09, leagues, and bankers")
+                logger.info(f"Startup cache successfully pre-warmed for today ({today_str}), leagues, and bankers")
         except Exception as e:
             logger.warning(f"Startup cache pre-warm error: {e}")
 
@@ -4331,9 +4333,13 @@ async def health(request: Request):
     screener_loaded = bool(screener and getattr(screener, "is_fitted", False))
     active_method = "value_screener_ml" if screener_loaded else "heuristic_fallback"
     
+    from football_ingestion import FootballDataService
+    f_service = FootballDataService(api_key=config.FOOTBALL_API_KEY, base_url=config.FOOTBALL_API_BASE)
+
     return {
         "status": "ok",
         "version": "21.0",
+        "provider": f_service.provider,
         "database": db_status,
         "screener_model": {
             "loaded": screener_loaded,
