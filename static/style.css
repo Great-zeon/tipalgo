@@ -1231,12 +1231,12 @@ body, body.light-platform, body.dark-theme-mode {
 }
 
 /* Responsive pill visibility */
-@media (max-width: 1240px) {
+@media (max-width: 1450px) {
   .cal-date-pill.pill-far:not(.active) {
     display: none !important;
   }
 }
-@media (max-width: 1000px) {
+@media (max-width: 1350px) {
   .cal-date-pill.pill-extended:not(.active) {
     display: none !important;
   }
@@ -1386,7 +1386,7 @@ body, body.light-platform, body.dark-theme-mode {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   min-width: 0;
   position: relative;
 }
@@ -2451,9 +2451,9 @@ body.light-theme-mode .btn-cal-footer-close {
 }
 
 .calendar-search-wrap {
-  flex: 0 1 240px;
-  min-width: 140px;
-  max-width: 270px;
+  flex: 1 1 210px;
+  min-width: 195px;
+  max-width: 285px;
 }
 .calendar-search-input-box {
   width: 100%;
