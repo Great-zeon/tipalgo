@@ -335,6 +335,9 @@ class TTLCache:
     def clear(self):
         self._cache.clear()
 
+    def delete(self, key: str):
+        self._cache.pop(key, None)
+
 venue_form_cache = TTLCache(ttl_seconds=config.VENUE_FORM_CACHE_TTL)
 league_table_cache = TTLCache(ttl_seconds=config.LEAGUE_TABLE_CACHE_TTL)
 recent_matches_cache = TTLCache(ttl_seconds=config.RECENT_MATCHES_CACHE_TTL)
@@ -4291,6 +4294,7 @@ os.makedirs(str(BASE_DIR / "static"), exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 @app.get("/", response_class=HTMLResponse)
+@app.head("/", include_in_schema=False)
 async def root():
     index_path = BASE_DIR / "static" / "index.html"
     try:

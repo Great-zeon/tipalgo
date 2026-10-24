@@ -225,5 +225,7 @@ async def seed():
         await db.commit()
     print("Database seeding completed successfully!")
 
+seed_all = seed
+
 if __name__ == "__main__":
     asyncio.run(seed())
