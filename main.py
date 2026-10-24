@@ -97,8 +97,12 @@ class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_urlsafe(32))
     ALGORITHM = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
-    FOOTBALL_API_KEY = os.getenv("FOOTBALL_API_KEY", "")
-    FOOTBALL_API_BASE = os.getenv("FOOTBALL_API_BASE", "https://v3.football.api-sports.io")
+    FOOTBALL_API_KEY = os.getenv("FOOTBALL_API_KEY", "9c939656325deeb68d2f7677b05d3b1416828ff0ecf076dc")
+    if FOOTBALL_API_KEY == "0e675581454210763d7ef79017265356" or not FOOTBALL_API_KEY:
+        FOOTBALL_API_KEY = "9c939656325deeb68d2f7677b05d3b1416828ff0ecf076dc"
+    FOOTBALL_API_BASE = os.getenv("FOOTBALL_API_BASE", "https://live-football-api.com/api/v1")
+    if "api-sports.io" in FOOTBALL_API_BASE and (len(FOOTBALL_API_KEY) in (48, 64) or FOOTBALL_API_KEY.startswith(("9c93", "494e"))):
+        FOOTBALL_API_BASE = "https://live-football-api.com/api/v1"
     PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY", "")
     PAYSTACK_PUBLIC_KEY = os.getenv("PAYSTACK_PUBLIC_KEY", "")
     ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", secrets.token_urlsafe(32))
@@ -5244,9 +5248,10 @@ async def get_calendar_daily_slate(
         "provider_status": "error" if provider_err else "ok",
         "provider_message": provider_err
     }
-    calendar_slate_cache.set(cache_key, response_payload)
-    if ep_filter == "all":
-        calendar_slate_cache.set(f"slate:{target_date}:all", response_payload)
+    if not provider_err:
+        calendar_slate_cache.set(cache_key, response_payload)
+        if ep_filter == "all":
+            calendar_slate_cache.set(f"slate:{target_date}:all", response_payload)
     return Response(content=json.dumps(response_payload), media_type="application/json")
 
 @app.get("/api/calendar/search-team")
