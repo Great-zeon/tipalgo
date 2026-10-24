@@ -149,8 +149,24 @@ def map_league_to_code(country: str, name: str) -> str:
         if "coupe de france" in n:
             return "CDF"
 
-    # European / International Competitions
-    if "champions league" in n and "women" not in n:
+    # Continental Competitions (CAF, AFC, CONCACAF, UEFA)
+    if "caf" in n or c in ("africa", "caf"):
+        if "champions" in n:
+            return "CAF_CL"
+        if "confederation" in n:
+            return "CAF_CC"
+        return "CAF_GEN"
+
+    if "afc" in n or c in ("asia", "afc"):
+        if "champions" in n:
+            return "AFC_CL"
+        return "AFC_GEN"
+
+    if "concacaf" in n or c in ("north america", "concacaf"):
+        return "CCC"
+
+    # European Competitions
+    if ("uefa champions league" in n) or ("champions league" in n and "women" not in n and c in ("europe", "uefa", "")):
         return "CL"
     if "europa conference" in n or "conference league" in n:
         return "UECL"
@@ -161,15 +177,25 @@ def map_league_to_code(country: str, name: str) -> str:
     if "world cup" in n:
         return "WC"
 
+    # Portugal
+    if c == "portugal":
+        if "2" in n or "segunda" in n or "liga 2" in n:
+            return "PRT_L2"
+        if "primeira" in n or "liga portugal" in n:
+            return "PPL"
+
+    # Belgium
+    if c == "belgium":
+        if "u23" in n or "challenger" in n or "1b" in n:
+            return "BEL_1B"
+        if "pro league" in n or "first division" in n:
+            return "BEL"
+
     # Other Top Leagues
     if c in ("netherlands", "holland") and "eredivisie" in n:
         return "DED"
-    if c == "portugal" and ("primeira" in n or "liga portugal" in n):
-        return "PPL"
     if c == "scotland" and "premiership" in n:
         return "SC0"
-    if c == "belgium" and ("pro league" in n or "first division" in n):
-        return "BEL"
     if c == "turkey" and "super lig" in n:
         return "TUR"
     if c in ("usa", "united states") and ("mls" in n or "major league" in n):

@@ -2425,9 +2425,15 @@
     const inSlipTop = state.betslip.items.some(i => i.match === `${m.home_team} vs ${m.away_team}` && i.market === topTip.market);
     const isBanker = (topTip.prob_pct >= 80) || m.is_banker_80;
     const isFinished = m.status === 'finished';
-    const isLive = m.status === 'live';
-
     let timeColText = m.time || '15:00';
+    if (m.match_date && !isFinished && !isLive) {
+      try {
+        const dt = new Date(m.match_date);
+        if (!isNaN(dt.getTime())) {
+          timeColText = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        }
+      } catch (e) {}
+    }
     let statusColText = isBanker ? 'BANKER' : 'PRE';
     if (isFinished) {
       timeColText = 'FT';
@@ -2581,7 +2587,16 @@
     const isFinished = m.status === 'finished';
     const isLive = m.status === 'live';
 
-    let timeTagHtml = `<span class="grid-time-tag">${m.time || '15:00'}</span>`;
+    let localTimeStr = m.time || '15:00';
+    if (m.match_date) {
+      try {
+        const dt = new Date(m.match_date);
+        if (!isNaN(dt.getTime())) {
+          localTimeStr = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        }
+      } catch (e) {}
+    }
+    let timeTagHtml = `<span class="grid-time-tag">${localTimeStr}</span>`;
     if (isFinished) {
       timeTagHtml = `<span class="grid-time-tag ft" style="background: rgba(100, 116, 139, 0.2); color: #94a3b8; font-weight: 800; border: 1px solid rgba(148, 163, 184, 0.3);">FT</span>`;
     } else if (isLive) {

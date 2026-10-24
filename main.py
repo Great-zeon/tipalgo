@@ -167,6 +167,15 @@ LEAGUE_METADATA = {
     "ARG": ("Liga Profesional", "Argentina"),
     "COL": ("Primera A", "Colombia"),
     "UNL": ("UEFA Nations League", "Europe"),
+    "CAF_CL": ("CAF Champions League", "Africa"),
+    "CAF_CC": ("CAF Confederation Cup", "Africa"),
+    "AFC_CL": ("AFC Champions League", "Asia"),
+    "PRT_L2": ("Liga Portugal 2", "Portugal"),
+    "BEL_1B": ("Challenger Pro League", "Belgium"),
+    "BL2": ("2. Bundesliga", "Germany"),
+    "SD": ("LaLiga 2", "Spain"),
+    "SB": ("Serie B", "Italy"),
+    "FL2": ("Ligue 2", "France"),
     
     # Scraped & API-Sports mapped IDs
     "L_263": ("Liga de Expansión MX", "Mexico"),
@@ -5146,7 +5155,10 @@ async def get_calendar_daily_slate(
             .where(
                 and_(
                     HistoricalMatch.external_id.notlike("auto_%"),
-                    HistoricalMatch.external_id.notlike("SYN-%")
+                    HistoricalMatch.external_id.notlike("SYN-%"),
+                    HistoricalMatch.external_id.notlike("%-202610%"),
+                    HistoricalMatch.external_id.notlike("%-202611%"),
+                    HistoricalMatch.external_id.notlike("FX-%")
                 )
             )
             .distinct()
@@ -5169,7 +5181,10 @@ async def get_calendar_daily_slate(
                     func.substr(HistoricalMatch.match_date, 1, 10) >= today_prefix,
                     func.substr(HistoricalMatch.match_date, 1, 10) <= end_prefix,
                     HistoricalMatch.external_id.notlike("auto_%"),
-                    HistoricalMatch.external_id.notlike("SYN-%")
+                    HistoricalMatch.external_id.notlike("SYN-%"),
+                    HistoricalMatch.external_id.notlike("%-202610%"),
+                    HistoricalMatch.external_id.notlike("%-202611%"),
+                    HistoricalMatch.external_id.notlike("FX-%")
                 )
             ).order_by(priority_order, HistoricalMatch.match_date.asc()).limit(100)
         )
@@ -5181,7 +5196,10 @@ async def get_calendar_daily_slate(
                 and_(
                     func.substr(HistoricalMatch.match_date, 1, 10) == target_date,
                     HistoricalMatch.external_id.notlike("auto_%"),
-                    HistoricalMatch.external_id.notlike("SYN-%")
+                    HistoricalMatch.external_id.notlike("SYN-%"),
+                    HistoricalMatch.external_id.notlike("%-202610%"),
+                    HistoricalMatch.external_id.notlike("%-202611%"),
+                    HistoricalMatch.external_id.notlike("FX-%")
                 )
             ).order_by(priority_order, HistoricalMatch.match_date.asc()).limit(100)
         )
@@ -5205,7 +5223,10 @@ async def get_calendar_daily_slate(
                             and_(
                                 func.substr(HistoricalMatch.match_date, 1, 10) == target_date,
                                 HistoricalMatch.external_id.notlike("auto_%"),
-                                HistoricalMatch.external_id.notlike("SYN-%")
+                                HistoricalMatch.external_id.notlike("SYN-%"),
+                                HistoricalMatch.external_id.notlike("%-202610%"),
+                                HistoricalMatch.external_id.notlike("%-202611%"),
+                                HistoricalMatch.external_id.notlike("FX-%")
                             )
                         ).order_by(priority_order, HistoricalMatch.match_date.asc()).limit(100)
                     )
@@ -5224,7 +5245,10 @@ async def get_calendar_daily_slate(
                 and_(
                     func.substr(HistoricalMatch.match_date, 1, 10) == target_date,
                     HistoricalMatch.external_id.notlike("auto_%"),
-                    HistoricalMatch.external_id.notlike("SYN-%")
+                    HistoricalMatch.external_id.notlike("SYN-%"),
+                    HistoricalMatch.external_id.notlike("%-202610%"),
+                    HistoricalMatch.external_id.notlike("%-202611%"),
+                    HistoricalMatch.external_id.notlike("FX-%")
                 )
             )
         )
@@ -5279,7 +5303,10 @@ async def search_team_all_dates(
                     HistoricalMatch.away_team.ilike(search_pattern)
                 ),
                 HistoricalMatch.external_id.notlike("auto_%"),
-                HistoricalMatch.external_id.notlike("SYN-%")
+                HistoricalMatch.external_id.notlike("SYN-%"),
+                HistoricalMatch.external_id.notlike("%-202610%"),
+                HistoricalMatch.external_id.notlike("%-202611%"),
+                HistoricalMatch.external_id.notlike("FX-%")
             )
         )
         .order_by(HistoricalMatch.match_date.asc())
@@ -5309,7 +5336,10 @@ async def get_calendar_league_slate(
     conditions = [
         HistoricalMatch.league_id == clean_lid,
         HistoricalMatch.external_id.notlike("auto_%"),
-        HistoricalMatch.external_id.notlike("SYN-%")
+        HistoricalMatch.external_id.notlike("SYN-%"),
+        HistoricalMatch.external_id.notlike("%-202610%"),
+        HistoricalMatch.external_id.notlike("%-202611%"),
+        HistoricalMatch.external_id.notlike("FX-%")
     ]
     if date and date not in ["all", "any", "null", "undefined"]:
         conditions.append(func.substr(HistoricalMatch.match_date, 1, 10) == date)
