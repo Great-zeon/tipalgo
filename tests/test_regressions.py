@@ -492,6 +492,10 @@ class TestRegressions(unittest.IsolatedAsyncioTestCase):
     async def test_regression_023_provider_error_propagation_honest_empty_state(self):
         from unittest.mock import patch, AsyncMock
         from football_ingestion import FootballDataService
+        from main import calendar_slate_cache, app
+        import httpx
+
+        calendar_slate_cache.clear()
 
         mock_service = FootballDataService(api_key="mock_suspended_key")
         mock_service.last_error = "API-Sports: access: Your account is suspended"
@@ -503,14 +507,15 @@ class TestRegressions(unittest.IsolatedAsyncioTestCase):
                 "message": "API-Sports: access: Your account is suspended",
                 "synced_fixtures": 0
             }
-            # Query an empty future date
-            resp = await self.client.get("/api/calendar/daily-slate?date=2029-12-31")
-            self.assertEqual(resp.status_code, 200)
-            data = resp.json()
-            # When provider fails, app must NOT fabricate fixtures
-            self.assertEqual(len(data.get("matches", [])), 0, "Must return honest empty matches list, never fabricate")
-            self.assertEqual(data.get("provider_status"), "error")
-            self.assertTrue(any(w in str(data.get("provider_message")) for w in ["API-Sports", "suspended", "Free plans"]))
+            # Query using in-process ASGI client so mock is active in test process
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as local_client:
+                resp = await local_client.get("/api/calendar/daily-slate?date=2029-12-31")
+                self.assertEqual(resp.status_code, 200)
+                data = resp.json()
+                # When provider fails, app must NOT fabricate fixtures
+                self.assertEqual(len(data.get("matches", [])), 0, "Must return honest empty matches list, never fabricate")
+                self.assertEqual(data.get("provider_status"), "error")
+                self.assertTrue(any(w in str(data.get("provider_message")) for w in ["API-Sports", "suspended", "Free plans"]))
 
 
     # REGRESSION-024: Authoritative Provider Fixture Identity and Pair Integrity
