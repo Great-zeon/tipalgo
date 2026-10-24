@@ -6465,7 +6465,7 @@
       `;
 
       if (dom.slipTotalLegs) dom.slipTotalLegs.textContent = '0 Picks';
-      if (dom.slipTotalOdds) dom.slipTotalOdds.textContent = '1.00';
+      if (dom.slipTotalOdds) dom.slipTotalOdds.textContent = '0.00';
       if (dom.slipPotentialWin) dom.slipPotentialWin.textContent = '₦0.00';
       if (dom.slipBanterText) dom.slipBanterText.textContent = 'Select games across the calendar to add to your prediction ticket.';
       return;
