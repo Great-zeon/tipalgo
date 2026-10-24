@@ -4398,15 +4398,14 @@
         if (thisRequestId !== currentSlateRequestId) {
           return;
         }
-
         applyCalendarSlateData(data);
       } catch (err) {
         if (!cached) {
           dom.calendarMatchesFeed.innerHTML = `
             <div style="text-align: center; padding: 2.5rem; background: var(--bg-card); border-radius: 14px; border: 1px solid rgba(244,63,94,0.3);">
               <div style="color: #f43f5e; font-weight: 800; font-size: 1.05rem;">Failed to load calendar slate</div>
-              <div style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.35rem;">${err.message}</div>
-              <button class="btn-pill-info" style="margin-top: 1rem; cursor: pointer;" onclick="loadCalendarSlate('2026-10-09', 'all')">Reload Today's Slate</button>
+              <div style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.35rem;">${esc(err.message)}</div>
+              <button class="btn-pill-info" style="margin-top: 1rem; cursor: pointer;" onclick="if(window.loadCalendarSlate){window.loadCalendarSlate(getSystemTodayDateStr(), 'all');}else{location.reload();}">Reload Today's Slate</button>
             </div>
           `;
         }
@@ -4420,6 +4419,7 @@
 
     return activeSlateRequestPromise;
   }
+  window.loadCalendarSlate = loadCalendarSlate;
 
   // -------------------------------------------------------------------
   // LIMITLESS CALENDAR DROPDOWN MENU ENGINE (SoccerVital Style & Mobile)
