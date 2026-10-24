@@ -2425,6 +2425,7 @@
     const inSlipTop = state.betslip.items.some(i => i.match === `${m.home_team} vs ${m.away_team}` && i.market === topTip.market);
     const isBanker = (topTip.prob_pct >= 80) || m.is_banker_80;
     const isFinished = m.status === 'finished';
+    const isLive = m.status === 'live';
     let timeColText = m.time || '15:00';
     if (m.match_date && !isFinished && !isLive) {
       try {
