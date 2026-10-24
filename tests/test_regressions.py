@@ -476,7 +476,62 @@ class TestRegressions(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('if (edgeVal) edgeVal.textContent = "0.0%";', app_js)
         self.assertIn('edgeVal.textContent = edgeNum > 0 ? `+${edgeNum.toFixed(2)}%` : `${edgeNum.toFixed(2)}%`;', app_js)
 
+    # REGRESSION-022: Zero Synthetic/Mock Fixture Leakage in Production Daily Slate
+    async def test_regression_022_no_synthetic_fixtures_in_daily_slate(self):
+        resp = await self.client.get("/api/calendar/daily-slate?date=2026-10-24")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        matches = data.get("matches", [])
+        for m in matches:
+            ext_id = str(m.get("external_id", ""))
+            self.assertFalse(ext_id.startswith("SYN-"), f"Found synthetic fixture ID: {ext_id}")
+            self.assertFalse(ext_id.startswith("auto_"), f"Found auto fixture ID: {ext_id}")
+            self.assertFalse(m.get("is_synthetic", False), f"Fixture marked synthetic: {m}")
+
+    # REGRESSION-023: Provider Error Propagation Without Fabrication
+    async def test_regression_023_provider_error_propagation_honest_empty_state(self):
+        from unittest.mock import patch, AsyncMock
+        from football_ingestion import FootballDataService
+
+        mock_service = FootballDataService(api_key="mock_suspended_key")
+        mock_service.last_error = "API-Sports: access: Your account is suspended"
+
+        with patch.object(FootballDataService, "sync_all_leagues_to_db", new_callable=AsyncMock) as mock_sync:
+            mock_sync.return_value = {
+                "source": "api-sports-live",
+                "status": "error",
+                "message": "API-Sports: access: Your account is suspended",
+                "synced_fixtures": 0
+            }
+            # Query an empty future date
+            resp = await self.client.get("/api/calendar/daily-slate?date=2029-12-31")
+            self.assertEqual(resp.status_code, 200)
+            data = resp.json()
+            # When provider fails, app must NOT fabricate fixtures
+            self.assertEqual(len(data.get("matches", [])), 0, "Must return honest empty matches list, never fabricate")
+            self.assertEqual(data.get("provider_status"), "error")
+            self.assertTrue(any(w in str(data.get("provider_message")) for w in ["API-Sports", "suspended", "Free plans"]))
+
+
+    # REGRESSION-024: Authoritative Provider Fixture Identity and Pair Integrity
+    async def test_regression_024_fixture_teams_belong_to_same_record(self):
+        resp = await self.client.get("/api/calendar/daily-slate?date=2026-10-24")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        matches = data.get("matches", [])
+        for m in matches:
+            self.assertTrue(m.get("home_team"), "Home team must be non-empty")
+            self.assertTrue(m.get("away_team"), "Away team must be non-empty")
+            self.assertNotEqual(m.get("home_team"), m.get("away_team"), "Home and away cannot be identical")
+            # Verify top tip matches home or away team if team-specific
+            top_tip = m.get("top_tip", {})
+            label = top_tip.get("label", "")
+            if "Win" in label and not ("Both" in label or "Draw" in label):
+                team_win = label.replace(" Win", "").strip()
+                self.assertIn(team_win, [m["home_team"], m["away_team"]], "Prediction team must belong to fixture")
+
 
 if __name__ == "__main__":
     unittest.main()
+
 

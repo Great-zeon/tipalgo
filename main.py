@@ -4745,121 +4745,22 @@ ALL_33_ENDPOINTS_METADATA = [
 ]
 
 async def auto_generate_date_fixtures(db: AsyncSession, target_date: str):
-    try:
-        datetime.strptime(target_date.strip(), "%Y-%m-%d")
-    except Exception:
-        return []
-    import hashlib
-    date_hash = int(hashlib.md5(target_date.encode()).hexdigest()[:6], 16)
-    
-    league_pools = {
-        "PL": [
-            ("Arsenal", "Aston Villa", 1.55, 4.20, 5.80),
-            ("Manchester City", "Newcastle", 1.40, 4.80, 7.50),
-            ("Liverpool", "Chelsea", 1.85, 3.80, 4.00),
-            ("Tottenham", "Brentford", 1.70, 4.10, 4.60),
-            ("Manchester United", "Everton", 1.65, 4.00, 5.20)
-        ],
-        "PD": [
-            ("Real Madrid", "Villarreal", 1.30, 5.50, 9.00),
-            ("Barcelona", "Athletic Club", 1.45, 4.60, 6.50),
-            ("Atletico Madrid", "Sevilla", 1.62, 3.90, 5.40),
-            ("Real Sociedad", "Girona", 1.95, 3.50, 3.80),
-            ("Real Betis", "Celta Vigo", 2.05, 3.40, 3.50)
-        ],
-        "SA": [
-            ("Inter", "Fiorentina", 1.48, 4.40, 6.50),
-            ("Juventus", "Lazio", 1.82, 3.50, 4.40),
-            ("AC Milan", "Atalanta", 2.10, 3.60, 3.30),
-            ("Napoli", "Torino", 1.50, 4.20, 6.20),
-            ("Roma", "Bologna", 1.90, 3.50, 4.10)
-        ],
-        "BL1": [
-            ("Bayern Munich", "RB Leipzig", 1.50, 4.70, 5.60),
-            ("Bayer Leverkusen", "Frankfurt", 1.60, 4.30, 5.00),
-            ("Dortmund", "Stuttgart", 1.85, 4.00, 3.80),
-            ("Freiburg", "Wolfsburg", 2.15, 3.60, 3.20),
-            ("Mainz", "Hoffenheim", 2.25, 3.60, 3.00)
-        ],
-        "FL1": [
-            ("Paris Saint Germain", "Lille", 1.38, 5.00, 7.50),
-            ("Marseille", "Monaco", 2.10, 3.70, 3.25),
-            ("Lyon", "Nice", 2.00, 3.60, 3.50),
-            ("Rennes", "Lens", 2.20, 3.40, 3.20),
-            ("Strasbourg", "Toulouse", 2.15, 3.40, 3.30)
-        ]
-    }
-    
-    staggered_times = ["13:30:00", "15:00:00", "16:30:00", "18:00:00", "20:00:00"]
-    new_fixtures = []
-    
-    for lid, pairings in league_pools.items():
-        shift = (date_hash + len(lid)) % len(pairings)
-        shifted = pairings[shift:] + pairings[:shift]
-        
-        for idx, (h, a, o_h, o_d, o_a) in enumerate(shifted):
-            ext_id = f"SYN-{target_date}-{lid}-{idx+1}"
-            m_time = staggered_times[idx % len(staggered_times)]
-            m_dt_str = f"{target_date} {m_time}"
-            
-            res = await db.execute(select(HistoricalMatch.id).where(HistoricalMatch.external_id == ext_id))
-            if not res.scalar_one_or_none():
-                m_obj = HistoricalMatch(
-                    external_id=ext_id,
-                    home_team=h,
-                    away_team=a,
-                    league_id=lid,
-                    match_date=datetime.fromisoformat(m_dt_str),
-                    home_odds=o_h,
-                    draw_odds=o_d,
-                    away_odds=o_a,
-                    status="scheduled",
-                    home_possession_avg=52.0,
-                    away_possession_avg=48.0,
-                    home_shots_per_game=13.5,
-                    away_shots_per_game=11.2,
-                    home_shots_conceded_per_game=10.5,
-                    away_shots_conceded_per_game=13.0,
-                    home_home_scoring_rate=1.85,
-                    away_away_scoring_rate=1.25,
-                    home_home_conceding_rate=0.95,
-                    away_away_conceding_rate=1.45,
-                    home_recent_goals_scored="[2,1,3,2,1]",
-                    away_recent_goals_scored="[1,0,2,1,0]",
-                    home_recent_goals_conceded="[0,1,1,2,0]",
-                    away_recent_goals_conceded="[1,2,0,1,2]",
-                    home_corners=5.5,
-                    away_corners=4.5,
-                    home_cards=1.8,
-                    away_cards=2.2,
-                    home_penalties=0,
-                    away_penalties=0
-                )
-                db.add(m_obj)
-                new_fixtures.append(m_obj)
-                
-    if new_fixtures:
-        try:
-            await db.commit()
-            recent_matches_cache.delete("all_available_dates")
-        except Exception as e:
-            await db.rollback()
-            logger.warning(f"Failed to auto-seed fixtures for {target_date}: {e}")
-            
-    major_leagues = ["PL", "PD", "SA", "BL1", "FL1"]
-    priority_order = case({lid: i for i, lid in enumerate(major_leagues)}, value=HistoricalMatch.league_id, else_=99)
-    res_all = await db.execute(
-        select(HistoricalMatch).where(
-            func.substr(HistoricalMatch.match_date, 1, 10) == target_date
-        ).order_by(priority_order, HistoricalMatch.match_date.asc()).limit(100)
-    )
-    return res_all.scalars().all()
+    """
+    DATA INTEGRITY POLICY:
+    Fabricated or mock fixtures must never be generated in production.
+    SportyMill only displays verified fixtures retrieved from the authoritative data provider.
+    """
+    logger.info(f"auto_generate_date_fixtures called for {target_date} - returning empty list (mock fabrication disabled)")
+    return []
+
 
 async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: PredictorService, endpoint: Optional[str] = "all"):
     endpoint_counts = {ep["id"]: 0 for ep in ALL_33_ENDPOINTS_METADATA}
     match_cards = []
     
     for m in fixtures:
+        if m.external_id and (m.external_id.startswith("SYN-") or m.external_id.startswith("auto_")):
+            continue
         m_home_odds = float(m.home_odds or 2.10)
         m_draw_odds = float(m.draw_odds or 3.25)
         m_away_odds = float(m.away_odds or 3.40)
@@ -5232,7 +5133,12 @@ async def get_calendar_daily_slate(
     else:
         date_rows = await db.execute(
             select(func.substr(HistoricalMatch.match_date, 1, 10))
-            .where(HistoricalMatch.external_id.notlike("auto_%"))
+            .where(
+                and_(
+                    HistoricalMatch.external_id.notlike("auto_%"),
+                    HistoricalMatch.external_id.notlike("SYN-%")
+                )
+            )
             .distinct()
             .order_by(func.substr(HistoricalMatch.match_date, 1, 10).asc())
         )
@@ -5243,6 +5149,7 @@ async def get_calendar_daily_slate(
     priority_order = case({lid: i for i, lid in enumerate(major_leagues)}, value=HistoricalMatch.league_id, else_=99)
 
     total_fixtures_count = 0
+    provider_err = None
     if target_date in ["next-5-days", "upcoming"]:
         today_prefix = today_str
         end_prefix = (datetime.now(timezone.utc) + timedelta(days=5)).strftime("%Y-%m-%d")
@@ -5251,7 +5158,8 @@ async def get_calendar_daily_slate(
                 and_(
                     func.substr(HistoricalMatch.match_date, 1, 10) >= today_prefix,
                     func.substr(HistoricalMatch.match_date, 1, 10) <= end_prefix,
-                    HistoricalMatch.external_id.notlike("auto_%")
+                    HistoricalMatch.external_id.notlike("auto_%"),
+                    HistoricalMatch.external_id.notlike("SYN-%")
                 )
             ).order_by(priority_order, HistoricalMatch.match_date.asc()).limit(100)
         )
@@ -5262,7 +5170,8 @@ async def get_calendar_daily_slate(
             select(HistoricalMatch).where(
                 and_(
                     func.substr(HistoricalMatch.match_date, 1, 10) == target_date,
-                    HistoricalMatch.external_id.notlike("auto_%")
+                    HistoricalMatch.external_id.notlike("auto_%"),
+                    HistoricalMatch.external_id.notlike("SYN-%")
                 )
             ).order_by(priority_order, HistoricalMatch.match_date.asc()).limit(100)
         )
@@ -5278,26 +5187,35 @@ async def get_calendar_daily_slate(
                     m_models.LeagueTable = LeagueTable
                     m_models.HistoricalMatch = HistoricalMatch
                     m_models.PredictionLog = PredictionLog
-                    await service.sync_all_leagues_to_db(db, m_models, target_date=target_date)
+                    sync_res = await service.sync_all_leagues_to_db(db, m_models, target_date=target_date)
+                    if sync_res and sync_res.get("status") == "error":
+                        provider_err = sync_res.get("message")
                     res = await db.execute(
                         select(HistoricalMatch).where(
                             and_(
                                 func.substr(HistoricalMatch.match_date, 1, 10) == target_date,
-                                HistoricalMatch.external_id.notlike("auto_%")
+                                HistoricalMatch.external_id.notlike("auto_%"),
+                                HistoricalMatch.external_id.notlike("SYN-%")
                             )
                         ).order_by(priority_order, HistoricalMatch.match_date.asc()).limit(100)
                     )
                     fixtures = res.scalars().all()
+                else:
+                    provider_err = "FOOTBALL_API_KEY is not configured on this server."
             except Exception as e:
                 logger.warning(f"Auto-sync live calendar fixtures failed: {e}")
+                provider_err = str(e)
 
-        # If still empty for this target_date, auto-generate realistic live/scheduled fixtures
-        if len(fixtures) == 0 and target_date not in ["next-5-days", "upcoming"]:
-            fixtures = await auto_generate_date_fixtures(db, target_date)
+        # Under NO circumstances fabricate fixtures in production!
+        # If len(fixtures) == 0, return an honest empty state with provider diagnostics.
 
         count_res = await db.execute(
             select(func.count(HistoricalMatch.id)).where(
-                func.substr(HistoricalMatch.match_date, 1, 10) == target_date
+                and_(
+                    func.substr(HistoricalMatch.match_date, 1, 10) == target_date,
+                    HistoricalMatch.external_id.notlike("auto_%"),
+                    HistoricalMatch.external_id.notlike("SYN-%")
+                )
             )
         )
         total_fixtures_count = count_res.scalar() or len(fixtures)
@@ -5322,7 +5240,9 @@ async def get_calendar_daily_slate(
         "endpoints": endpoints_response,
         "total_fixtures": total_fixtures_count,
         "matches_count": len(match_cards),
-        "matches": match_cards
+        "matches": match_cards,
+        "provider_status": "error" if provider_err else "ok",
+        "provider_message": provider_err
     }
     calendar_slate_cache.set(cache_key, response_payload)
     if ep_filter == "all":
@@ -5342,9 +5262,13 @@ async def search_team_all_dates(
     stmt = (
         select(HistoricalMatch)
         .where(
-            or_(
-                HistoricalMatch.home_team.ilike(search_pattern),
-                HistoricalMatch.away_team.ilike(search_pattern)
+            and_(
+                or_(
+                    HistoricalMatch.home_team.ilike(search_pattern),
+                    HistoricalMatch.away_team.ilike(search_pattern)
+                ),
+                HistoricalMatch.external_id.notlike("auto_%"),
+                HistoricalMatch.external_id.notlike("SYN-%")
             )
         )
         .order_by(HistoricalMatch.match_date.asc())
@@ -5371,7 +5295,11 @@ async def get_calendar_league_slate(
     predictor: PredictorService = Depends(get_predictor)
 ):
     clean_lid = league_id.strip()
-    conditions = [HistoricalMatch.league_id == clean_lid]
+    conditions = [
+        HistoricalMatch.league_id == clean_lid,
+        HistoricalMatch.external_id.notlike("auto_%"),
+        HistoricalMatch.external_id.notlike("SYN-%")
+    ]
     if date and date not in ["all", "any", "null", "undefined"]:
         conditions.append(func.substr(HistoricalMatch.match_date, 1, 10) == date)
         
@@ -5383,11 +5311,6 @@ async def get_calendar_league_slate(
     )
     res = await db.execute(stmt)
     fixtures = res.scalars().all()
-    
-    if len(fixtures) == 0 and date and date not in ["all", "any", "null", "undefined"]:
-        await auto_generate_date_fixtures(db, date)
-        res = await db.execute(stmt)
-        fixtures = res.scalars().all()
         
     match_cards, endpoint_counts = await format_fixture_cards_helper(fixtures, db, predictor, "all")
     return Response(
@@ -5761,7 +5684,9 @@ async def get_upcoming_fixtures(db: AsyncSession = Depends(get_db)):
         select(HistoricalMatch)
         .where(
             HistoricalMatch.status == "scheduled",
-            HistoricalMatch.match_date >= now.replace(tzinfo=None)
+            HistoricalMatch.match_date >= now.replace(tzinfo=None),
+            HistoricalMatch.external_id.notlike("auto_%"),
+            HistoricalMatch.external_id.notlike("SYN-%")
         )
         .order_by(priority_order, HistoricalMatch.match_date.asc())
         .limit(40)

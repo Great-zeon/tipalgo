@@ -5685,6 +5685,11 @@
           </div>
           <h3 class="empty-title">${isBanter ? 'No Match Dey For Here' : 'No Match Available'}</h3>
           <p class="empty-sub">${emptyMsg}</p>
+          ${(state.calendar.data && state.calendar.data.provider_status === 'error' && state.calendar.data.provider_message) ? `
+            <div style="margin: 0.85rem auto; max-width: 440px; padding: 0.6rem 0.85rem; background: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.35); border-radius: 8px; color: #f43f5e; font-size: 0.8rem; font-weight: 600; line-height: 1.4; text-align: left;">
+              ⚠️ <strong>Data Provider Notice:</strong> ${esc(state.calendar.data.provider_message)}
+            </div>
+          ` : ''}
           <div class="empty-actions">
             ${(hasActiveFilters || state.calendar.searchQuery) ? `
               <button class="btn-empty-today" id="btnEmptyResetFilters">

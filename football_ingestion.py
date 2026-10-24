@@ -54,6 +54,7 @@ class FootballDataService:
     def __init__(self, api_key: str = None, base_url: str = None):
         self.api_key = api_key if api_key is not None else os.getenv("FOOTBALL_API_KEY", "")
         self.base_url = base_url or API_SPORTS_BASE
+        self.last_error: Optional[str] = None
 
     def _headers(self) -> Dict[str, str]:
         return {
@@ -102,12 +103,34 @@ class FootballDataService:
                 async with session.get(url, headers=self._headers(), timeout=15) as resp:
                     if resp.status == 200:
                         data = await resp.json()
+                        errors = data.get("errors")
+                        if errors:
+                            if isinstance(errors, dict) and len(errors) > 0:
+                                err_msg = "; ".join(f"{k}: {v}" for k, v in errors.items())
+                            elif isinstance(errors, list) and len(errors) > 0:
+                                err_msg = "; ".join(str(e) for e in errors)
+                            else:
+                                err_msg = str(errors) if errors else ""
+                            if err_msg:
+                                self.last_error = f"API-Sports: {err_msg}"
+                                logger.error(f"API-Sports returned error on fixtures?date={target_date}: {err_msg}")
+                                return []
+                        self.last_error = None
                         return data.get("response", [])
                     elif resp.status == 429:
+                        self.last_error = "API-Sports: Rate limit reached (HTTP 429)"
                         logger.warning(f"Rate limit reached on fixtures?date={target_date}")
+                    elif resp.status in (401, 403):
+                        self.last_error = f"API-Sports: Unauthorized / Forbidden (HTTP {resp.status}) - check API key"
+                        logger.error(f"API-Sports auth failed (HTTP {resp.status}) on fixtures?date={target_date}")
+                    else:
+                        self.last_error = f"API-Sports: HTTP {resp.status}"
+                        logger.error(f"API-Sports HTTP {resp.status} on fixtures?date={target_date}")
         except Exception as e:
+            self.last_error = f"API-Sports Connection Exception: {e}"
             logger.error(f"Failed to fetch date fixtures for {target_date}: {e}")
         return []
+
 
     async def fetch_live_odds_by_date(self, target_date: str) -> Dict[str, Dict[str, Optional[float]]]:
         """
@@ -236,6 +259,14 @@ class FootballDataService:
         for d_str in dates_to_sync:
             # Single call for fixtures
             raw_matches = await self.fetch_live_fixtures_by_date(d_str)
+            if self.last_error:
+                logger.error(f"Cannot sync fixtures for {d_str}: {self.last_error}")
+                return {
+                    "source": "api-sports-live",
+                    "status": "error",
+                    "message": self.last_error,
+                    "synced_fixtures": 0
+                }
             logger.info(f"API-Sports returned {len(raw_matches)} matches for date ({d_str})")
 
             # Single batch call for odds (no per-fixture spam)
