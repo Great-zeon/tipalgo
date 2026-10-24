@@ -17,11 +17,12 @@ from main import (
 )
 from football_ingestion import FootballDataService
 
-BASE_URL = "http://127.0.0.1:8000"
+BASE_URL = "http://testserver"
 
 class TestRegressions(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
-        self.client = httpx.AsyncClient(base_url=BASE_URL, timeout=15.0)
+        transport = httpx.ASGITransport(app=app)
+        self.client = httpx.AsyncClient(transport=transport, base_url=BASE_URL, timeout=30.0)
         async with AsyncSessionLocal() as db:
             res = await db.execute(select(User).where(User.email == "demo@tipalgo.com"))
             user = res.scalar_one_or_none()

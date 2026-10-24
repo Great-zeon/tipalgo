@@ -64,10 +64,11 @@ async function runFrontendChecks() {
   assert(css.includes('@media (min-width: 1300px)'), 'Desktop widescreen breakpoint @media (min-width: 1300px) defined');
   assert(css.includes('grid-template-columns: repeat(3, minmax(0, 1fr))') || css.includes('repeat(3, 1fr)'), 'Desktop 3-column grid configured');
 
-  // 3. Live Backend API Integration on Port 8000
-  console.log('\n3. Testing Live Backend API Slate Endpoint (http://127.0.0.1:8000)...');
+  // 3. Live Backend API Integration
+  const apiBase = process.env.API_BASE_URL || 'http://127.0.0.1:8000';
+  console.log(`\n3. Testing Live Backend API Slate Endpoint (${apiBase})...`);
   try {
-    const res = await fetch('http://127.0.0.1:8000/api/calendar/daily-slate?date=2026-10-14&endpoint=all');
+    const res = await fetch(`${apiBase}/api/calendar/daily-slate?date=2026-10-14&endpoint=all`);
     assert(res.status === 200, `API response status 200 (actual: ${res.status})`);
     
     const data = await res.json();

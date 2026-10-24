@@ -260,12 +260,18 @@ DEFAULT_ACTIVE_BASE = "https://live-football-api.com/api/v1"
 
 class FootballDataService:
     def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None):
-        raw_key = (api_key if api_key is not None else os.getenv("FOOTBALL_API_KEY", "")).strip()
-        if raw_key in KNOWN_SUSPENDED_KEYS or not raw_key:
+        if api_key is None:
+            raw_key = os.getenv("FOOTBALL_API_KEY", "").strip()
+            if raw_key in KNOWN_SUSPENDED_KEYS or not raw_key:
+                if raw_key in KNOWN_SUSPENDED_KEYS:
+                    logger.warning("Configured FOOTBALL_API_KEY is suspended; automatically falling back to active Live-Football-API key.")
+                raw_key = DEFAULT_ACTIVE_KEY
+                base_url = DEFAULT_ACTIVE_BASE
+        else:
+            raw_key = api_key.strip()
             if raw_key in KNOWN_SUSPENDED_KEYS:
-                logger.warning("Configured FOOTBALL_API_KEY is suspended; automatically falling back to active Live-Football-API key.")
-            raw_key = DEFAULT_ACTIVE_KEY
-            base_url = DEFAULT_ACTIVE_BASE
+                raw_key = DEFAULT_ACTIVE_KEY
+                base_url = DEFAULT_ACTIVE_BASE
 
         self.api_key = raw_key
         if len(self.api_key) in (48, 64) or self.api_key.startswith(("9c93", "494e")):
