@@ -9448,6 +9448,136 @@ body.light-theme-mode .grand-empty-search-state {
   color: #334155 !important;
 }
 
+/* Betslip Desktop & Docked Light Theme Mode */
+body.light-theme-mode .home-slip-col .betslip-sidebar,
+body.light-theme-mode .betslip-sidebar {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06) !important;
+}
+
+body.light-theme-mode .home-slip-col .betslip-header,
+body.light-theme-mode .betslip-header {
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+body.light-theme-mode .slip-title-text {
+  color: #0f172a !important;
+}
+
+body.light-theme-mode .btn-clear-slip-simple {
+  border-color: #cbd5e1 !important;
+  color: #64748b !important;
+}
+
+body.light-theme-mode .btn-clear-slip-simple:hover {
+  background: #fee2e2 !important;
+  border-color: #fca5a5 !important;
+  color: #dc2626 !important;
+}
+
+body.light-theme-mode .slip-empty-state svg {
+  stroke: #94a3b8 !important;
+}
+
+body.light-theme-mode .slip-empty-state p {
+  color: #0f172a !important;
+}
+
+body.light-theme-mode .slip-empty-state span {
+  color: #64748b !important;
+}
+
+body.light-theme-mode .home-slip-col .betslip-footer,
+body.light-theme-mode .betslip-footer {
+  border-top: 1px solid #e2e8f0 !important;
+}
+
+body.light-theme-mode .slip-summary-table {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+body.light-theme-mode .summary-row span {
+  color: #64748b !important;
+}
+
+body.light-theme-mode .summary-row strong {
+  color: #0f172a !important;
+}
+
+body.light-theme-mode .sporty-slip-leg-card {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+body.light-theme-mode .sporty-slip-leg-card:hover {
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+}
+
+body.light-theme-mode .sporty-slip-market-name {
+  color: #059669 !important;
+}
+
+body.light-theme-mode .sporty-slip-match-title {
+  color: #0f172a !important;
+}
+
+body.light-theme-mode .sporty-slip-type-lbl {
+  color: #64748b !important;
+}
+
+body.light-theme-mode .sporty-slip-odds-bold {
+  color: #059669 !important;
+}
+
+body.light-theme-mode .sporty-slip-remove {
+  color: #94a3b8 !important;
+}
+
+body.light-theme-mode .sporty-slip-remove:hover {
+  color: #dc2626 !important;
+  background: #fee2e2 !important;
+}
+
+/* Light Theme Mode Notifications Popover */
+body.light-theme-mode .notifications-popover {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12) !important;
+}
+
+body.light-theme-mode .notif-popover-header {
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+body.light-theme-mode .notif-popover-title {
+  color: #0f172a !important;
+}
+
+body.light-theme-mode .notif-item {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+body.light-theme-mode .notif-item:hover {
+  background: #f1f5f9 !important;
+  border-color: #0284c7 !important;
+}
+
+body.light-theme-mode .notif-item-title {
+  color: #0284c7 !important;
+}
+
+body.light-theme-mode .notif-item-desc {
+  color: #334155 !important;
+}
+
+body.light-theme-mode .notif-item-time {
+  color: #64748b !important;
+}
+
 /* ===================================================================
    SMOOTH THEME TRANSITION SYSTEM
    =================================================================== */

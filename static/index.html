@@ -142,17 +142,6 @@
               </div>
             </div>
 
-            <div class="dropdown-bankroll-card">
-              <div class="bankroll-card-row">
-                <span class="bankroll-lbl">Trading Bankroll</span>
-                <span class="bankroll-val" id="dropdownBankrollVal">₦1,000,000</span>
-              </div>
-              <div class="bankroll-card-sub">
-                <span>Safe 5% Stake Limit:</span>
-                <strong id="dropdownSafeStakeVal">₦50,000</strong>
-              </div>
-            </div>
-
             <!-- 3 Clean Options: Dashboard, Settings, Sign Out -->
             <div class="dropdown-menu-list">
               <a href="#" class="dropdown-menu-item" id="dropdownItemDashboard" data-tab-target="view-dashboard">
@@ -330,7 +319,7 @@
                     <circle cx="11" cy="11" r="8"></circle>
                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                   </svg>
-                  <input type="text" id="inputCalendarSearchTeam" class="grand-search-input calendar-team-search-input" placeholder="Search teams, leagues, or matches...">
+                  <input type="search" id="inputCalendarSearchTeam" name="sports_search_query" class="grand-search-input calendar-team-search-input" placeholder="Search teams, leagues, or matches..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
                   <button type="button" class="btn-clear-cal-search" id="btnClearCalSearch" title="Clear search" style="display: none;">
                     <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                   </button>
@@ -2835,7 +2824,7 @@
       <form id="gateLoginForm" class="gate-body">
         <div class="gate-notice-box">
           <span class="gate-info-icon">🔒</span>
-          <div>This terminal is restricted to authorized operators (<strong>tip_algo</strong> and <strong>tip_partner</strong>). Public registration is locked.</div>
+          <div>Restricted Quantitative Terminal. Authorized operator credentials required.</div>
         </div>
 
         <div id="gateAlertBanner" class="auth-alert-banner" style="display: none;"></div>
@@ -2844,7 +2833,7 @@
           <label for="gateUsernameInput">Operator Username</label>
           <div class="gate-input-wrap">
             <svg class="gate-field-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-            <input type="text" id="gateUsernameInput" class="gate-input" placeholder="e.g. tip_algo or tip_partner" autocomplete="username" required>
+            <input type="text" id="gateUsernameInput" class="gate-input" placeholder="Enter your operator username" autocomplete="username" required>
           </div>
         </div>
 

@@ -633,6 +633,28 @@
         }
       }
 
+      // Reset match search input and prevent credential autofill leaks
+      if (dom.inputCalendarSearchTeam) {
+        dom.inputCalendarSearchTeam.value = '';
+      }
+      state.calendar.searchQuery = '';
+      state.calendar.isClubSearchActive = false;
+      state.calendar.teamSearchResults = null;
+      const btnClearCal = document.getElementById('btnClearCalSearch');
+      if (btnClearCal) btnClearCal.style.display = 'none';
+
+      // Defend against browser credential managers autofilling usernames into search
+      setTimeout(() => {
+        if (dom.inputCalendarSearchTeam && (dom.inputCalendarSearchTeam.value === 'tip_algo' || dom.inputCalendarSearchTeam.value === 'tip_partner' || dom.inputCalendarSearchTeam.value)) {
+          dom.inputCalendarSearchTeam.value = '';
+          state.calendar.searchQuery = '';
+          state.calendar.isClubSearchActive = false;
+          state.calendar.teamSearchResults = null;
+          if (btnClearCal) btnClearCal.style.display = 'none';
+          renderCalendarMatchesFeed();
+        }
+      }, 150);
+
       // 1. Launch Primary Calendar Slate IMMEDIATELY for Real-World Today (0ms delay)
       const todayDateStr = getSystemTodayDateStr();
       const primaryCalendarPromise = loadCalendarSlate(todayDateStr, 'all');
@@ -1760,6 +1782,27 @@
     if (elTopNavAbout) elTopNavAbout.textContent = lang.navAbout;
     const elTopNavSupport = document.getElementById('topNavSupport');
     if (elTopNavSupport) elTopNavSupport.textContent = lang.navSupport;
+
+    // Notifications Popover Dynamic Translations
+    const notifHeader = document.querySelector('.notif-popover-title');
+    if (notifHeader) notifHeader.textContent = isBanter ? 'Live Model Intelligence (Ginger Alerts)' : 'Live Model Intelligence';
+    const notifItems = document.querySelectorAll('.notifications-popover .notif-item');
+    if (notifItems && notifItems.length >= 3) {
+      const t0 = notifItems[0].querySelector('.notif-item-title');
+      const d0 = notifItems[0].querySelector('.notif-item-desc');
+      if (t0) t0.textContent = isBanter ? '+8.4% Sweet Value Spike ⚡' : '+8.4% EV Value Spike';
+      if (d0) d0.textContent = isBanter ? 'Liverpool vs Man City get heavy goal vibration under Poisson simulation.' : 'Liverpool vs Man City home edge confirmed under Poisson goal simulation.';
+
+      const t1 = notifItems[1].querySelector('.notif-item-title');
+      const d1 = notifItems[1].querySelector('.notif-item-desc');
+      if (t1) t1.textContent = isBanter ? '80%+ Sure Banker Pass 🛡️' : '80%+ Banker Filter';
+      if (d1) d1.textContent = isBanter ? 'Arsenal or Draw (1X) don pass all our strict safety checks cleanly.' : 'Arsenal or Draw (1X) qualified under multi-strategy safety filter.';
+
+      const t2 = notifItems[2].querySelector('.notif-item-title');
+      const d2 = notifItems[2].querySelector('.notif-item-desc');
+      if (t2) t2.textContent = isBanter ? 'Over 2.5 Goals Radar ⚽' : 'Over 2.5 Goals Radar';
+      if (d2) d2.textContent = isBanter ? 'Bayern vs Dortmund project 3.45 heavy match goals.' : 'Bayern vs Dortmund projected 3.45 xG total volume.';
+    }
 
     // Mobile Bottom Navigation Bar (Home, Dashboard, 33 Endpoints, Bet Slip, Profile)
     const bottomNavButtons = document.querySelectorAll('.mobile-bottom-nav .bottom-nav-item');
@@ -5980,13 +6023,19 @@
       if (btnReset) {
         btnReset.addEventListener('click', () => {
           state.calendar.searchQuery = '';
+          state.calendar.isClubSearchActive = false;
+          state.calendar.teamSearchResults = null;
           state.calendar.minProb = 'all';
           state.calendar.selectedEndpoints = [];
           state.calendar.selectedEndpoint = 'all';
           state.calendar.activeLeague = 'all';
           state.calendar.minStake = null;
           state.calendar.maxStake = null;
+          if (dom.inputCalendarSearchTeam) dom.inputCalendarSearchTeam.value = '';
           if (dom.calendarSearchInput) dom.calendarSearchInput.value = '';
+          const btnClear = document.getElementById('btnClearCalSearch');
+          if (btnClear) btnClear.style.display = 'none';
+          updateFilterDrawerUI(true);
           loadCalendarSlate(getSystemTodayDateStr(), 'all');
         });
       }
