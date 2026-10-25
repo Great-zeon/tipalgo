@@ -2801,9 +2801,113 @@
     </div>
   </div>
 
+  <!-- =================================================================== -->
+  <!-- FULLSCREEN RESTRICTED ACCESS GATEKEEPER & DEVICE LOCKOUT OVERLAY    -->
+  <!-- =================================================================== -->
+  <div id="tipalgoSecurityGate" class="security-gate-backdrop" style="display: none;">
+    <div class="security-gate-card">
+      <div class="gate-header">
+        <div class="gate-brand-row">
+          <div class="gate-brand-logo">
+            <svg viewBox="0 0 32 32" width="36" height="36" fill="none">
+              <rect width="32" height="32" rx="8" fill="url(#gateGlowGrad)" />
+              <path d="M7 16L13 22L25 10" stroke="#000" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+              <defs>
+                <linearGradient id="gateGlowGrad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#00e676"/>
+                  <stop offset="1" stop-color="#00b0ff"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <div class="gate-brand-titles">
+            <div class="gate-brand-name">TipAlgo <span class="gate-version-badge">Private v21</span></div>
+            <div class="gate-brand-sub">Institutional Quantitative Prediction Terminal</div>
+          </div>
+        </div>
+        <div class="gate-lock-pill">
+          <span class="gate-lock-dot"></span>
+          <span>RESTRICTED ACCESS</span>
+        </div>
+      </div>
+
+      <!-- Normal Login View -->
+      <form id="gateLoginForm" class="gate-body">
+        <div class="gate-notice-box">
+          <span class="gate-info-icon">🔒</span>
+          <div>This terminal is restricted to authorized operators (<strong>tip_algo</strong> and <strong>tip_partner</strong>). Public registration is locked.</div>
+        </div>
+
+        <div id="gateAlertBanner" class="auth-alert-banner" style="display: none;"></div>
+
+        <div class="gate-input-group">
+          <label for="gateUsernameInput">Operator Username</label>
+          <div class="gate-input-wrap">
+            <svg class="gate-field-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <input type="text" id="gateUsernameInput" class="gate-input" placeholder="e.g. tip_algo or tip_partner" autocomplete="username" required>
+          </div>
+        </div>
+
+        <div class="gate-input-group">
+          <label for="gatePasswordInput">Master Password</label>
+          <div class="gate-input-wrap">
+            <svg class="gate-field-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <input type="password" id="gatePasswordInput" class="gate-input" placeholder="Enter secure password" autocomplete="current-password" required>
+          </div>
+        </div>
+
+        <div class="gate-device-badge-row">
+          <div class="gate-device-info">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+            <span id="gateDeviceNameLabel">Detecting hardware...</span>
+          </div>
+          <label class="gate-remember-lbl">
+            <input type="checkbox" id="gateRememberCheck" checked>
+            <span>Save session for 30 days</span>
+          </label>
+        </div>
+
+        <button type="submit" class="btn-gate-submit" id="btnGateLoginSubmit">
+          <span>Authenticate &amp; Launch Terminal →</span>
+        </button>
+      </form>
+
+      <!-- Device Lockout View (Hidden by default, shown if 403 DEVICE_LIMIT_REACHED) -->
+      <div id="gateDeviceLockoutView" class="gate-body" style="display: none;">
+        <div class="gate-lockout-hero">
+          <div class="gate-shield-icon">🛡️</div>
+          <h3 class="gate-lockout-title">Device Limit Reached — Access Blocked</h3>
+          <p class="gate-lockout-desc">Your platform is strictly protected by a <strong>Hardware Device Maximum Limit</strong>. The credentials entered are correct, but all authorized device slots are currently occupied.</p>
+        </div>
+
+        <div class="gate-active-devices-box">
+          <div class="gad-title" id="gateActiveDevicesTitle">Currently Registered Devices:</div>
+          <div id="gateActiveDevicesList" class="gad-list">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+
+        <div class="gate-override-box">
+          <div class="gob-title">Are you an owner switching to a new phone or laptop?</div>
+          <p class="gob-desc">Enter your Master Authorization PIN to approve this new device and deauthorize older inactive hardware:</p>
+          <div class="gate-override-form">
+            <input type="password" id="gateMasterPinInput" class="gate-input font-mono" placeholder="Enter Master PIN" maxlength="12">
+            <button type="button" class="btn-gate-override" id="btnGateOverrideSubmit">Authorize This Device →</button>
+          </div>
+          <div id="gateOverrideError" class="auth-alert-banner" style="display: none; margin-top: 0.5rem;"></div>
+          <button type="button" class="btn-gate-back" id="btnGateBackToLogin">← Back to Login</button>
+        </div>
+      </div>
+
+      <div class="gate-footer">
+        <span>🔒 TipAlgo Hardware-Bound Session Security • 30-Day Auto-Renewal</span>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div id="platformToast" class="platform-toast"></div>
 
-  <script src="/static/app.js?v=71"></script>
+  <script src="/static/app.js?v=72"></script>
 </body>
 </html>

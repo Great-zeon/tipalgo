@@ -14726,3 +14726,384 @@ body.in-dashboard-view .mobile-bottom-nav {
   }
 }
 
+/* =================================================================== */
+/* FAVORED TEAM BADGES & CLARITY ENHANCEMENTS                          */
+/* =================================================================== */
+.em-favored-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(0, 230, 118, 0.15);
+  color: #00e676;
+  border: 1px solid rgba(0, 230, 118, 0.4);
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+  vertical-align: middle;
+  box-shadow: 0 0 8px rgba(0, 230, 118, 0.2);
+}
+
+.em-card-favored-note {
+  margin-top: 6px;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-end;
+}
+.em-card-favored-note strong {
+  color: #38bdf8;
+  font-weight: 700;
+}
+.em-card-favored-note .fav-icon {
+  color: #facc15;
+}
+
+/* =================================================================== */
+/* TIPALGO SECURITY GATE & HARDWARE-BOUND LOCKOUT                      */
+/* =================================================================== */
+.security-gate-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999999;
+  background: radial-gradient(circle at 50% 20%, rgba(15, 23, 42, 0.98), #090d16 90%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.security-gate-card {
+  width: 100%;
+  max-width: 480px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 230, 118, 0.08);
+  border-radius: 18px;
+  overflow: hidden;
+  animation: gateCardPop 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes gateCardPop {
+  0% { opacity: 0; transform: scale(0.95) translateY(12px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.gate-header {
+  padding: 1.5rem 1.5rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.gate-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.gate-brand-name {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gate-version-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  background: rgba(0, 230, 118, 0.15);
+  color: #00e676;
+  border: 1px solid rgba(0, 230, 118, 0.35);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.gate-brand-sub {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.gate-lock-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #f87171;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 4px 8px;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+.gate-lock-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 6px #ef4444;
+}
+
+.gate-body {
+  padding: 1.5rem;
+}
+
+.gate-notice-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  padding: 0.85rem;
+  font-size: 0.78rem;
+  color: #cbd5e1;
+  line-height: 1.45;
+  margin-bottom: 1.25rem;
+}
+
+.gate-notice-box strong {
+  color: #38bdf8;
+}
+
+.gate-input-group {
+  margin-bottom: 1.1rem;
+}
+
+.gate-input-group label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+  margin-bottom: 0.4rem;
+}
+
+.gate-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.gate-field-icon {
+  position: absolute;
+  left: 12px;
+  color: #64748b;
+  pointer-events: none;
+}
+
+.gate-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px 0 38px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 0.88rem;
+  transition: all 0.2s ease;
+}
+
+.gate-input:focus {
+  outline: none;
+  border-color: #00e676;
+  box-shadow: 0 0 0 3px rgba(0, 230, 118, 0.15);
+  background: rgba(15, 23, 42, 0.95);
+}
+
+.gate-device-badge-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 1rem 0 1.25rem;
+  font-size: 0.74rem;
+}
+
+.gate-device-info {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #38bdf8;
+  font-weight: 600;
+  background: rgba(56, 189, 248, 0.1);
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.gate-remember-lbl {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #94a3b8;
+  cursor: pointer;
+  user-select: none;
+}
+
+.btn-gate-submit {
+  width: 100%;
+  height: 46px;
+  background: linear-gradient(135deg, #00e676, #00c853);
+  color: #000000;
+  font-weight: 900;
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 230, 118, 0.35);
+  transition: all 0.2s ease;
+}
+
+.btn-gate-submit:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 22px rgba(0, 230, 118, 0.45);
+}
+
+.gate-lockout-hero {
+  text-align: center;
+  margin-bottom: 1.25rem;
+}
+
+.gate-shield-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.gate-lockout-title {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #f87171;
+  margin: 0 0 0.5rem 0;
+}
+
+.gate-lockout-desc {
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.gate-active-devices-box {
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 10px;
+  padding: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+
+.gad-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #fca5a5;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.4rem;
+}
+
+.gad-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.gad-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(30, 41, 59, 0.6);
+  padding: 0.45rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: #ffffff;
+}
+
+.gad-item-time {
+  font-size: 0.68rem;
+  color: #94a3b8;
+}
+
+.gate-override-box {
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+.gob-title {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 0.35rem;
+}
+
+.gob-desc {
+  font-size: 0.74rem;
+  color: #94a3b8;
+  margin: 0 0 0.75rem 0;
+  line-height: 1.4;
+}
+
+.gate-override-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-gate-override {
+  flex: 0 0 auto;
+  height: 44px;
+  padding: 0 1rem;
+  background: #38bdf8;
+  color: #000;
+  font-weight: 800;
+  font-size: 0.8rem;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-gate-back {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 0.75rem;
+  padding: 0;
+}
+.btn-gate-back:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.gate-footer {
+  padding: 0.85rem 1.5rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: center;
+  font-size: 0.68rem;
+  color: #64748b;
+}
+
+

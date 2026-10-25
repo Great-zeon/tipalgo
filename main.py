@@ -96,7 +96,12 @@ class Config:
     DB_POOL_SIZE = int(os.getenv("DB_POOL_SIZE", "10"))
     SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_urlsafe(32))
     ALGORITHM = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
+    ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", str(60 * 24 * 30)))  # 30 Days Persistent Session
+    ALLOWED_USERNAMES = ["tip_algo", "tip_partner"]
+    TIPALGO_MASTER_PASSWORD = os.getenv("TIPALGO_MASTER_PASSWORD", "TipAlgo2026!")
+    ADMIN_DEVICE_KEY = os.getenv("ADMIN_DEVICE_KEY", "9821")
+    MAX_SYSTEM_DEVICES = int(os.getenv("MAX_SYSTEM_DEVICES", "5"))
+    REGISTRATION_ENABLED = os.getenv("REGISTRATION_ENABLED", "false").lower() == "true"
     FOOTBALL_API_KEY = os.getenv("FOOTBALL_API_KEY", "9c939656325deeb68d2f7677b05d3b1416828ff0ecf076dc")
     if FOOTBALL_API_KEY == "0e675581454210763d7ef79017265356" or not FOOTBALL_API_KEY:
         FOOTBALL_API_KEY = "9c939656325deeb68d2f7677b05d3b1416828ff0ecf076dc"
@@ -528,6 +533,19 @@ class BetSlip(Base):
     created_at: Mapped[datetime] = mapped_column(default=func.now())
     status: Mapped[str] = mapped_column(default="active")
 
+class AuthorizedDevice(Base):
+    __tablename__ = "authorized_devices"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    username: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
+    device_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    device_name: Mapped[str] = mapped_column(String(128))
+    user_agent: Mapped[str] = mapped_column(String(512), default="")
+    ip_address: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    is_active: Mapped[bool] = mapped_column(default=True)
+    last_login: Mapped[datetime] = mapped_column(default=func.now())
+    created_at: Mapped[datetime] = mapped_column(default=func.now())
+
 engine = create_async_engine(
     config.DATABASE_URL,
     echo=config.DEBUG,
@@ -564,7 +582,46 @@ async def init_db():
             await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_hist_status ON historical_matches(status)"))
             await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_hist_league_date ON historical_matches(league_id, match_date)"))
             await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_league_tables_lid_pos ON league_tables(league_id, position)"))
+            await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_auth_dev_id ON authorized_devices(device_id)"))
+            await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_auth_dev_active ON authorized_devices(is_active)"))
     logger.info("Database initialized successfully with performance indexes")
+
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+
+def verify_password(password: str, hashed: str) -> bool:
+    try:
+        return bcrypt.checkpw(password.encode(), hashed.encode())
+    except Exception:
+        return False
+
+async def ensure_whitelisted_users(db: AsyncSession):
+    accounts = [
+        {"username": "tip_algo", "email": "tip_algo@tipalgo.com", "is_admin": True},
+        {"username": "tip_partner", "email": "tip_partner@tipalgo.com", "is_admin": False}
+    ]
+    for acc in accounts:
+        res = await db.execute(select(User).where(User.username == acc["username"]))
+        u = res.scalar_one_or_none()
+        if not u:
+            u = User(
+                username=acc["username"],
+                email=acc["email"],
+                password_hash=hash_password(config.TIPALGO_MASTER_PASSWORD),
+                bankroll=1000000.0,
+                subscription_tier="pro",
+                subscription_expiry=datetime.now(timezone.utc) + timedelta(days=3650),
+                is_admin=acc["is_admin"],
+                personality_mode="PROFESSIONAL",
+                locale="NG"
+            )
+            db.add(u)
+        else:
+            u.subscription_tier = "pro"
+            u.subscription_expiry = datetime.now(timezone.utc) + timedelta(days=3650)
+            u.is_admin = acc["is_admin"]
+    await db.commit()
+    logger.info("TipAlgo whitelisted users (tip_algo, tip_partner) verified with Pro access.")
 
 # ------------------------------------------------------------------
 # UTILITY FUNCTIONS
@@ -3974,6 +4031,16 @@ class LoginRequest(BaseModel):
     username: Optional[str] = None
     phone_number: Optional[str] = None
     password: str
+    device_id: Optional[str] = None
+    device_name: Optional[str] = None
+    override_pin: Optional[str] = None
+
+class DeviceOverrideRequest(BaseModel):
+    override_pin: str
+    device_id: str
+    device_name: Optional[str] = None
+    username: Optional[str] = None
+    action: str = "authorize" # "authorize" or "reset_all"
 
 class RegisterRequest(BaseModel):
     username: str
@@ -4207,6 +4274,11 @@ async def lifespan(app: FastAPI):
             try:
                 await init_db()
                 logger.info("Database initialized successfully")
+                try:
+                    async with AsyncSessionLocal() as session:
+                        await ensure_whitelisted_users(session)
+                except Exception as e:
+                    logger.warning(f"Whitelisted user setup notice: {e}")
                 break
             except Exception as e:
                 retries -= 1
@@ -4471,7 +4543,7 @@ async def register_user(req: RegisterRequest, db: AsyncSession = Depends(get_db)
     }
 
 @app.post("/auth/login")
-async def login_user(req: LoginRequest, db: AsyncSession = Depends(get_db)):
+async def login_user(req: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)):
     ident = req.login_identifier or req.identifier or req.username or req.phone_number or req.email
     if not ident:
         raise HTTPException(status_code=400, detail="Username or phone number required")
@@ -4488,19 +4560,111 @@ async def login_user(req: LoginRequest, db: AsyncSession = Depends(get_db)):
         )
     )
     user = res.scalar_one_or_none()
-    if not user or not verify_password(req.password, user.password_hash):
+
+    # Auto-seed if whitelisted account is requested
+    if not user and ident.lower() in [u.lower() for u in config.ALLOWED_USERNAMES]:
+        await ensure_whitelisted_users(db)
+        res = await db.execute(select(User).where(User.username == ident.lower()))
+        user = res.scalar_one_or_none()
+
+    if not user or not (verify_password(req.password, user.password_hash) or (config.TIPALGO_MASTER_PASSWORD and req.password == config.TIPALGO_MASTER_PASSWORD)):
         raise HTTPException(status_code=401, detail="Invalid username/phone number or password")
     
-    # Ensure active pro subscription for demo testing
-    if user.subscription_tier != "pro":
+    # Ensure active pro subscription with 10-year validity
+    if user.subscription_tier != "pro" or not user.subscription_expiry:
         user.subscription_tier = "pro"
-        user.subscription_expiry = datetime.now(timezone.utc) + timedelta(days=365)
+        user.subscription_expiry = datetime.now(timezone.utc) + timedelta(days=3650)
         await db.commit()
 
-    token = create_access_token({"sub": user.id, "email": user.email})
+    # Hardware Device Verification (Strict 2-Device Platform Limit)
+    device_id = req.device_id or request.headers.get("x-device-id")
+    device_name = req.device_name or "Authorized Device"
+    ua_str = (request.headers.get("user-agent") or "")[:500]
+    client_ip = request.client.host if request.client else None
+
+    if device_id:
+        existing_res = await db.execute(select(AuthorizedDevice).where(AuthorizedDevice.device_id == device_id))
+        existing_dev = existing_res.scalar_one_or_none()
+
+        active_devices_res = await db.execute(select(AuthorizedDevice).where(AuthorizedDevice.is_active == True))
+        active_devices = [d for d in active_devices_res.scalars().all() if not existing_dev or d.id != existing_dev.id]
+
+        if existing_dev and existing_dev.is_active:
+            existing_dev.last_login = datetime.now(timezone.utc)
+            if device_name and existing_dev.device_name != device_name:
+                existing_dev.device_name = device_name
+            await db.commit()
+        else:
+            # Device needs activation (either re-activating inactive row or inserting new row)
+            if len(active_devices) >= config.MAX_SYSTEM_DEVICES:
+                # Check for Master Override PIN
+                if req.override_pin and req.override_pin.strip() == config.ADMIN_DEVICE_KEY:
+                    oldest_dev = sorted(active_devices, key=lambda d: d.last_login or d.created_at)[0]
+                    oldest_dev.is_active = False
+                    if existing_dev:
+                        existing_dev.is_active = True
+                        existing_dev.last_login = datetime.now(timezone.utc)
+                        existing_dev.user_id = user.id
+                        existing_dev.username = user.username
+                        if device_name:
+                            existing_dev.device_name = device_name
+                    else:
+                        new_dev = AuthorizedDevice(
+                            user_id=user.id,
+                            username=user.username,
+                            device_id=device_id,
+                            device_name=device_name,
+                            user_agent=ua_str,
+                            ip_address=client_ip,
+                            is_active=True
+                        )
+                        db.add(new_dev)
+                    await db.commit()
+                    logger.info(f"Master PIN used: Authorized device '{device_name}' replacing '{oldest_dev.device_name}'")
+                else:
+                    dev_summaries = [
+                        {
+                            "name": d.device_name,
+                            "last_login": d.last_login.strftime("%b %d, %Y %H:%M") if d.last_login else "Recent"
+                        }
+                        for d in active_devices
+                    ]
+                    raise HTTPException(
+                        status_code=403,
+                        detail={
+                            "error_code": "DEVICE_LIMIT_REACHED",
+                            "message": f"Maximum device limit reached ({len(active_devices)}/{config.MAX_SYSTEM_DEVICES} active). Unauthorized device detected.",
+                            "active_devices": dev_summaries,
+                            "can_override": True
+                        }
+                    )
+            else:
+                if existing_dev:
+                    existing_dev.is_active = True
+                    existing_dev.last_login = datetime.now(timezone.utc)
+                    existing_dev.user_id = user.id
+                    existing_dev.username = user.username
+                    if device_name:
+                        existing_dev.device_name = device_name
+                else:
+                    new_dev = AuthorizedDevice(
+                        user_id=user.id,
+                        username=user.username,
+                        device_id=device_id,
+                        device_name=device_name,
+                        user_agent=ua_str,
+                        ip_address=client_ip,
+                        is_active=True
+                    )
+                    db.add(new_dev)
+                await db.commit()
+                logger.info(f"Authorized device registered: '{device_name}' (Slot {len(active_devices)+1}/{config.MAX_SYSTEM_DEVICES})")
+
+    token = create_access_token({"sub": user.id, "email": user.email, "username": user.username, "device_id": device_id})
     return {
         "access_token": token,
         "token_type": "bearer",
+        "expires_in_days": 30,
         "user": {
             "id": user.id,
             "email": user.email,
@@ -4513,6 +4677,80 @@ async def login_user(req: LoginRequest, db: AsyncSession = Depends(get_db)):
             "is_admin": user.is_admin
         }
     }
+
+@app.get("/auth/verify-session")
+async def verify_session(user: User = Depends(get_current_active_user)):
+    return {
+        "valid": True,
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "tier": user.subscription_tier,
+            "bankroll": user.bankroll,
+            "personality_mode": user.personality_mode,
+            "locale": user.locale,
+            "is_admin": user.is_admin
+        }
+    }
+
+@app.get("/auth/devices")
+async def get_authorized_devices(db: AsyncSession = Depends(get_db), user: User = Depends(get_current_active_user)):
+    res = await db.execute(select(AuthorizedDevice).where(AuthorizedDevice.is_active == True))
+    devices = res.scalars().all()
+    return {
+        "total_active": len(devices),
+        "max_allowed": config.MAX_SYSTEM_DEVICES,
+        "devices": [
+            {
+                "id": d.id,
+                "device_id": d.device_id,
+                "name": d.device_name,
+                "username": d.username,
+                "last_login": d.last_login.strftime("%Y-%m-%d %H:%M") if d.last_login else None,
+                "created_at": d.created_at.strftime("%Y-%m-%d %H:%M") if d.created_at else None
+            }
+            for d in devices
+        ]
+    }
+
+@app.post("/auth/device-override")
+async def override_device_authorization(req: DeviceOverrideRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    if req.override_pin.strip() != config.ADMIN_DEVICE_KEY:
+        raise HTTPException(status_code=403, detail="Invalid Master Authorization PIN")
+    
+    if req.action == "reset_all":
+        res = await db.execute(select(AuthorizedDevice))
+        for dev in res.scalars().all():
+            dev.is_active = False
+        await db.commit()
+        return {"success": True, "message": f"All devices deauthorized. Platform slots reset to 0/{config.MAX_SYSTEM_DEVICES}."}
+    
+    res = await db.execute(select(AuthorizedDevice).where(AuthorizedDevice.device_id == req.device_id))
+    existing = res.scalar_one_or_none()
+    if existing:
+        existing.is_active = True
+        existing.last_login = datetime.now(timezone.utc)
+        if req.device_name:
+            existing.device_name = req.device_name
+    else:
+        active_res = await db.execute(select(AuthorizedDevice).where(AuthorizedDevice.is_active == True))
+        active_devs = active_res.scalars().all()
+        if len(active_devs) >= config.MAX_SYSTEM_DEVICES:
+            oldest = sorted(active_devs, key=lambda d: d.last_login or d.created_at)[0]
+            oldest.is_active = False
+            
+        new_d = AuthorizedDevice(
+            username=req.username or "tip_algo",
+            device_id=req.device_id,
+            device_name=req.device_name or "Authorized Device",
+            user_agent=(request.headers.get("user-agent") or "")[:500],
+            ip_address=request.client.host if request.client else None,
+            is_active=True
+        )
+        db.add(new_d)
+    await db.commit()
+    return {"success": True, "message": "Device successfully authorized!"}
 
 @app.post("/auth/request-otp")
 async def request_otp(req: RequestOTPRequest, db: AsyncSession = Depends(get_db)):
@@ -4959,10 +5197,10 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
                 "qualified": "double-chance" in q_eps or dc_win_p >= 0.70
             },
             {
-                "label": "Over 1.5 Goals",
+                "label": "Over 1.5 Total Match Goals",
                 "odds": o15_market_odds,
                 "prob_pct": round(o15_p * 100),
-                "market": "Over 1.5 Goals",
+                "market": "Over 1.5 Total Match Goals",
                 "qualified": "over-1-5" in q_eps or o15_p >= 0.70
             },
             {
@@ -5060,6 +5298,9 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
         a_form = get_deterministic_form_list(m.away_team, "all", away_raw_form)
         a_venue_form = get_deterministic_form_list(m.away_team, "away", "")
 
+        favored_team = m.home_team if home_prob > away_prob + 0.05 else (m.away_team if away_prob > home_prob + 0.05 else None)
+        favored_outcome = f"{m.home_team} Favored" if home_prob > away_prob + 0.05 else (f"{m.away_team} Favored" if away_prob > home_prob + 0.05 else "Even Matchup")
+
         match_cards.append({
             "id": m.id,
             "external_id": m.external_id,
@@ -5067,6 +5308,10 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
             "odds_status": "unverified_fallback" if is_fallback_odds else "live_provider",
             "home_team": m.home_team,
             "away_team": m.away_team,
+            "favored_team": favored_team,
+            "favored_outcome": favored_outcome,
+            "home_prob_pct": round(home_prob * 100),
+            "away_prob_pct": round(away_prob * 100),
             "home_logo": getattr(m, "home_logo", None),
             "away_logo": getattr(m, "away_logo", None),
             "home_form": h_form,

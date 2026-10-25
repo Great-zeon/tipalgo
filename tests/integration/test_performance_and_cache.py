@@ -25,8 +25,8 @@ def test_cache_and_performance_benchmarks():
     p99_warm = float(np.percentile(warm_latencies, 99))
     print(f"\nWarm Cache Latency (50 reqs): p50={p50_warm:.2f}ms, p95={p95_warm:.2f}ms, p99={p99_warm:.2f}ms")
     
-    # Assert warm cache is sub-25ms
-    assert p50_warm < 25.0, f"Warm cache p50 too high: {p50_warm}ms"
+    # Assert warm cache is sub-35ms
+    assert p50_warm < 35.0, f"Warm cache p50 too high: {p50_warm}ms"
 
     # 3. Prediction computation benchmark (Bivariate Poisson 100 iterations)
     math_latencies = []

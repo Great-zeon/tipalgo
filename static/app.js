@@ -287,8 +287,20 @@
     otpConfirmPassword: document.getElementById('otpConfirmPassword'),
     btnResetPasswordSubmit: document.getElementById('btnResetPasswordSubmit'),
     btnCloseAuthModal: document.getElementById('btnCloseAuthModal'),
-    btnProfile: document.getElementById('btnProfile'),
     linkForgotPassword: document.getElementById('linkForgotPassword'),
+    tipalgoSecurityGate: document.getElementById('tipalgoSecurityGate'),
+    gateLoginForm: document.getElementById('gateLoginForm'),
+    gateDeviceLockoutView: document.getElementById('gateDeviceLockoutView'),
+    gateUsernameInput: document.getElementById('gateUsernameInput'),
+    gatePasswordInput: document.getElementById('gatePasswordInput'),
+    gateRememberCheck: document.getElementById('gateRememberCheck'),
+    gateAlertBanner: document.getElementById('gateAlertBanner'),
+    gateDeviceNameLabel: document.getElementById('gateDeviceNameLabel'),
+    gateActiveDevicesList: document.getElementById('gateActiveDevicesList'),
+    gateMasterPinInput: document.getElementById('gateMasterPinInput'),
+    btnGateOverrideSubmit: document.getElementById('btnGateOverrideSubmit'),
+    gateOverrideError: document.getElementById('gateOverrideError'),
+    btnGateBackToLogin: document.getElementById('btnGateBackToLogin'),
 
     modalValidateSlip: document.getElementById('modalValidateSlip'),
     valLegsCount: document.getElementById('valLegsCount'),
@@ -333,10 +345,30 @@
     setTimeout(() => dom.platformToast.classList.remove('show'), 2800);
   }
 
-  // Robust API Caller
+  function getOrCreateDeviceId() {
+    let id = localStorage.getItem('tipalgo_device_id');
+    if (!id) {
+      id = 'dev_' + (crypto.randomUUID ? crypto.randomUUID() : (Math.random().toString(36).substring(2) + Date.now().toString(36)));
+      localStorage.setItem('tipalgo_device_id', id);
+    }
+    return id;
+  }
+
+  function detectDeviceName() {
+    const ua = navigator.userAgent || '';
+    if (/iPhone/.test(ua)) return 'Apple iPhone';
+    if (/iPad/.test(ua)) return 'Apple iPad';
+    if (/Macintosh|Mac OS/.test(ua)) return 'MacBook / Mac OS';
+    if (/Android/.test(ua)) return 'Android Device';
+    if (/Windows/.test(ua)) return 'Windows PC';
+    return 'Web Client';
+  }
+
+  // Robust API Caller with Device Binding
   async function api(path, options = {}) {
     const headers = options.headers || {};
     if (state.token) headers['Authorization'] = `Bearer ${state.token}`;
+    headers['X-Device-Id'] = getOrCreateDeviceId();
     headers['Content-Type'] = 'application/json';
 
     const res = await fetch(path, { ...options, headers });
@@ -348,7 +380,11 @@
         }
       }
       const err = await res.json().catch(() => ({ detail: res.statusText }));
-      throw new Error(err.message || err.detail || `Error: ${res.status}`);
+      const errorMsg = (err && (err.message || (typeof err.detail === 'string' ? err.detail : (err.detail?.message || `Error: ${res.status}`)))) || `Error: ${res.status}`;
+      const errObj = new Error(errorMsg);
+      errObj.status = res.status;
+      errObj.responseDetail = err.detail || err;
+      throw errObj;
     }
     return await res.json();
   }
@@ -356,6 +392,174 @@
   // Format Currency (₦)
   function formatNaira(num) {
     return '₦' + Math.round(num).toLocaleString('en-NG');
+  }
+
+  function showSecurityGate() {
+    if (dom.tipalgoSecurityGate) {
+      dom.tipalgoSecurityGate.style.display = 'flex';
+      if (dom.gateLoginForm) dom.gateLoginForm.style.display = 'block';
+      if (dom.gateDeviceLockoutView) dom.gateDeviceLockoutView.style.display = 'none';
+      if (dom.gateAlertBanner) dom.gateAlertBanner.style.display = 'none';
+      if (dom.gateDeviceNameLabel) dom.gateDeviceNameLabel.textContent = detectDeviceName();
+    }
+  }
+
+  function hideSecurityGate() {
+    if (dom.tipalgoSecurityGate) {
+      dom.tipalgoSecurityGate.style.display = 'none';
+    }
+  }
+
+  function showGateAlert(msg) {
+    if (dom.gateAlertBanner) {
+      dom.gateAlertBanner.textContent = msg;
+      dom.gateAlertBanner.style.display = 'block';
+      dom.gateAlertBanner.classList.remove('success');
+    }
+  }
+
+  function showGateOverrideError(msg) {
+    if (dom.gateOverrideError) {
+      dom.gateOverrideError.textContent = msg;
+      dom.gateOverrideError.style.display = 'block';
+    }
+  }
+
+  function setupSecurityGate() {
+    if (dom.gateDeviceNameLabel) {
+      dom.gateDeviceNameLabel.textContent = detectDeviceName();
+    }
+
+    if (dom.gateLoginForm) {
+      dom.gateLoginForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const username = dom.gateUsernameInput ? dom.gateUsernameInput.value.trim() : '';
+        const password = dom.gatePasswordInput ? dom.gatePasswordInput.value : '';
+
+        if (!username || !password) {
+          showGateAlert('Please enter both operator username and master password.');
+          return;
+        }
+
+        const devId = getOrCreateDeviceId();
+        const devName = detectDeviceName();
+
+        try {
+          const btn = document.getElementById('btnGateLoginSubmit');
+          if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span>Verifying Credentials &amp; Hardware...</span>';
+          }
+
+          const res = await api('/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({
+              username: username,
+              password: password,
+              device_id: devId,
+              device_name: devName
+            })
+          });
+
+          if (res && res.access_token) {
+            state.token = res.access_token;
+            state.user = res.user;
+            const remember = dom.gateRememberCheck ? dom.gateRememberCheck.checked : true;
+            if (remember) {
+              localStorage.setItem('tipalgo_token', res.access_token);
+              localStorage.setItem('tipalgo_user', JSON.stringify(res.user));
+            }
+            hideSecurityGate();
+            updateUserUI();
+            toast(`Authenticated successfully! Welcome, ${res.user.username}.`);
+            await startPlatformServices();
+          }
+        } catch (err) {
+          const detail = err.responseDetail || {};
+          if (err.status === 403 && detail.error_code === 'DEVICE_LIMIT_REACHED') {
+            showDeviceLockoutScreen(detail);
+          } else {
+            showGateAlert(err.message || 'Login failed. Invalid operator credentials.');
+          }
+        } finally {
+          const btn = document.getElementById('btnGateLoginSubmit');
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<span>Authenticate &amp; Launch Terminal →</span>';
+          }
+        }
+      };
+    }
+
+    if (dom.btnGateOverrideSubmit) {
+      dom.btnGateOverrideSubmit.onclick = async () => {
+        const pin = dom.gateMasterPinInput ? dom.gateMasterPinInput.value.trim() : '';
+        if (!pin) {
+          showGateOverrideError('Please enter your Master Authorization PIN.');
+          return;
+        }
+
+        const username = dom.gateUsernameInput ? dom.gateUsernameInput.value.trim() : 'tip_algo';
+        const password = dom.gatePasswordInput ? dom.gatePasswordInput.value : '';
+        const devId = getOrCreateDeviceId();
+        const devName = detectDeviceName();
+
+        try {
+          const res = await api('/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({
+              username: username,
+              password: password,
+              device_id: devId,
+              device_name: devName,
+              override_pin: pin
+            })
+          });
+
+          if (res && res.access_token) {
+            state.token = res.access_token;
+            state.user = res.user;
+            localStorage.setItem('tipalgo_token', res.access_token);
+            localStorage.setItem('tipalgo_user', JSON.stringify(res.user));
+            hideSecurityGate();
+            updateUserUI();
+            toast('Device successfully authorized! Session saved for 30 days.');
+            await startPlatformServices();
+          }
+        } catch (err) {
+          showGateOverrideError(err.message || 'Master PIN invalid. Authorization denied.');
+        }
+      };
+    }
+
+    if (dom.btnGateBackToLogin) {
+      dom.btnGateBackToLogin.onclick = () => {
+        if (dom.gateLoginForm) dom.gateLoginForm.style.display = 'block';
+        if (dom.gateDeviceLockoutView) dom.gateDeviceLockoutView.style.display = 'none';
+        if (dom.gateAlertBanner) dom.gateAlertBanner.style.display = 'none';
+      };
+    }
+  }
+
+  function showDeviceLockoutScreen(detail) {
+    if (dom.gateLoginForm) dom.gateLoginForm.style.display = 'none';
+    if (dom.gateDeviceLockoutView) dom.gateDeviceLockoutView.style.display = 'block';
+    if (dom.gateActiveDevicesList) {
+      const list = detail.active_devices || [];
+      const titleEl = document.getElementById('gateActiveDevicesTitle');
+      if (titleEl) {
+        titleEl.textContent = `Currently Registered Devices (${list.length} active):`;
+      }
+      dom.gateActiveDevicesList.innerHTML = list.map((d, i) => `
+        <div class="gad-item">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span>💻</span>
+            <strong>${esc(d.name || 'Device ' + (i+1))}</strong>
+          </div>
+          <span class="gad-item-time">Active: ${esc(d.last_login || 'Recently')}</span>
+        </div>
+      `).join('') || '<div class="gad-item">Active Devices Registered</div>';
+    }
   }
 
   // App Bootstrap
@@ -378,14 +582,48 @@
       }
       applyLanguageMode(state.personalityMode);
     } catch (e) {}
-    setupEventListeners();
 
+    setupEventListeners();
+    setupSecurityGate();
+
+    // Check for 30-Day Persisted Session
+    const savedToken = localStorage.getItem('tipalgo_token');
+    const savedUserStr = localStorage.getItem('tipalgo_user');
+    let sessionValid = false;
+
+    if (savedToken) {
+      state.token = savedToken;
+      if (savedUserStr) {
+        try { state.user = JSON.parse(savedUserStr); } catch (e) {}
+      }
+      try {
+        const verify = await api('/auth/verify-session');
+        if (verify && verify.valid) {
+          sessionValid = true;
+          state.user = verify.user;
+          updateUserUI();
+        }
+      } catch (err) {
+        console.warn('Session verification notice:', err);
+        sessionValid = false;
+      }
+    }
+
+    if (!sessionValid) {
+      state.token = null;
+      state.user = null;
+      localStorage.removeItem('tipalgo_token');
+      showSecurityGate();
+      return;
+    }
+
+    hideSecurityGate();
+    await startPlatformServices();
+  }
+
+  async function startPlatformServices() {
     try {
-      // 1. Authenticate with Demo Pro Token
-      const auth = await api('/auth/demo-token').catch(() => null);
-      if (auth && auth.access_token) {
-        state.token = auth.access_token;
-        state.user = auth.user;
+      if (state.user) {
         if (dom.displayUsername) dom.displayUsername.textContent = state.user.username;
         if (dom.displayWalletBalance) {
           dom.displayWalletBalance.textContent = formatNaira(state.user.bankroll || 1000000);
@@ -426,7 +664,6 @@
         dom.bankerCardsGrid ? renderBankerSlate(0.80) : Promise.resolve()
       ]).catch(err => console.warn('Background init warning:', err));
 
-      // Render Markets Showcase Grid & Bet Slip
       if (dom.endpointShowcaseGrid) renderMarketsShowcase('all');
       renderSlip();
 
@@ -2422,6 +2659,15 @@
       }));
     }
 
+    if (topTip.market === 'Over 1.5 Goals' || topTip.label === 'Over 1.5 Goals') {
+      topTip = Object.assign({}, topTip, {
+        label: 'Over 1.5 Total Match Goals',
+        market: 'Over 1.5 Total Match Goals'
+      });
+    }
+
+    const favored = m.favored_team || (m.home_odds && m.away_odds && m.home_odds < m.away_odds - 0.20 ? m.home_team : (m.away_odds < m.home_odds - 0.20 ? m.away_team : null));
+
     const inSlipTop = state.betslip.items.some(i => i.match === `${m.home_team} vs ${m.away_team}` && i.market === topTip.market);
     const isBanker = (topTip.prob_pct >= 80) || m.is_banker_80;
     const isFinished = m.status === 'finished';
@@ -2490,6 +2736,7 @@
                 <div class="em-team-unit home">
                   ${getClubBadge(m.home_team, m.home_logo)}
                   <span class="em-team-title" title="${esc(m.home_team)}">${esc(m.home_team)}</span>
+                  ${favored === m.home_team ? `<span class="em-favored-tag" title="TipAlgo Algorithmic Favored Winner">★ Favored</span>` : ''}
                   ${(isFinished || isLive) && m.home_score != null ? `<span class="em-score-digit">${m.home_score}</span>` : ''}
                 </div>
                 <div class="em-team-form-col">
@@ -2514,6 +2761,7 @@
                 <div class="em-team-unit away">
                   ${getClubBadge(m.away_team, m.away_logo)}
                   <span class="em-team-title" title="${esc(m.away_team)}">${esc(m.away_team)}</span>
+                  ${favored === m.away_team ? `<span class="em-favored-tag" title="TipAlgo Algorithmic Favored Winner">★ Favored</span>` : ''}
                   ${(isFinished || isLive) && m.away_score != null ? `<span class="em-score-digit">${m.away_score}</span>` : ''}
                 </div>
                 <div class="em-team-form-col">
@@ -2556,6 +2804,11 @@
                 <span class="info-letter">i</span>
               </button>
             </div>
+
+            ${favored ? `
+              <div class="em-card-favored-note" title="Projected match winner based on attack volume, form & odds">
+                <span class="fav-icon">⚡</span> Favored to Win: <strong>${esc(favored)}</strong>
+              </div>` : ''}
           </div>
         </div>
       </div>
@@ -8463,22 +8716,18 @@
 
   function handleUserSignOut() {
     state.token = null;
-    state.user = {
-      username: 'Guest',
-      tier: 'free',
-      bankroll: 0,
-      is_admin: false
-    };
+    state.user = null;
     try {
       localStorage.removeItem('sportymill_jwt');
       localStorage.removeItem('tipalgo_token');
+      localStorage.removeItem('tipalgo_user');
     } catch (e) {}
 
     const btnAdmin = document.getElementById('btnDashNavAdmin');
     if (btnAdmin) btnAdmin.style.display = 'none';
 
-    toast('Signed out successfully. Guest session active.');
-    switchView('view-calendar');
+    toast('Signed out successfully.');
+    showSecurityGate();
   }
 
   function initDashboardView() {
