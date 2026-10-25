@@ -2727,26 +2727,22 @@ body.light-theme-mode .btn-cal-footer-close {
   width: 100%;
 }
 
-/* Mobile Horizontal Carousel Slider for each league */
+/* Mobile Clean Vertical Stack for each league (No horizontal clipping/shifting) */
 @media (max-width: 768px) {
   .em-league-matches-list {
     display: flex !important;
-    flex-direction: row !important;
-    overflow-x: auto !important;
-    scroll-snap-type: x mandatory !important;
-    -webkit-overflow-scrolling: touch !important;
-    padding: 0.75rem 0.85rem 1rem 0.85rem !important;
-    gap: 0.75rem !important;
-    scrollbar-width: none !important;
-  }
-  .em-league-matches-list::-webkit-scrollbar {
-    display: none !important;
+    flex-direction: column !important;
+    overflow-x: hidden !important;
+    padding: 0.5rem 0.55rem 0.85rem 0.55rem !important;
+    gap: 0.65rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
   .em-league-matches-list .employer-match-card {
-    min-width: 90% !important;
-    max-width: 92% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
     flex-shrink: 0 !important;
-    scroll-snap-align: start !important;
     box-sizing: border-box !important;
   }
   .sb-mobile-swipe-hint {
@@ -8332,26 +8328,19 @@ body.filter-drawer-open {
   .endpoint-matches-slider,
   .match-cards-grid {
     display: flex !important;
-    flex-direction: row !important;
-    overflow-x: auto !important;
-    scroll-snap-type: x mandatory !important;
+    flex-direction: column !important;
+    overflow-x: hidden !important;
     gap: 0.75rem !important;
     padding: 0.25rem 0.25rem 0.75rem 0.25rem !important;
-    -webkit-overflow-scrolling: touch !important;
-    scrollbar-width: none !important;
     width: 100% !important;
     box-sizing: border-box !important;
-  }
-  .endpoint-matches-slider::-webkit-scrollbar,
-  .match-cards-grid::-webkit-scrollbar {
-    display: none !important;
   }
   .endpoint-matches-slider .grid-match-card,
   .match-cards-grid .grid-match-card,
   .match-cards-grid > * {
-    flex: 0 0 86vw !important;
-    max-width: 340px !important;
-    scroll-snap-align: center !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: none !important;
     box-sizing: border-box !important;
   }
 }
@@ -12877,10 +12866,13 @@ body.banter-mode-active .sb-model-pick-pill .sb-pick-title {
 
 @media (max-width: 1023px) {
   .mobile-floating-slip-popup {
+    display: none !important;
+  }
+  .mobile-floating-slip-popup.has-items {
     display: block !important;
     position: fixed !important;
-    bottom: 80px;
-    right: 18px;
+    bottom: 74px;
+    right: 14px;
     z-index: 998;
     pointer-events: auto;
   }
@@ -14853,6 +14845,90 @@ body.in-dashboard-view .mobile-bottom-nav {
   .view-mode-toggles .view-mode-btn {
     width: 32px !important;
     height: 30px !important;
+  }
+
+  /* Mobile Date Pill Refinements (No wrapping or cut-off text on iPhone X) */
+  .cal-date-pill .pill-count-badge {
+    display: none !important;
+  }
+  .cal-date-pill .pill-day-name {
+    font-size: 0.58rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    text-align: center !important;
+    max-width: 100% !important;
+  }
+
+  /* Bottom Clearance for Floating Bar and Mobile Bottom Nav */
+  .calendar-matches-feed {
+    padding-bottom: 95px !important;
+    overflow-x: hidden !important;
+    width: 100% !important;
+  }
+
+  /* Compact, Uncluttered Match Cards for Small Screens (iPhone X) */
+  .employer-match-card {
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .em-card-header {
+    padding: 0.35rem 0.65rem !important;
+    font-size: 0.72rem !important;
+  }
+  .em-card-body {
+    padding: 0.6rem 0.65rem !important;
+    gap: 0.55rem !important;
+  }
+  .em-clubs-duel-table {
+    gap: 0.35rem !important;
+  }
+  .em-club-duel-col .em-team-unit .cal-club-crest-wrap,
+  .em-club-duel-col .em-team-unit .cal-team-logo-img,
+  .em-club-duel-col .em-team-unit .cal-crest-shield {
+    width: 26px !important;
+    height: 26px !important;
+    max-width: 26px !important;
+    max-height: 26px !important;
+  }
+  .em-club-duel-col .em-team-title {
+    font-size: 0.85rem !important;
+    font-weight: 700 !important;
+  }
+  .em-favored-tag {
+    padding: 1px 4px !important;
+    font-size: 0.6rem !important;
+    margin-left: 4px !important;
+    letter-spacing: 0.02em !important;
+  }
+  .em-form-pills-row {
+    gap: 2px !important;
+  }
+  .em-form-pill {
+    width: 15px !important;
+    height: 15px !important;
+    font-size: 0.58rem !important;
+    border-radius: 3px !important;
+  }
+  .em-form-text-lbl {
+    font-size: 0.6rem !important;
+  }
+  .em-predicted-odd-btn {
+    padding: 0.45rem 0.6rem !important;
+    border-radius: 6px !important;
+  }
+  .em-pred-pick-name {
+    font-size: 0.78rem !important;
+  }
+  .em-pred-odds-val {
+    font-size: 0.95rem !important;
+  }
+  .em-card-favored-note {
+    font-size: 0.68rem !important;
+    margin-top: 4px !important;
+    justify-content: flex-start !important;
   }
 }
 

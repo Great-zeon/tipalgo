@@ -5006,7 +5006,7 @@
     // Update multi-date pills list (dynamically generated around real today)
     if (dom.calendarDatesList) {
       const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
       const dates = [];
       const partsToday = todayStr.split('-').map(Number);
@@ -6766,6 +6766,14 @@
         floatingBtn.classList.add('has-items');
       } else {
         floatingBtn.classList.remove('has-items');
+      }
+    }
+    const floatingPopup = document.getElementById('mobileFloatingSlipPopup');
+    if (floatingPopup) {
+      if (count > 0) {
+        floatingPopup.classList.add('has-items');
+      } else {
+        floatingPopup.classList.remove('has-items');
       }
     }
 
