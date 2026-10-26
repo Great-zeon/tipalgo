@@ -25,4 +25,7 @@ audit/
 /test_*.py
 generate_logos.py
 generate_workflow_doc.py
+generate_credentials_docs.py
+ADMIN_MASTER_CREDENTIALS.md
+PARTNER_ACCESS_GUIDE.md
 static/logo_preview.html

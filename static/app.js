@@ -356,12 +356,12 @@
 
   function detectDeviceName() {
     const ua = navigator.userAgent || '';
-    if (/iPhone/.test(ua)) return 'Apple iPhone';
-    if (/iPad/.test(ua)) return 'Apple iPad';
-    if (/Macintosh|Mac OS/.test(ua)) return 'MacBook / Mac OS';
-    if (/Android/.test(ua)) return 'Android Device';
+    if (/iPhone/.test(ua)) return 'iPhone';
+    if (/iPad/.test(ua)) return 'iPad';
+    if (/Macintosh|Mac OS/.test(ua)) return 'Mac';
+    if (/Android/.test(ua)) return 'Android';
     if (/Windows/.test(ua)) return 'Windows PC';
-    return 'Web Client';
+    return 'Browser';
   }
 
   // Robust API Caller with Device Binding
@@ -437,7 +437,7 @@
         const password = dom.gatePasswordInput ? dom.gatePasswordInput.value : '';
 
         if (!username || !password) {
-          showGateAlert('Please enter both operator username and master password.');
+          showGateAlert('Please enter your username and password.');
           return;
         }
 
@@ -448,7 +448,7 @@
           const btn = document.getElementById('btnGateLoginSubmit');
           if (btn) {
             btn.disabled = true;
-            btn.innerHTML = '<span>Verifying Credentials &amp; Hardware...</span>';
+            btn.innerHTML = '<span>Signing in...</span>';
           }
 
           const res = await api('/auth/login', {
@@ -471,7 +471,7 @@
             }
             hideSecurityGate();
             updateUserUI();
-            toast(`Authenticated successfully! Welcome, ${res.user.username}.`);
+            toast(`Welcome back, ${res.user.username}.`);
             await startPlatformServices();
           }
         } catch (err) {
@@ -479,13 +479,13 @@
           if (err.status === 403 && detail.error_code === 'DEVICE_LIMIT_REACHED') {
             showDeviceLockoutScreen(detail);
           } else {
-            showGateAlert(err.message || 'Login failed. Invalid operator credentials.');
+            showGateAlert(err.message || 'Invalid username or password.');
           }
         } finally {
           const btn = document.getElementById('btnGateLoginSubmit');
           if (btn) {
             btn.disabled = false;
-            btn.innerHTML = '<span>Authenticate &amp; Launch Terminal →</span>';
+            btn.innerHTML = '<span>Sign In</span>';
           }
         }
       };
@@ -548,17 +548,14 @@
       const list = detail.active_devices || [];
       const titleEl = document.getElementById('gateActiveDevicesTitle');
       if (titleEl) {
-        titleEl.textContent = `Currently Registered Devices (${list.length} active):`;
+        titleEl.textContent = `Active Devices (${list.length}/5):`;
       }
       dom.gateActiveDevicesList.innerHTML = list.map((d, i) => `
         <div class="gad-item">
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <span>💻</span>
-            <strong>${esc(d.name || 'Device ' + (i+1))}</strong>
-          </div>
-          <span class="gad-item-time">Active: ${esc(d.last_login || 'Recently')}</span>
+          <span class="gad-item-name">${esc(d.name || 'Device ' + (i+1))}</span>
+          <span class="gad-item-time">${esc(d.last_login || 'Active')}</span>
         </div>
-      `).join('') || '<div class="gad-item">Active Devices Registered</div>';
+      `).join('') || '<div class="gad-item"><span>Active devices recorded</span></div>';
     }
   }
 
@@ -6443,6 +6440,9 @@
           displayedMatches = sortedLgMatches.slice(0, 5);
         }
 
+        const hasMoreThan5 = sortedLgMatches.length > 5 || (state.calendar.leagueFullSlates[lg.id] && state.calendar.leagueFullSlates[lg.id].length > 5);
+        const showSeeAll = hasMoreThan5 || isExpanded;
+
         html += `
           <div class="sb-league-block" id="lg_${lg.id}">
             <div class="sb-league-header">
@@ -6451,6 +6451,7 @@
                 <h3 class="sb-league-title">${esc(lg.name)}</h3>
               </div>
               <div class="sb-league-actions">
+                ${showSeeAll ? `
                 <button type="button" class="btn-league-see-all ${isExpanded ? 'active' : ''}" 
                   data-league="${lg.id}" 
                   data-name="${esc(lg.name)}" 
@@ -6461,6 +6462,7 @@
                     ${isExpanded ? '<polyline points="18 15 12 9 6 15"></polyline>' : '<path d="M5 12h14M12 5l7 7-7 7"/>'}
                   </svg>
                 </button>
+                ` : ''}
               </div>
             </div>
             <div class="em-league-matches-list">
