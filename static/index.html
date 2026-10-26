@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="/static/style.css?v=74">
+  <link rel="stylesheet" href="/static/style.css?v=75">
 </head>
 <body class="light-platform">
 
@@ -74,8 +74,12 @@
       <nav class="nav-center-menu">
         <a href="#" class="top-nav-item active" data-tab-target="view-calendar" id="topNavHome">Matches</a>
         <a href="#" class="top-nav-item" data-tab-target="view-grand" id="topNavGrand">33 Endpoints</a>
-        <a href="#" class="top-nav-item" data-tab-target="view-about" id="topNavAbout">About SportyMill</a>
-        <a href="#" class="top-nav-item" id="topNavSupport">Customer Care</a>
+        <a href="#" class="top-nav-item" data-tab-target="view-bankers" id="topNavBankers">80%+ Banker</a>
+        <a href="#" class="top-nav-item" data-tab-target="view-screener" id="topNavScreener">Value Screener</a>
+        <a href="#" class="top-nav-item" data-tab-target="view-accumulator" id="topNavAccu">Accu-Forge</a>
+        <a href="#" class="top-nav-item" data-tab-target="view-batch" id="topNavBatch">Full Slate</a>
+        <a href="#" class="top-nav-item" data-tab-target="view-about" id="topNavAbout">About</a>
+        <a href="#" class="top-nav-item" id="topNavSupport">Support</a>
       </nav>
 
       <!-- Right: Actions Group -->
@@ -138,7 +142,7 @@
                   <span class="dropdown-name" id="dropdownUserName">demopro</span>
                   <span class="dropdown-tier-chip" id="dropdownTierBadge">PRO</span>
                 </div>
-                <span class="dropdown-sub-text" id="dropdownUserSub">demo@tipalgo.com</span>
+                <span class="dropdown-sub-text" id="dropdownUserSub">demo@sportymill.com</span>
               </div>
             </div>
 
@@ -155,7 +159,7 @@
                 </div>
                 <div class="dropdown-item-content">
                   <span class="item-title">Dashboard</span>
-                  <span class="item-desc">TipAlgo v21 Screener &amp; Accu-Forge</span>
+                  <span class="item-desc">SportyMill v21 Screener &amp; Accu-Forge</span>
                 </div>
                 <span class="item-badge-pill">v21</span>
               </a>
@@ -1335,7 +1339,7 @@
       </section>
 
       <!-- ===================================================================
-           VIEW: DEDICATED TIPALGO QUANT DASHBOARD (Mockup & Screen 1-4 Faithful)
+           VIEW: DEDICATED SPORTYMILL QUANT DASHBOARD (Mockup & Screen 1-4 Faithful)
            =================================================================== -->
       <section id="view-dashboard" class="view-panel">
         <div class="dash-shell">
@@ -1572,11 +1576,11 @@
                     <div class="dash-form-row two-col">
                       <div class="dash-field-group">
                         <label for="screenerInputHome">Home team</label>
-                        <input type="text" id="screenerInputHome" class="dash-input" value="Arsenal" required>
+                        <input type="text" id="screenerInputHome" class="dash-input" placeholder="e.g. Real Madrid" required>
                       </div>
                       <div class="dash-field-group">
                         <label for="screenerInputAway">Away team</label>
-                        <input type="text" id="screenerInputAway" class="dash-input" value="Brentford" required>
+                        <input type="text" id="screenerInputAway" class="dash-input" placeholder="e.g. Barcelona" required>
                       </div>
                     </div>
 
@@ -1658,7 +1662,7 @@
                       </div>
                       <div class="result-badges-col">
                         <span class="badge-confidence" id="resConfidenceBadge" style="background:rgba(255,255,255,0.06); color:var(--dash-text-muted);">READY</span>
-                        <span class="badge-engine-pill" id="resEngineSource">TipAlgo v21 ML</span>
+                        <span class="badge-engine-pill" id="resEngineSource">SportyMill v21 ML</span>
                       </div>
                     </div>
 
@@ -1979,7 +1983,7 @@
                   <div class="acc-avatar" id="dashAccAvatar">JJ</div>
                   <div>
                     <h3 id="dashAccName">Jonathan John</h3>
-                    <p id="dashAccEmail">demo@tipalgo.com · <span class="dash-chip-lime" id="dashAccTier">PRO ACTIVE</span></p>
+                    <p id="dashAccEmail">demo@sportymill.com · <span class="dash-chip-lime" id="dashAccTier">PRO ACTIVE</span></p>
                   </div>
                 </div>
                 <div class="dash-account-quick-actions">
@@ -2555,7 +2559,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
       <span>Home</span>
     </button>
-    <button class="bottom-nav-item" data-tab-target="view-dashboard" title="TipAlgo Dashboard &amp; Screener">
+    <button class="bottom-nav-item" data-tab-target="view-dashboard" title="SportyMill Dashboard &amp; Screener">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
       <span>Dashboard</span>
     </button>
@@ -2735,7 +2739,7 @@
       <div class="modal-header">
         <div class="modal-header-title-wrap">
           <span class="modal-badge-gold">PREMIUM QUANT ACCESS</span>
-          <h3>Upgrade to TipAlgo Pro</h3>
+          <h3>Upgrade to SportyMill Pro</h3>
         </div>
         <button type="button" class="btn-modal-close" id="btnClosePaystackModal" aria-label="Close Modal">&times;</button>
       </div>
@@ -2793,10 +2797,10 @@
   <!-- =================================================================== -->
   <!-- LOGIN & DEVICE AUTHORIZATION OVERLAY                                -->
   <!-- =================================================================== -->
-  <div id="tipalgoSecurityGate" class="security-gate-backdrop" style="display: none;">
+  <div id="sportymillSecurityGate" class="security-gate-backdrop" style="display: none;">
     <div class="security-gate-card">
       <div class="gate-header">
-        <h1 class="gate-brand-name">TipAlgo</h1>
+        <h1 class="gate-brand-name">SportyMill</h1>
         <p class="gate-brand-sub">Sign in to your account</p>
       </div>
 
@@ -2854,7 +2858,7 @@
       </div>
 
       <div class="gate-footer">
-        <span>Hardware-authorized access • TipAlgo</span>
+        <span>Hardware-authorized access • SportyMill</span>
       </div>
     </div>
   </div>
@@ -2862,6 +2866,6 @@
   <!-- Toast Notification -->
   <div id="platformToast" class="platform-toast"></div>
 
-  <script src="/static/app.js?v=74"></script>
+  <script src="/static/app.js?v=75"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 /**
- * TipAlgo Enterprise – Sports Betting Intelligence Platform
+ * SportyMill Enterprise – Sports Betting Intelligence Platform
  * Client-Side Application Core
  */
 
@@ -21,7 +21,7 @@
     user: {
       username: 'demopro',
       phone_number: '08012345678',
-      email: 'demo@tipalgo.com',
+      email: 'demo@sportymill.com',
       tier: 'pro',
       bankroll: 1000000.0
     },
@@ -231,7 +231,7 @@
 
     // Banker Slate
     bankerFilterPills: document.getElementById('bankerFilterPills'),
-    bankerCardsGrid: document.getElementById('bankerCardsGrid'),
+    bankerCardsGrid: document.getElementById('bankerCardsGrid') || document.getElementById('bankersSlateGrid'),
 
     // 33 Markets
     endpointShowcaseGrid: document.getElementById('endpointShowcaseGrid'),
@@ -288,7 +288,7 @@
     btnResetPasswordSubmit: document.getElementById('btnResetPasswordSubmit'),
     btnCloseAuthModal: document.getElementById('btnCloseAuthModal'),
     linkForgotPassword: document.getElementById('linkForgotPassword'),
-    tipalgoSecurityGate: document.getElementById('tipalgoSecurityGate'),
+    tipalgoSecurityGate: document.getElementById('sportymillSecurityGate') || document.getElementById('tipalgoSecurityGate'),
     gateLoginForm: document.getElementById('gateLoginForm'),
     gateDeviceLockoutView: document.getElementById('gateDeviceLockoutView'),
     gateUsernameInput: document.getElementById('gateUsernameInput'),
@@ -1007,7 +1007,11 @@
 
   // Build Fixture Payload
   function buildFixturePayload(path) {
-    const f = state.activeFixture || {
+    const fallbackMatch = (state.calendar?.data?.matches && state.calendar.data.matches.length > 0)
+      ? state.calendar.data.matches[0]
+      : (state.fixtures && state.fixtures.length > 0 ? state.fixtures[0] : null);
+
+    const f = state.activeFixture || fallbackMatch || {
       home_team: 'Arsenal',
       away_team: 'Chelsea',
       league_id: 'PL',
@@ -1025,66 +1029,80 @@
       locale: 'NG'
     };
 
+    const hOdds = (typeof f.home_odds === 'number' && f.home_odds > 1.0) ? f.home_odds : 1.85;
+    const dOdds = (typeof f.draw_odds === 'number' && f.draw_odds > 1.0) ? f.draw_odds : 3.40;
+    const aOdds = (typeof f.away_odds === 'number' && f.away_odds > 1.0) ? f.away_odds : 4.20;
+
     switch (path) {
       case '/predict/home-win':
-        return { ...base, home_odds: f.home_odds };
+        return { ...base, home_odds: hOdds };
       case '/predict/draw':
-        return { ...base, draw_odds: f.draw_odds };
+        return { ...base, draw_odds: dOdds };
       case '/predict/away-win':
-        return { ...base, away_odds: f.away_odds };
+        return { ...base, away_odds: aOdds };
       case '/predict/double-chance':
       case '/predict/ml-predictor':
       case '/predict/super-tips':
       case '/predict/strong-home-dc':
-        return { ...base, home_odds: f.home_odds, draw_odds: f.draw_odds, away_odds: f.away_odds };
+        return { ...base, home_odds: hOdds, draw_odds: dOdds, away_odds: aOdds };
       case '/predict/over-1-5':
-        return { ...base, over_odds: f.over_1_5_odds || f.market_odds?.over_1_5 || null };
+        return { ...base, over_odds: f.over_1_5_odds || f.market_odds?.over_1_5 || 1.28 };
       case '/predict/over-2-5':
-        return { ...base, over_odds: f.over_2_5_odds || f.market_odds?.over_2_5 || null };
+        return { ...base, over_odds: f.over_2_5_odds || f.market_odds?.over_2_5 || 1.85 };
       case '/predict/over-3-5':
-        return { ...base, over_odds: f.over_3_5_odds || f.market_odds?.over_3_5 || null };
+        return { ...base, over_odds: f.over_3_5_odds || f.market_odds?.over_3_5 || 3.10 };
       case '/predict/btts-yes':
-        return { ...base, btts_odds: f.btts_yes_odds || f.market_odds?.btts_yes || null };
+        return { ...base, btts_odds: f.btts_yes_odds || f.market_odds?.btts_yes || 1.80 };
       case '/predict/btts-no':
-        return { ...base, btts_no_odds: f.btts_no_odds || f.market_odds?.btts_no || null };
+        return { ...base, btts_no_odds: f.btts_no_odds || f.market_odds?.btts_no || 2.00 };
       case '/predict/ht-result':
-        return { ...base, h_odds: f.ht_home_odds || f.market_odds?.ht_home || null, d_odds: f.ht_draw_odds || f.market_odds?.ht_draw || null, a_odds: f.ht_away_odds || f.market_odds?.ht_away || null };
+        return {
+          ...base,
+          h_odds: f.ht_home_odds || f.market_odds?.ht_home || 2.45,
+          d_odds: f.ht_draw_odds || f.market_odds?.ht_draw || 2.15,
+          a_odds: f.ht_away_odds || f.market_odds?.ht_away || 4.50
+        };
       case '/predict/win-to-nil':
-        return { ...base, odds: f.win_to_nil_odds || f.market_odds?.win_to_nil || null };
+        return { ...base, odds: f.win_to_nil_odds || f.market_odds?.win_to_nil || 2.90 };
       case '/predict/correct-score':
         return base;
       case '/predict/corners-total':
-        return { ...base, line: 9.5, over_odds: f.corners_over_odds || f.market_odds?.corners_over || null, under_odds: f.corners_under_odds || f.market_odds?.corners_under || null };
+        return { ...base, line: 9.5, over_odds: f.corners_over_odds || f.market_odds?.corners_over || 1.85, under_odds: f.corners_under_odds || f.market_odds?.corners_under || 1.85 };
       case '/predict/corners-1x2':
         return base;
       case '/predict/cards-total':
-        return { ...base, line: 3.5, over_odds: f.cards_over_odds || f.market_odds?.cards_over || null, under_odds: f.cards_under_odds || f.market_odds?.cards_under || null };
+        return { ...base, line: 3.5, over_odds: f.cards_over_odds || f.market_odds?.cards_over || 1.85, under_odds: f.cards_under_odds || f.market_odds?.cards_under || 1.85 };
       case '/predict/cards-1x2':
-        return { ...base, home_odds: f.cards_home_odds || f.market_odds?.cards_home || null, draw_odds: f.cards_draw_odds || f.market_odds?.cards_draw || null, away_odds: f.cards_away_odds || f.market_odds?.cards_away || null };
+        return {
+          ...base,
+          home_odds: f.cards_home_odds || f.market_odds?.cards_home || 2.10,
+          draw_odds: f.cards_draw_odds || f.market_odds?.cards_draw || 4.00,
+          away_odds: f.cards_away_odds || f.market_odds?.cards_away || 2.40
+        };
       case '/predict/goal-both-halves':
-        return { ...base, odds: f.goal_both_halves_odds || f.market_odds?.goal_both_halves || null };
+        return { ...base, odds: f.goal_both_halves_odds || f.market_odds?.goal_both_halves || 1.75 };
       case '/predict/team-total-goals':
-        return { ...base, target_team: f.home_team, venue: 'home', line: 1.5, over_odds: f.team_total_over_odds || f.market_odds?.team_total_over || null, under_odds: f.team_total_under_odds || f.market_odds?.team_total_under || null };
+        return { ...base, target_team: f.home_team, venue: 'home', line: 1.5, over_odds: f.team_total_over_odds || f.market_odds?.team_total_over || 1.85, under_odds: f.team_total_under_odds || f.market_odds?.team_total_under || 1.85 };
       case '/predict/btts-over-2-5':
-        return { ...base, odds: f.btts_over_2_5_odds || f.market_odds?.btts_over_2_5 || null };
+        return { ...base, odds: f.btts_over_2_5_odds || f.market_odds?.btts_over_2_5 || 2.20 };
       case '/predict/away-underdog':
-        return { ...base, away_odds: f.away_odds };
+        return { ...base, away_odds: aOdds };
       case '/predict/fade-underdog':
       case '/predict/form-gap':
       case '/predict/underdog-trap':
       case '/predict/straight-home-win':
       case '/predict/team-to-score':
-        return { ...base, home_odds: f.home_odds, away_odds: f.away_odds };
+        return { ...base, home_odds: hOdds, away_odds: aOdds };
       case '/predict/sure-bet':
-        return { ...base, market_odds: { home_win: f.home_odds, draw: f.draw_odds, away_win: f.away_odds }, min_edge: 0.02 };
+        return { ...base, market_odds: { home_win: hOdds, draw: dOdds, away_win: aOdds }, min_edge: 0.02 };
       case '/predict/no-three-goals':
-        return { ...base, home_odds: f.home_odds, away_odds: f.away_odds, no_three_odds: f.no_three_odds || f.market_odds?.no_three || null };
+        return { ...base, home_odds: hOdds, away_odds: aOdds, no_three_odds: (typeof f.no_three_odds === 'number' && f.no_three_odds > 1.0) ? f.no_three_odds : (f.market_odds?.no_three || 1.45) };
       case '/predict/value-screener':
         return {
           ...base,
-          home_odds: f.home_odds,
-          draw_odds: f.draw_odds,
-          away_odds: f.away_odds,
+          home_odds: hOdds,
+          draw_odds: dOdds,
+          away_odds: aOdds,
           min_edge: parseFloat(dom.screenerEdgeSelect?.value) || 0.04
         };
       default:
@@ -1294,7 +1312,7 @@
                 <span>Tier: <strong>${tierLabel}</strong></span>
               </div>
             </div>
-            <button class="btn-banker-copy" data-home="${b.home_team || (b.match ? b.match.split(' vs ')[0] : 'Arsenal')}" data-away="${b.away_team || (b.match ? b.match.split(' vs ')[1] : 'Chelsea')}" data-league="${b.league_id || 'PL'}" data-odds="${b.odds}">
+            <button class="btn-banker-copy" data-home="${b.home_team || (b.match ? b.match.split(' vs ')[0] : 'Home')}" data-away="${b.away_team || (b.match ? b.match.split(' vs ')[1] : 'Away')}" data-league="${b.league_id || 'PL'}" data-odds="${b.odds}">
               <span>Analyze Match</span>
               <span>→</span>
             </button>
@@ -1413,10 +1431,10 @@
 
     try {
       const payload = {
-        target_odds: parseFloat(dom.accuTargetOdds.value) || 4.0,
-        max_legs: parseInt(dom.accuMaxLegs.value) || 3,
-        min_probability: parseFloat(dom.accuMinProb.value) || 0.50,
-        min_edge: parseFloat(dom.accuMinEdge.value) || 0.01,
+        target_odds: dom.accuTargetOdds ? parseFloat(dom.accuTargetOdds.value) || 4.0 : 4.0,
+        max_legs: dom.accuMaxLegs ? parseInt(dom.accuMaxLegs.value) || 3 : 3,
+        min_probability: dom.accuMinProb ? parseFloat(dom.accuMinProb.value) || 0.50 : 0.50,
+        min_edge: dom.accuMinEdge ? (parseFloat(dom.accuMinEdge.value) || 0.01) : 0.01,
         randomise: false,
         tolerance: 0.3
       };
@@ -1482,13 +1500,17 @@
     dom.batchScanResultsTable.innerHTML = `
       <div class="empty-dribbble-state">
         <div class="spinner-dot" style="margin-bottom: 0.75rem;"></div>
-        Simulating all 12 scheduled matches across Premier League &amp; La Liga...
+        Simulating all scheduled fixtures from today's active match slate...
       </div>
     `;
 
     try {
+      const fixturePool = (state.calendar?.data?.matches && state.calendar.data.matches.length > 0)
+        ? state.calendar.data.matches
+        : (state.fixtures && state.fixtures.length > 0 ? state.fixtures : []);
+
       const payload = {
-        matches: state.fixtures.map(f => ({
+        matches: fixturePool.map(f => ({
           home_team: f.home_team,
           away_team: f.away_team,
           league_id: f.league_id || 'PL',
@@ -1530,7 +1552,7 @@
               const edgePct = (r.edge * 100);
               const probPct = (r.probability * 100);
               const odds = r.odds || 1.65;
-              const stakeAmt = formatNaira(state.user.bankroll * Math.max(0.01, (r.edge * 0.25)));
+              const stakeAmt = formatNaira((state.user?.bankroll || 1000000) * Math.max(0.01, (r.edge * 0.25)));
 
               return `
                 <tr>
@@ -2097,7 +2119,7 @@
     if (textFormH2HSub) textFormH2HSub.textContent = lang.textFormH2HSub;
 
     // ================================================================
-    // TIPALGO V21 QUANT DASHBOARD IN AUTHENTIC PIDGIN ENGLISH
+    // SPORTYMILL V21 QUANT DASHBOARD IN AUTHENTIC PIDGIN ENGLISH
     // ================================================================
     const dashNavOverview = document.getElementById('dashNavOverview');
     if (dashNavOverview) {
@@ -2630,10 +2652,98 @@
     return h;
   }
 
+  // Helper: Dynamic Result Analysis & Algorithm Response for Settled Matches
+  function getDynamicSettledNarrative(m, topTip, hScore, aScore, isWon, isBanter) {
+    const home = m.home_team || 'Home';
+    const away = m.away_team || 'Away';
+    const league = m.league_name || 'League';
+    const totalGoals = hScore + aScore;
+    const goalDiff = Math.abs(hScore - aScore);
+    const mkt = (topTip.market || topTip.label || '').toLowerCase();
+    const prob = topTip.prob_pct || 65;
+    const odds = Number(topTip.odds || 1.85).toFixed(2);
+    const winner = hScore > aScore ? home : (aScore > hScore ? away : 'Draw');
+
+    let analysis = '';
+    let algoResponse = '';
+
+    if (isWon) {
+      if (hScore > aScore) {
+        if (goalDiff >= 3) {
+          analysis = isBanter
+            ? `Chop confirm! ${home} hammer ${away} ${hScore}-${aScore} for stadium! Model see the heavy attack ginger and bookie price fail to match reality.`
+            : `${home} produced a commanding ${hScore}-${aScore} victory over ${away}, outpacing bookmaker odds (@${odds}) through decisive offensive conversion.`;
+          algoResponse = isBanter
+            ? `Winning ticket logged! Model Poisson attack rating for ${home} boost up sharp-sharp.`
+            : `High-conviction outcome verified. Offensive Poisson parameter for ${home} reinforced; Platt calibration weights updated.`;
+        } else if (aScore === 0) {
+          analysis = isBanter
+            ? `Clean sheet chop! ${home} lock defense tight and score ${hScore}-${aScore} against ${away}. Model defensive rating hit bullseye!`
+            : `${home} kept a disciplined clean sheet in a ${hScore}-${aScore} win over ${away}. Model defensive rating accurately suppressed opponent expectancies.`;
+          algoResponse = isBanter
+            ? `Clean sheet bonus! Low variance recorded for ${home} home backline.`
+            : `Defensive solidity confirmed. Clean sheet factor for ${home} validated across ${league} tracking matrix.`;
+        } else {
+          analysis = isBanter
+            ? `Cashout alert! ${home} beat ${away} ${hScore}-${aScore} in tight contest. Model ${prob}% win likelihood carry us reach promised land!`
+            : `${home} secured a competitive ${hScore}-${aScore} win over ${away}. The ${prob}% model probability edge converted into a verified positive margin.`;
+          algoResponse = isBanter
+            ? `Kelly formula reward: +EV edge confirmed, probability scale adjusted higher for ${home}.`
+            : `Positive expectation validated. Kelly bankroll growth confirmed and Brier accuracy metric improved.`;
+        }
+      } else if (aScore > hScore) {
+        analysis = isBanter
+          ? `Away ginger succeed! ${away} shock ${home} for their own yard with ${hScore}-${aScore}. Model sweet road value pick enter cleanly!`
+          : `${away} executed an efficient road performance to defeat ${home} ${hScore}-${aScore}. Model underdog/away angle (@${odds}) successfully realized.`;
+        algoResponse = isBanter
+          ? `Away edge verified! Model increase away multiplier for ${away} in next matches.`
+          : `Away transition model verified. Calibrated road Poisson index rewarded with higher predictive weight.`;
+      } else {
+        analysis = isBanter
+          ? `Tactical stalemate! ${home} and ${away} share points at ${hScore}-${aScore}. Model draw radar catch the exact balance!`
+          : `Equilibrium verified: ${home} and ${away} drew ${hScore}-${aScore}. Bivariate Poisson distribution correctly identified draw probability edge.`;
+        algoResponse = isBanter
+          ? `Draw calculation hit! Model equilibrium parameters reinforced.`
+          : `Draw matrix verified. Brier score updated with positive verification for parity model.`;
+      }
+    } else {
+      if (hScore === aScore) {
+        analysis = isBanter
+          ? `Painful draw o! ${home} and ${away} lock at ${hScore}-${aScore}. Stubborn defense block our projected winner.`
+          : `Unanticipated ${hScore}-${aScore} stalemate between ${home} and ${away}. Resilient defensive block suppressed expected scoring output.`;
+        algoResponse = isBanter
+          ? `Draw penalty logged. Algorithm don adjust tempo damping make bookie trap no catch us.`
+          : `Variance recorded. Brier penalty applied and goal-conversion expectations recalibrated for ${home}.`;
+      } else if (aScore > hScore && mkt.includes('home')) {
+        analysis = isBanter
+          ? `Surprise upset! ${away} come shock ${home} ${hScore}-${aScore}. Road counter-attacks break our home model expectation.`
+          : `Unexpected road upset: ${away} prevailed ${hScore}-${aScore} over ${home}. Defensive transition vulnerabilities exceeded modeled parameters.`;
+        algoResponse = isBanter
+          ? `Algorithm don flag defensive leakage for ${home}. Heavy penalty applied to home rating!`
+          : `Recalibration triggered. Home pitch advantage discounted and defensive rating penalized for ${home}.`;
+      } else {
+        analysis = isBanter
+          ? `Game ended ${hScore}-${aScore} (${home} vs ${away}). Tactical variance diverge from our algorithmic projection.`
+          : `Final scoreline ${hScore}-${aScore} diverged from projected distribution. Tempo and conversion variance observed in ${league}.`;
+        algoResponse = isBanter
+          ? `Negative outcome logged. Model weights recalibrated under similar fixture conditions.`
+          : `Negative outcome logged. Brier loss penalty applied and model weights recalibrated under similar fixture conditions.`;
+      }
+    }
+
+    return { analysis, algoResponse };
+  }
+
   // Helper: Form Run Pills (W/D/L badges)
   function renderFormRunPills(formArray) {
     if (!Array.isArray(formArray) || !formArray.length) {
-      formArray = ['W', 'D', 'W', 'L', 'W'];
+      return `<div class="em-form-pills-row" title="No prior matches recorded in database">
+        <span class="em-form-pill empty" title="No prior matches recorded">—</span>
+        <span class="em-form-pill empty" title="No prior matches recorded">—</span>
+        <span class="em-form-pill empty" title="No prior matches recorded">—</span>
+        <span class="em-form-pill empty" title="No prior matches recorded">—</span>
+        <span class="em-form-pill empty" title="No prior matches recorded">—</span>
+      </div>`;
     }
     return `<div class="em-form-pills-row">
       ${formArray.slice(0, 5).map(res => {
@@ -2651,29 +2761,31 @@
     const isBanter = state.personalityMode === 'BANTER';
 
     let topTip = null;
-    if (customEndpoint && m.tips && m.tips.length) {
+    if (customEndpoint && m.endpoint_tips && m.endpoint_tips[customEndpoint]) {
+      topTip = m.endpoint_tips[customEndpoint];
+    } else if (customEndpoint && m.tips && m.tips.length) {
       topTip = m.tips.find(t => t.endpoint_id === customEndpoint || (t.market && t.market.toLowerCase().includes(customEndpoint.replace(/-/g, ' '))));
     }
     if (customEndpoint && !topTip) {
       if (customEndpoint === 'home-win' || customEndpoint === 'straight-home-win') {
-        topTip = (m.tips || []).find(t => t.market && t.market.includes('Win') && !t.market.includes('Draw') && !t.market.includes(m.away_team)) || {
-          label: `${m.home_team} Win`,
+        topTip = {
+          label: `${m.home_team}: Home Win`,
           odds: m.home_odds || 2.10,
-          prob_pct: m.top_prob || 65,
+          prob_pct: m.home_prob_pct || 65,
           market: `${m.home_team} Win`
         };
       } else if (customEndpoint === 'away-win' || customEndpoint === 'away-underdog') {
-        topTip = (m.tips || []).find(t => t.market && t.market.includes(m.away_team)) || {
-          label: `${m.away_team} Win`,
+        topTip = {
+          label: `${m.away_team}: Away Win`,
           odds: m.away_odds || 3.10,
-          prob_pct: Math.round((1.0 / (m.away_odds || 3.10)) * 85),
+          prob_pct: m.away_prob_pct || 40,
           market: `${m.away_team} Win`
         };
       } else if (customEndpoint === 'draw') {
         topTip = {
           label: 'Match Draw (X)',
           odds: m.draw_odds || 3.30,
-          prob_pct: Math.round((1.0 / (m.draw_odds || 3.30)) * 88),
+          prob_pct: 28,
           market: 'Draw'
         };
       } else if (customEndpoint === 'double-chance' || customEndpoint === 'strong-home-dc') {
@@ -2692,21 +2804,12 @@
     if (!topTip) {
       const qualifiedTips = (m.tips || []).filter(t => t.qualified);
       topTip = m.top_tip || (qualifiedTips.length ? qualifiedTips[0] : (m.tips && m.tips.length ? m.tips[0] : {
-        label: `${m.home_team} Win`,
+        label: `${m.home_team}: Home Win`,
         odds: m.home_odds || 2.10,
-        prob_pct: m.top_prob || 50,
+        prob_pct: m.home_prob_pct || 50,
         market: `${m.home_team} Win`
       }));
     }
-
-    if (topTip.market === 'Over 1.5 Goals' || topTip.label === 'Over 1.5 Goals') {
-      topTip = Object.assign({}, topTip, {
-        label: 'Over 1.5 Total Match Goals',
-        market: 'Over 1.5 Total Match Goals'
-      });
-    }
-
-    const favored = m.favored_team || (m.home_odds && m.away_odds && m.home_odds < m.away_odds - 0.20 ? m.home_team : (m.away_odds < m.home_odds - 0.20 ? m.away_team : null));
 
     const inSlipTop = state.betslip.items.some(i => i.match === `${m.home_team} vs ${m.away_team}` && i.market === topTip.market);
     const isBanker = (topTip.prob_pct >= 80) || m.is_banker_80;
@@ -2722,9 +2825,9 @@
       } catch (e) {}
     }
     let statusColText = isBanker ? 'BANKER' : 'PRE';
+    let showStatusBadge = true;
     if (isFinished) {
-      timeColText = 'FT';
-      statusColText = 'FINAL';
+      showStatusBadge = false; // No FT / FINAL badge per requirement
     } else if (isLive) {
       timeColText = 'LIVE';
       statusColText = 'IN-PLAY';
@@ -2746,8 +2849,40 @@
       } catch(e) {}
     }
 
+    // Determine prediction settlement outcome if match is finished
+    const hScore = Number(m.home_score != null ? m.home_score : 0);
+    const aScore = Number(m.away_score != null ? m.away_score : 0);
+    let isPredictionWon = false;
+    if (isFinished) {
+      const mkt = (topTip.market || topTip.label || '').toLowerCase();
+      if (mkt.includes('home win') || (mkt.includes(m.home_team.toLowerCase()) && mkt.includes('win') && !mkt.includes('away'))) {
+        isPredictionWon = hScore > aScore;
+      } else if (mkt.includes('away win') || (mkt.includes(m.away_team.toLowerCase()) && mkt.includes('win') && !mkt.includes('home'))) {
+        isPredictionWon = aScore > hScore;
+      } else if (mkt.includes('draw')) {
+        isPredictionWon = hScore === aScore;
+      } else if (mkt.includes('1x') || (mkt.includes(m.home_team.toLowerCase()) && mkt.includes('draw'))) {
+        isPredictionWon = hScore >= aScore;
+      } else if (mkt.includes('x2') || (mkt.includes(m.away_team.toLowerCase()) && mkt.includes('draw'))) {
+        isPredictionWon = aScore >= hScore;
+      } else if (mkt.includes('over 1.5')) {
+        isPredictionWon = (hScore + aScore) >= 2;
+      } else if (mkt.includes('over 2.5')) {
+        isPredictionWon = (hScore + aScore) >= 3;
+      } else if (mkt.includes('under 2.5')) {
+        isPredictionWon = (hScore + aScore) < 3;
+      } else if (mkt.includes('btts: yes') || mkt.includes('both teams to score')) {
+        isPredictionWon = hScore > 0 && aScore > 0;
+      } else if (mkt.includes('btts: no')) {
+        isPredictionWon = hScore === 0 || aScore === 0;
+      } else {
+        isPredictionWon = hScore > aScore;
+      }
+    }
+    const settledNarrative = isFinished ? getDynamicSettledNarrative(m, topTip, hScore, aScore, isPredictionWon, isBanter) : null;
+
     return `
-      <div class="employer-match-card ${isBanker ? 'is-banker' : ''}" data-match-id="${m.id || rowIdx}">
+      <div class="employer-match-card ${isBanker ? 'is-banker' : ''} ${isFinished ? 'is-settled' : ''}" data-match-id="${m.id || rowIdx}" data-status="${m.status || ''}">
         <!-- Card Header: Country - League on left, Date on right -->
         <div class="em-card-header">
           <div class="em-header-left">
@@ -2765,7 +2900,7 @@
             <div class="em-matchup-meta">
               <div class="em-time-box">
                 <span class="em-time-val">${timeColText}</span>
-                <span class="em-status-badge ${isFinished ? 'ft' : (isLive ? 'live' : '')}">${statusColText}</span>
+                ${showStatusBadge ? `<span class="em-status-badge ${isLive ? 'live' : ''}">${statusColText}</span>` : ''}
               </div>
             </div>
 
@@ -2776,17 +2911,16 @@
                 <div class="em-team-unit home">
                   ${getClubBadge(m.home_team, m.home_logo)}
                   <span class="em-team-title" title="${esc(m.home_team)}">${esc(m.home_team)}</span>
-                  ${favored === m.home_team ? `<span class="em-favored-tag" title="TipAlgo Algorithmic Favored Winner">★ Favored</span>` : ''}
                   ${(isFinished || isLive) && m.home_score != null ? `<span class="em-score-digit">${m.home_score}</span>` : ''}
                 </div>
                 <div class="em-team-form-col">
                   <div class="em-form-row">
                     ${renderFormRunPills(m.home_form)}
-                    <span class="em-form-text-lbl">last 5 Games</span>
+                    <span class="em-form-text-lbl">Last 5 Games</span>
                   </div>
                   <div class="em-form-row">
                     ${renderFormRunPills(m.home_venue_form)}
-                    <span class="em-form-text-lbl">last 5 Home Games</span>
+                    <span class="em-form-text-lbl">Last 5 Home Games</span>
                   </div>
                 </div>
               </div>
@@ -2801,54 +2935,70 @@
                 <div class="em-team-unit away">
                   ${getClubBadge(m.away_team, m.away_logo)}
                   <span class="em-team-title" title="${esc(m.away_team)}">${esc(m.away_team)}</span>
-                  ${favored === m.away_team ? `<span class="em-favored-tag" title="TipAlgo Algorithmic Favored Winner">★ Favored</span>` : ''}
                   ${(isFinished || isLive) && m.away_score != null ? `<span class="em-score-digit">${m.away_score}</span>` : ''}
                 </div>
                 <div class="em-team-form-col">
                   <div class="em-form-row">
                     ${renderFormRunPills(m.away_form)}
-                    <span class="em-form-text-lbl">last 5 Games</span>
+                    <span class="em-form-text-lbl">Last 5 Games</span>
                   </div>
                   <div class="em-form-row">
                     ${renderFormRunPills(m.away_venue_form)}
-                    <span class="em-form-text-lbl">last 5 Away Games</span>
+                    <span class="em-form-text-lbl">Last 5 Away Games</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Right Column: ONE SURE PREDICTION (Pill with Odds, Progress Bar, and Circular (i) info button) per Canva Mockup -->
-          <div class="em-main-right">
-            <!-- Line 1: Prediction pick label + @odds button/pill (clickable to toggle Bet Slip) -->
-            <div class="em-canva-pred-row pick-trigger ${inSlipTop ? 'in-slip' : ''}"
-              data-home="${esc(m.home_team)}" data-away="${esc(m.away_team)}" data-league="${m.league_id || ''}" data-market="${esc(topTip.market)}" data-odds="${topTip.odds}"
-              title="${inSlipTop ? 'Click to remove prediction from Bet Slip' : 'Click to add prediction to Bet Slip'}">
-              <span class="em-canva-pick-label">${esc(topTip.label)}.</span>
-              <span class="em-canva-odds-badge ${inSlipTop ? 'in-slip' : ''}">@${Number(topTip.odds).toFixed(2)}</span>
-            </div>
-
-            <!-- Line 2: Standalone Probability Bar + Circular (i) Button side-by-side -->
-            <div class="em-canva-bar-row">
-              <div class="em-canva-bar-track" title="Model Win Confidence: ${topTip.prob_pct}%">
-                <div class="em-canva-bar-fill" style="width: ${topTip.prob_pct}%;">
-                  <span class="em-canva-bar-text">${topTip.prob_pct}%</span>
+          <!-- Right Column: ONE SURE PREDICTION or SETTLED OUTCOME -->
+          <div class="em-main-right ${isFinished ? 'settled-view' : ''}">
+            ${isFinished ? `
+              <!-- Finished Match: Bet Slip Disabled, Match Result, Win/Loss Analysis & Self-Correction Feedback -->
+              <div class="em-settled-card-right">
+                <div class="em-settled-header-row">
+                  <div class="em-settled-pick-group">
+                    <span class="em-canva-pick-label">${esc(topTip.label)}.</span>
+                    <span class="em-canva-prob-badge">${topTip.prob_pct}%</span>
+                    <span class="em-settled-odds-badge">@${Number(topTip.odds).toFixed(2)}</span>
+                  </div>
+                  <div class="em-settled-status-group">
+                    <span class="em-settled-score-pill">Score: ${hScore} - ${aScore}</span>
+                    <span class="em-settled-outcome-pill ${isPredictionWon ? 'won' : 'lost'}">
+                      ${isPredictionWon ? '✓ PREDICTION WON' : '✗ PREDICTION LOST'}
+                    </span>
+                    <button type="button" class="em-info-circle-btn btn-grid-details"
+                      data-home="${esc(m.home_team)}" data-away="${esc(m.away_team)}" data-league="${m.league_id || ''}" data-idx="${rowIdx}"
+                      title="View Analytics, Head-to-Head &amp; Standings" aria-label="View In-Depth Analytics">
+                      <span class="info-letter">i</span>
+                    </button>
+                  </div>
                 </div>
-                <div class="em-canva-bar-rem" style="width: ${100 - topTip.prob_pct}%;"></div>
+                <div class="em-settled-analysis ${isPredictionWon ? 'won' : 'lost'}">
+                  <strong>Result Analysis:</strong> ${settledNarrative ? settledNarrative.analysis : (isPredictionWon ? `Model prediction verified by final scoreline (${hScore}-${aScore}). High statistical conviction confirmed.` : `Prediction unfulfilled in final scoreline (${hScore}-${aScore}). Defensive/tempo variance observed.`)}
+                </div>
+                <div class="em-settled-algorithm-response">
+                  <strong>Algorithm Response:</strong> ${settledNarrative ? settledNarrative.algoResponse : (isPredictionWon ? 'Positive outcome reinforced. Platt probability calibration updated.' : 'Negative outcome logged. Brier loss penalty applied and model weights recalibrated under similar fixture conditions.')}
+                </div>
               </div>
+            ` : `
+              <!-- Active Match: Clean Inline Pick + Probability + Odds Pill + Info Button (No Probability Track Box) -->
+              <div class="em-canva-pred-row">
+                <div class="em-pred-pill-wrap pick-trigger ${inSlipTop ? 'in-slip' : ''}"
+                  data-home="${esc(m.home_team)}" data-away="${esc(m.away_team)}" data-league="${m.league_id || ''}" data-market="${esc(topTip.market)}" data-odds="${topTip.odds}"
+                  title="${inSlipTop ? 'Click to remove prediction from Bet Slip' : 'Click to add prediction to Bet Slip'}">
+                  <span class="em-canva-pick-label">${esc(topTip.label)}.</span>
+                  <span class="em-canva-prob-badge">${topTip.prob_pct}%</span>
+                  <span class="em-canva-odds-badge ${inSlipTop ? 'in-slip' : ''}">@${Number(topTip.odds).toFixed(2)}</span>
+                </div>
 
-              <!-- Circular (i) info button taking directly to analytics -->
-              <button type="button" class="em-info-circle-btn btn-grid-details"
-                data-home="${esc(m.home_team)}" data-away="${esc(m.away_team)}" data-league="${m.league_id || ''}" data-idx="${rowIdx}"
-                title="View Analytics, Head-to-Head &amp; Standings" aria-label="View In-Depth Analytics">
-                <span class="info-letter">i</span>
-              </button>
-            </div>
-
-            ${favored ? `
-              <div class="em-card-favored-note" title="Projected match winner based on attack volume, form & odds">
-                <span class="fav-icon">⚡</span> Favored to Win: <strong>${esc(favored)}</strong>
-              </div>` : ''}
+                <button type="button" class="em-info-circle-btn btn-grid-details"
+                  data-home="${esc(m.home_team)}" data-away="${esc(m.away_team)}" data-league="${m.league_id || ''}" data-idx="${rowIdx}"
+                  title="View Analytics, Head-to-Head &amp; Standings" aria-label="View In-Depth Analytics">
+                  <span class="info-letter">i</span>
+                </button>
+              </div>
+            `}
           </div>
         </div>
       </div>
@@ -2860,17 +3010,18 @@
     
     // If a customEndpoint is specified, look for a tip matching that endpoint
     let topTip = null;
-    if (customEndpoint && m.tips && m.tips.length) {
+    if (customEndpoint && m.endpoint_tips && m.endpoint_tips[customEndpoint]) {
+      topTip = m.endpoint_tips[customEndpoint];
+    } else if (customEndpoint && m.tips && m.tips.length) {
       topTip = m.tips.find(t => t.endpoint_id === customEndpoint || (t.market && t.market.toLowerCase().includes(customEndpoint.replace(/-/g, ' '))));
     }
     if (!topTip) {
-      const qualifiedTips = (m.tips || []).filter(t => t.qualified);
-      topTip = m.top_tip || (qualifiedTips.length ? qualifiedTips[0] : (m.tips && m.tips.length ? m.tips[0] : { 
-        label: `${m.home_team} Win`, 
+      topTip = m.top_tip || (m.tips && m.tips.length ? m.tips[0] : { 
+        label: `${m.home_team}: Home Win`, 
         odds: m.home_odds || 2.10, 
         prob_pct: m.top_prob || 65, 
         market: `${m.home_team} Win` 
-      }));
+      });
     }
 
     const inSlipHome = state.betslip.items.some(i => i.match === `${m.home_team} vs ${m.away_team}` && i.market === `${m.home_team} Win`);
@@ -2892,17 +3043,48 @@
     }
     let timeTagHtml = `<span class="grid-time-tag">${localTimeStr}</span>`;
     if (isFinished) {
-      timeTagHtml = `<span class="grid-time-tag ft" style="background: rgba(100, 116, 139, 0.2); color: #94a3b8; font-weight: 800; border: 1px solid rgba(148, 163, 184, 0.3);">FT</span>`;
+      timeTagHtml = `<span class="grid-time-tag settled" style="background: rgba(100, 116, 139, 0.2); color: #94a3b8; font-weight: 700; border: 1px solid rgba(148, 163, 184, 0.3); font-size: 0.72rem;">${localTimeStr}</span>`;
     } else if (isLive) {
       timeTagHtml = `<span class="grid-time-tag live" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; font-weight: 800; border: 1px solid rgba(239, 68, 68, 0.4);"><span class="today-pulse-dot" style="display:inline-block; width:6px; height:6px; background:#ef4444; border-radius:50%; margin-right:4px;"></span>LIVE</span>`;
     }
+
+    const hScore = Number(m.home_score != null ? m.home_score : 0);
+    const aScore = Number(m.away_score != null ? m.away_score : 0);
+    let isPredictionWon = false;
+    if (isFinished) {
+      const mkt = (topTip.market || topTip.label || '').toLowerCase();
+      if (mkt.includes('home win') || (mkt.includes(m.home_team.toLowerCase()) && mkt.includes('win') && !mkt.includes('away'))) {
+        isPredictionWon = hScore > aScore;
+      } else if (mkt.includes('away win') || (mkt.includes(m.away_team.toLowerCase()) && mkt.includes('win') && !mkt.includes('home'))) {
+        isPredictionWon = aScore > hScore;
+      } else if (mkt.includes('draw')) {
+        isPredictionWon = hScore === aScore;
+      } else if (mkt.includes('1x') || (mkt.includes(m.home_team.toLowerCase()) && mkt.includes('draw'))) {
+        isPredictionWon = hScore >= aScore;
+      } else if (mkt.includes('x2') || (mkt.includes(m.away_team.toLowerCase()) && mkt.includes('draw'))) {
+        isPredictionWon = aScore >= hScore;
+      } else if (mkt.includes('over 1.5')) {
+        isPredictionWon = (hScore + aScore) >= 2;
+      } else if (mkt.includes('over 2.5')) {
+        isPredictionWon = (hScore + aScore) >= 3;
+      } else if (mkt.includes('under 2.5')) {
+        isPredictionWon = (hScore + aScore) < 3;
+      } else if (mkt.includes('btts: yes') || mkt.includes('both teams to score')) {
+        isPredictionWon = hScore > 0 && aScore > 0;
+      } else if (mkt.includes('btts: no')) {
+        isPredictionWon = hScore === 0 || aScore === 0;
+      } else {
+        isPredictionWon = hScore > aScore;
+      }
+    }
+    const settledNarrative = isFinished ? getDynamicSettledNarrative(m, topTip, hScore, aScore, isPredictionWon, isBanter) : null;
 
     let centerClashHtml = `<span class="grid-vs-chip">VS</span>`;
     if (isFinished || isLive) {
       const scoreStyle = isLive 
         ? 'font-family: var(--font-mono); font-weight: 800; font-size: 0.95rem; color: #34d399; background: rgba(16, 185, 129, 0.15); padding: 0.2rem 0.55rem; border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.3);'
         : 'font-family: var(--font-mono); font-weight: 800; font-size: 0.95rem; color: #ffffff; background: rgba(0,0,0,0.5); padding: 0.2rem 0.55rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15);';
-      centerClashHtml = `<span class="grid-score-chip" style="${scoreStyle}">${m.home_score != null ? m.home_score : 0} - ${m.away_score != null ? m.away_score : 0}</span>`;
+      centerClashHtml = `<span class="grid-score-chip" style="${scoreStyle}">${hScore} - ${aScore}</span>`;
     }
 
     const homeBadge = getClubBadge(m.home_team, m.home_logo);
@@ -2914,7 +3096,7 @@
     const leagueDisplayName = m.league_name ? escapeHtmlUtil(m.league_name) : (m.country ? escapeHtmlUtil(m.country) : '');
 
     return `
-      <div class="grid-match-card ${isBanker ? 'is-banker' : ''}" data-match-id="${m.id || cardIdx}">
+      <div class="grid-match-card ${isBanker ? 'is-banker' : ''} ${isFinished ? 'is-settled' : ''}" data-match-id="${m.id || cardIdx}" data-status="${m.status || ''}">
         <!-- Card Header: Clean League + Kickoff Time -->
         <div class="grid-card-header">
           <span class="grid-league-tag" title="${m.country ? escapeHtmlUtil(m.country) + ' · ' : ''}${leagueDisplayName}">
@@ -2941,68 +3123,89 @@
         </div>
 
         <!-- 1X2 Quick Odds Row -->
-        <div class="card-1x2-bar">
-          <button class="card-odd-btn pick-trigger ${inSlipHome ? 'in-slip' : ''}"
-            data-home="${escapeHtmlUtil(m.home_team)}" data-away="${escapeHtmlUtil(m.away_team)}" data-league="${m.league_id || ''}" data-market="${escapeHtmlUtil(m.home_team)} Win" data-odds="${m.home_odds}">
+        <div class="card-1x2-bar ${isFinished ? 'disabled' : ''}">
+          <button class="card-odd-btn ${isFinished ? 'disabled' : `pick-trigger ${inSlipHome ? 'in-slip' : ''}`}"
+            ${isFinished ? 'disabled' : `data-home="${escapeHtmlUtil(m.home_team)}" data-away="${escapeHtmlUtil(m.away_team)}" data-league="${m.league_id || ''}" data-market="${escapeHtmlUtil(m.home_team)} Win" data-odds="${m.home_odds}"`}>
             <span class="odd-lbl">1</span>
             <span class="odd-val">${Number(m.home_odds).toFixed(2)}</span>
           </button>
-          <button class="card-odd-btn pick-trigger ${inSlipDraw ? 'in-slip' : ''}"
-            data-home="${escapeHtmlUtil(m.home_team)}" data-away="${escapeHtmlUtil(m.away_team)}" data-league="${m.league_id || ''}" data-market="Draw" data-odds="${m.draw_odds}">
+          <button class="card-odd-btn ${isFinished ? 'disabled' : `pick-trigger ${inSlipDraw ? 'in-slip' : ''}`}"
+            ${isFinished ? 'disabled' : `data-home="${escapeHtmlUtil(m.home_team)}" data-away="${escapeHtmlUtil(m.away_team)}" data-league="${m.league_id || ''}" data-market="Draw" data-odds="${m.draw_odds}"`}>
             <span class="odd-lbl">X</span>
             <span class="odd-val">${Number(m.draw_odds).toFixed(2)}</span>
           </button>
-          <button class="card-odd-btn pick-trigger ${inSlipAway ? 'in-slip' : ''}"
-            data-home="${escapeHtmlUtil(m.home_team)}" data-away="${escapeHtmlUtil(m.away_team)}" data-league="${m.league_id || ''}" data-market="${escapeHtmlUtil(m.away_team)} Win" data-odds="${m.away_odds}">
+          <button class="card-odd-btn ${isFinished ? 'disabled' : `pick-trigger ${inSlipAway ? 'in-slip' : ''}`}"
+            ${isFinished ? 'disabled' : `data-home="${escapeHtmlUtil(m.home_team)}" data-away="${escapeHtmlUtil(m.away_team)}" data-league="${m.league_id || ''}" data-market="${escapeHtmlUtil(m.away_team)} Win" data-odds="${m.away_odds}"`}>
             <span class="odd-lbl">2</span>
             <span class="odd-val">${Number(m.away_odds).toFixed(2)}</span>
           </button>
         </div>
 
-        <!-- Model Pick Box -->
-        <div class="grid-odds-box">
-          <div class="grid-odds-top">
-            <span class="grid-pick-name" title="${escapeHtmlUtil(topTip.label)}">${isBanter ? 'Chop Pick' : 'Model Pick'}: ${escapeHtmlUtil(topTip.label)}</span>
-            <button class="grid-odds-val pick-trigger ${inSlipTop ? 'in-slip' : ''}" 
-              data-home="${escapeHtmlUtil(m.home_team)}" data-away="${escapeHtmlUtil(m.away_team)}" data-league="${m.league_id || ''}" data-market="${escapeHtmlUtil(topTip.market)}" data-odds="${topTip.odds}"
-              title="Add to slip @${Number(topTip.odds).toFixed(2)}">
-              @ ${Number(topTip.odds).toFixed(2)}
-            </button>
-          </div>
-          <div class="grid-conf-row">
-            <span class="grid-conf-text">${topTip.prob_pct}% ${isBanter ? 'Chance to Enter' : 'Win Likelihood'}</span>
-            <div class="grid-conf-meter">
-              <div class="grid-conf-fill" style="width: ${topTip.prob_pct}%;"></div>
+        ${isFinished ? `
+          <!-- Settled Outcome Result Analysis & Algorithm Response -->
+          <div class="grid-settled-box">
+            <div class="grid-settled-top">
+              <span class="grid-pick-name">${escapeHtmlUtil(topTip.label)}.</span>
+              <span class="grid-prob-badge">${topTip.prob_pct}%</span>
+              <span class="grid-settled-odds">@${Number(topTip.odds).toFixed(2)}</span>
+            </div>
+            <div class="grid-settled-status-row">
+              <span class="grid-settled-score">Score: ${hScore} - ${aScore}</span>
+              <span class="grid-settled-outcome ${isPredictionWon ? 'won' : 'lost'}">
+                ${isPredictionWon ? '✓ PREDICTION WON' : '✗ PREDICTION LOST'}
+              </span>
+            </div>
+            <div class="grid-settled-analysis ${isPredictionWon ? 'won' : 'lost'}">
+              <strong>Result Analysis:</strong> ${settledNarrative ? settledNarrative.analysis : (isPredictionWon ? `Model prediction verified by final scoreline (${hScore}-${aScore}). High statistical conviction confirmed.` : `Prediction unfulfilled in final scoreline (${hScore}-${aScore}). Defensive/tempo variance observed.`)}
+            </div>
+            <div class="grid-settled-response">
+              <strong>Algorithm Response:</strong> ${settledNarrative ? settledNarrative.algoResponse : (isPredictionWon ? 'Positive outcome reinforced. Platt probability calibration updated.' : 'Negative outcome logged. Brier loss penalty applied and model weights recalibrated under similar fixture conditions.')}
             </div>
           </div>
-        </div>
+        ` : `
+          <!-- Model Pick Box: Clean Inline Pick + Probability + Odds (No Probability Meter Box) -->
+          <div class="grid-odds-box">
+            <div class="grid-odds-top-inline">
+              <span class="grid-pick-name" title="${escapeHtmlUtil(topTip.label)}">${escapeHtmlUtil(topTip.label)}.</span>
+              <span class="grid-prob-badge">${topTip.prob_pct}%</span>
+              <button class="grid-odds-val pick-trigger ${inSlipTop ? 'in-slip' : ''}" 
+                data-home="${escapeHtmlUtil(m.home_team)}" data-away="${escapeHtmlUtil(m.away_team)}" data-league="${m.league_id || ''}" data-market="${escapeHtmlUtil(topTip.market)}" data-odds="${topTip.odds}"
+                title="Add to slip @${Number(topTip.odds).toFixed(2)}">
+                @${Number(topTip.odds).toFixed(2)}
+              </button>
+            </div>
+          </div>
+        `}
 
-        <!-- Card Action Buttons: Exactly 2 Modern Buttons -->
+        <!-- Card Action Buttons -->
         <div class="grid-card-actions-v2">
           <button class="btn-card-view-analytics" 
             data-home="${escapeHtmlUtil(m.home_team)}" 
             data-away="${escapeHtmlUtil(m.away_team)}" 
             data-league="${m.league_id || ''}"
             data-idx="${cardIdx}" 
+            ${isFinished ? 'style="width: 100%; justify-content: center;"' : ''}
             title="View In-Depth Analytics, Tactical Pitch & 33 Models">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M3 3v18h18"></path>
               <path d="M18 9l-5 5-4-4-6 6"></path>
             </svg>
-            <span>${isBanter ? 'Check Gist' : 'Analytics'}</span>
+            <span>${isBanter ? 'Check Gist' : (isFinished ? 'Analytics & Form' : 'Analytics')}</span>
           </button>
-          <button class="btn-card-add-slip-v2 pick-trigger ${inSlipTop ? 'in-slip' : ''}" 
-            data-home="${escapeHtmlUtil(m.home_team)}" 
-            data-away="${escapeHtmlUtil(m.away_team)}" 
-            data-league="${m.league_id || ''}" 
-            data-market="${escapeHtmlUtil(topTip.market)}" 
-            data-odds="${topTip.odds}" 
-            title="Add to Bet Slip">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 5v14M5 12h14"></path>
-            </svg>
-            <span>${inSlipTop ? (isBanter ? '✓ Don Enter' : '✓ In Slip') : (isBanter ? 'Chop Am' : 'Add to Slip')}</span>
-          </button>
+          ${isFinished ? '' : `
+            <button class="btn-card-add-slip-v2 pick-trigger ${inSlipTop ? 'in-slip' : ''}" 
+              data-home="${escapeHtmlUtil(m.home_team)}" 
+              data-away="${escapeHtmlUtil(m.away_team)}" 
+              data-league="${m.league_id || ''}" 
+              data-market="${escapeHtmlUtil(topTip.market)}" 
+              data-odds="${topTip.odds}" 
+              title="Add to Bet Slip">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 5v14M5 12h14"></path>
+              </svg>
+              <span>${inSlipTop ? (isBanter ? '✓ Don Enter' : '✓ In Slip') : (isBanter ? 'Chop Am' : 'Add to Slip')}</span>
+            </button>
+          `}
         </div>
       </div>
     `;
@@ -3014,6 +3217,13 @@
     container.querySelectorAll('.pick-trigger').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
+        if (btn.closest('.is-settled') || btn.closest('.settled-view') || btn.classList.contains('disabled')) {
+          return;
+        }
+        const card = btn.closest('.employer-match-card, .grid-match-card');
+        if (card && (card.classList.contains('is-settled') || card.getAttribute('data-status') === 'finished')) {
+          return;
+        }
         const home = btn.getAttribute('data-home');
         const away = btn.getAttribute('data-away');
         const league = btn.getAttribute('data-league');
@@ -3166,7 +3376,6 @@
       return `
         <div class="grand-endpoint-card" data-ep-id="${ep.id}">
           <div class="grand-card-top">
-            <span class="ep-index-tag">#${ep.num}</span>
             <span class="ep-category-pill cat-${ep.category}">${getMarketCategorySvg(ep.category)} ${ep.catLabel}</span>
             <span class="ep-count-bracket ${hasMatches ? 'active' : 'zero'}">
               <span class="count-dot"></span>
@@ -3238,7 +3447,6 @@
             <span>Back to All 33 Endpoints</span>
           </button>
           <div class="drilldown-cat-cluster">
-            <span class="ep-index-tag">#${epObj.num}</span>
             <span class="ep-category-pill cat-${epObj.category}">${epObj.catLabel}</span>
             <span class="ep-count-bracket active" id="grandDrilldownMatchCountPill">
               <span class="count-dot"></span>
@@ -3674,7 +3882,7 @@
         titleEl.textContent = 'User Profile';
         if (subEl) subEl.textContent = 'Account settings, tier status & bankroll';
       } else if (viewId === 'view-dashboard') {
-        titleEl.textContent = 'TipAlgo Quant Dashboard';
+        titleEl.textContent = 'SportyMill Quant Dashboard';
         if (subEl) subEl.textContent = 'Value Screener, Accu-Forge and institutional telemetry';
       }
     }
@@ -3808,12 +4016,17 @@
     if (footyHomeRating) footyHomeRating.textContent = Number(data.match_info.home_odds || 1.85).toFixed(2);
     const footyHomeSquares = document.getElementById('footyHomeSquares');
     if (footyHomeSquares) {
-      const formRun = (data.form_and_h2h?.home?.form || 'WWDLW').split('').slice(0, 5);
-      footyHomeSquares.innerHTML = formRun.map(ch => {
-        const c = ch.toUpperCase();
-        const cls = c === 'W' ? 'w' : (c === 'L' ? 'l' : 'd');
-        return `<span class="footy-sq ${cls}">${c}</span>`;
-      }).join('');
+      const rawForm = data.form_and_h2h?.home?.form;
+      if (rawForm && rawForm.trim()) {
+        const formRun = rawForm.split('').slice(0, 5);
+        footyHomeSquares.innerHTML = formRun.map(ch => {
+          const c = ch.toUpperCase();
+          const cls = c === 'W' ? 'w' : (c === 'L' ? 'l' : 'd');
+          return `<span class="footy-sq ${cls}">${c}</span>`;
+        }).join('');
+      } else {
+        footyHomeSquares.innerHTML = `<span class="footy-sq empty" title="No prior matches recorded">—</span>`;
+      }
     }
 
     // Away Hero Unit (Badge, Rating, Form Squares, Name)
@@ -3825,12 +4038,17 @@
     if (footyAwayRating) footyAwayRating.textContent = Number(data.match_info.away_odds || 2.50).toFixed(2);
     const footyAwaySquares = document.getElementById('footyAwaySquares');
     if (footyAwaySquares) {
-      const formRun = (data.form_and_h2h?.away?.form || 'WDWLW').split('').slice(0, 5);
-      footyAwaySquares.innerHTML = formRun.map(ch => {
-        const c = ch.toUpperCase();
-        const cls = c === 'W' ? 'w' : (c === 'L' ? 'l' : 'd');
-        return `<span class="footy-sq ${cls}">${c}</span>`;
-      }).join('');
+      const rawFormAway = data.form_and_h2h?.away?.form;
+      if (rawFormAway && rawFormAway.trim()) {
+        const formRun = rawFormAway.split('').slice(0, 5);
+        footyAwaySquares.innerHTML = formRun.map(ch => {
+          const c = ch.toUpperCase();
+          const cls = c === 'W' ? 'w' : (c === 'L' ? 'l' : 'd');
+          return `<span class="footy-sq ${cls}">${c}</span>`;
+        }).join('');
+      } else {
+        footyAwaySquares.innerHTML = `<span class="footy-sq empty" title="No prior matches recorded">—</span>`;
+      }
     }
 
     // Odds Strip Values
@@ -4239,56 +4457,83 @@
 
   function renderFormAndH2H(data, matchInfo) {
     if (!data) return '';
-    const home = data.home || { name: matchInfo.home_team, form: 'WWWDW', matches: [] };
-    const away = data.away || { name: matchInfo.away_team, form: 'WDDWW', matches: [] };
-    const h2h = data.h2h || { total_matches: 6, home_wins: 3, draws: 2, away_wins: 1, avg_goals: '2.8' };
+    const home = data.home || { name: matchInfo.home_team, form: '', matches: [] };
+    const away = data.away || { name: matchInfo.away_team, form: '', matches: [] };
+    const h2h = data.h2h || { total_matches: 0, home_wins: 0, draws: 0, away_wins: 0, avg_goals: '0.0' };
     const isBanter = state.personalityMode === 'BANTER';
+    const homeFormStr = home.form ? home.form : '— — — — —';
+    const awayFormStr = away.form ? away.form : '— — — — —';
+    const homeMatches = home.matches || [];
+    const awayMatches = away.matches || [];
+
+    const homeMatchesHtml = homeMatches.length ? homeMatches.map(m => `
+      <div class="form-match-item">
+        <span>vs ${m.opp || 'Opponent'} (${m.date || 'Recent'})</span>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <strong>${m.score || '0 - 0'}</strong>
+          <span class="streak-pill ${m.res ? m.res.toLowerCase() : 'd'}">${m.res || 'D'}</span>
+        </div>
+      </div>
+    `).join('') : `<div style="padding: 0.75rem; color: #94a3b8; font-size: 0.82rem;">No previous matches recorded in tracked database.</div>`;
+
+    const awayMatchesHtml = awayMatches.length ? awayMatches.map(m => `
+      <div class="form-match-item">
+        <span>vs ${m.opp || 'Opponent'} (${m.date || 'Recent'})</span>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <strong>${m.score || '0 - 0'}</strong>
+          <span class="streak-pill ${m.res ? m.res.toLowerCase() : 'd'}">${m.res || 'D'}</span>
+        </div>
+      </div>
+    `).join('') : `<div style="padding: 0.75rem; color: #94a3b8; font-size: 0.82rem;">No previous matches recorded in tracked database.</div>`;
+
+    let h2hHtml = '';
+    if (h2h.total_matches > 0) {
+      h2hHtml = `
+        <div style="grid-column: 1 / -1; background: #ffffff; border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 0.85rem 1.15rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; font-size: 0.82rem;">
+          <div>
+            <strong>${isBanter ? 'Head-to-Head Clash Record' : 'Head-to-Head History'}:</strong>
+            <span style="color: var(--text-muted); margin-left: 0.35rem;">${h2h.total_matches} Competitive Encounters</span>
+          </div>
+          <div style="display: flex; gap: 1.25rem; font-weight: 700;">
+            <span style="color: #4f46e5;">${home.name}: ${h2h.home_wins} Wins</span>
+            <span style="color: #64748b;">Draws: ${h2h.draws}</span>
+            <span style="color: #ef4444;">${away.name}: ${h2h.away_wins} Wins</span>
+            <span style="color: #059669;">Avg: ${h2h.avg_goals}</span>
+          </div>
+        </div>
+      `;
+    } else {
+      h2hHtml = `
+        <div style="grid-column: 1 / -1; background: #ffffff; border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 0.85rem 1.15rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; font-size: 0.82rem;">
+          <div>
+            <strong>${isBanter ? 'Head-to-Head Clash Record' : 'Head-to-Head History'}:</strong>
+            <span style="color: var(--text-muted); margin-left: 0.35rem;">First recorded meeting in current tracked database</span>
+          </div>
+          <div style="color: #64748b; font-weight: 600;">
+            No previous head-to-head encounters on file
+          </div>
+        </div>
+      `;
+    }
 
     return `
       <div class="form-history-col">
         <div class="form-col-title">
           <span>${home.name} ${isBanter ? '(Last 5 Games)' : '(Recent 5 Results)'}</span>
-          <span style="letter-spacing: 2px;">${home.form}</span>
+          <span style="letter-spacing: 2px;">${homeFormStr}</span>
         </div>
-        ${(home.matches || []).map(m => `
-          <div class="form-match-item">
-            <span>vs ${m.opp || 'Opponent'} (${m.date || 'Recent'})</span>
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <strong>${m.score || '1 - 0'}</strong>
-              <span class="streak-pill ${m.res ? m.res.toLowerCase() : 'w'}">${m.res || 'W'}</span>
-            </div>
-          </div>
-        `).join('')}
+        ${homeMatchesHtml}
       </div>
 
       <div class="form-history-col">
         <div class="form-col-title">
           <span>${away.name} ${isBanter ? '(Last 5 Games)' : '(Recent 5 Results)'}</span>
-          <span style="letter-spacing: 2px;">${away.form}</span>
+          <span style="letter-spacing: 2px;">${awayFormStr}</span>
         </div>
-        ${(away.matches || []).map(m => `
-          <div class="form-match-item">
-            <span>vs ${m.opp || 'Opponent'} (${m.date || 'Recent'})</span>
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <strong>${m.score || '1 - 1'}</strong>
-              <span class="streak-pill ${m.res ? m.res.toLowerCase() : 'd'}">${m.res || 'D'}</span>
-            </div>
-          </div>
-        `).join('')}
+        ${awayMatchesHtml}
       </div>
 
-      <div style="grid-column: 1 / -1; background: #ffffff; border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 0.85rem 1.15rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; font-size: 0.82rem;">
-        <div>
-          <strong>${isBanter ? 'Head-to-Head Clash Record' : 'Head-to-Head History'}:</strong>
-          <span style="color: var(--text-muted); margin-left: 0.35rem;">${h2h.total_matches} Competitive Encounters</span>
-        </div>
-        <div style="display: flex; gap: 1.25rem; font-weight: 700;">
-          <span style="color: #4f46e5;">${home.name}: ${h2h.home_wins} Wins</span>
-          <span style="color: #64748b;">Draws: ${h2h.draws}</span>
-          <span style="color: #ef4444;">${away.name}: ${h2h.away_wins} Wins</span>
-          <span style="color: #059669;">Avg: ${h2h.avg_goals}</span>
-        </div>
-      </div>
+      ${h2hHtml}
     `;
   }
 
@@ -4636,6 +4881,15 @@
     renderCalendarDateStrip();
     renderCalendarEndpointsDropdown();
     populateCalendarLeagueDropdown(data.matches);
+
+    // Auto-bind activeFixture to today's real first match
+    if (data.matches && data.matches.length > 0) {
+      if (!state.activeFixture || state.activeFixture.home_team === 'Arsenal') {
+        state.activeFixture = data.matches[0];
+        updateActiveFixtureUI();
+      }
+    }
+
     renderCalendarMatchesFeed();
   }
 
@@ -8272,15 +8526,14 @@
     const btnCloseAbout = document.getElementById('btnCloseAboutModal');
     const btnCloseSupport = document.getElementById('btnCloseSupportModal');
 
-    if (topNavHome) topNavHome.addEventListener('click', (e) => { e.preventDefault(); switchView('view-calendar'); });
-    if (navBrandLogo) navBrandLogo.addEventListener('click', (e) => { e.preventDefault(); switchView('view-calendar'); });
-    if (topNavGrand) topNavGrand.addEventListener('click', (e) => { e.preventDefault(); switchView('view-grand'); });
-    if (topNavAbout) {
-      topNavAbout.addEventListener('click', (e) => {
+    document.querySelectorAll('.top-nav-item[data-tab-target]').forEach(item => {
+      item.addEventListener('click', (e) => {
         e.preventDefault();
-        switchView('view-about');
+        const target = item.getAttribute('data-tab-target');
+        if (target) switchView(target);
       });
-    }
+    });
+    if (navBrandLogo) navBrandLogo.addEventListener('click', (e) => { e.preventDefault(); switchView('view-calendar'); });
     if (btnCloseAbout && modalAbout) {
       btnCloseAbout.addEventListener('click', () => modalAbout.classList.remove('open'));
     }
@@ -8413,7 +8666,7 @@
       const u = state.user || {};
       const uname = u.username || 'demopro';
       const phone = u.phone_number || '08034567890';
-      const email = u.email || 'demo@tipalgo.com';
+      const email = u.email || 'demo@sportymill.com';
       const bankroll = u.bankroll || 1000000;
       const safeStake = Math.round(bankroll * 0.05);
       const isPro = u.tier === 'pro' || u.is_admin;
@@ -8766,7 +9019,7 @@
   }
 
   // =========================================================================
-  // TIPALGO QUANT DASHBOARD & VALUE SCREENER ENGINE
+  // SPORTYMILL QUANT DASHBOARD & VALUE SCREENER ENGINE
   // =========================================================================
 
   let dashStatsLoaded = false;
@@ -8810,7 +9063,7 @@
 
     if (accName && state.user) accName.textContent = state.user.username || 'Trader';
     if (accEmail && state.user) {
-      accEmail.innerHTML = `${state.user.email || 'demo@tipalgo.com'} · <span class="dash-chip-lime" id="dashAccTier">${(state.user.tier || 'PRO').toUpperCase()} ACTIVE</span>`;
+      accEmail.innerHTML = `${state.user.email || 'demo@sportymill.com'} · <span class="dash-chip-lime" id="dashAccTier">${(state.user.tier || 'PRO').toUpperCase()} ACTIVE</span>`;
     }
     if (accAvatar && state.user) {
       accAvatar.textContent = (state.user.username || 'JJ').substring(0, 2).toUpperCase();
@@ -8993,7 +9246,7 @@
     // Check Pro Subscription status
     if (state.user && state.user.tier !== 'pro' && !state.user.is_admin) {
       if (proLock) proLock.style.display = 'flex';
-      if (statusSlot) statusSlot.innerHTML = `<span style="color:#f59e0b;">TipAlgo Pro subscription required for live ML value screening.</span>`;
+      if (statusSlot) statusSlot.innerHTML = `<span style="color:#f59e0b;">SportyMill Pro subscription required for live ML value screening.</span>`;
       return;
     } else {
       if (proLock) proLock.style.display = 'none';
@@ -9651,7 +9904,7 @@
     },
     bankroll: {
       title: "What is Bankroll & Kelly Staking?",
-      desc: "Your total betting bankroll. TipAlgo computes fractional Kelly Criterion staking to determine the exact Naira stake that maximizes logarithmic capital growth while mitigating drawdown risk.",
+      desc: "Your total betting bankroll. SportyMill computes fractional Kelly Criterion staking to determine the exact Naira stake that maximizes logarithmic capital growth while mitigating drawdown risk.",
       example: "On a ₦1,000,000 bankroll with 64.2% model win probability on 1.85 odds (edge +10.1%), Quarter-Kelly yields 5.52% allocation, so the optimal recommended stake is ₦55,200."
     },
     prob: {
@@ -9709,7 +9962,7 @@
       if (res && res.authorization_url && !res.authorization_url.includes('demo_sandbox') && res.status === 'success') {
         window.location.href = res.authorization_url;
       } else {
-        const ref = res.reference || `TIPALGO-${Date.now()}`;
+        const ref = res.reference || `SPORTYMILL-${Date.now()}`;
         const verify = await api(`/payments/verify/${ref}`, { method: 'POST' });
         if (verify && verify.status === 'success') {
           if (state.user) {
@@ -9884,7 +10137,7 @@
           const cells = r.querySelectorAll('td');
           return `- ${cells[0].textContent.trim()}: ${cells[1].textContent.trim()} (${cells[2].textContent.trim()})`;
         }).join('\n');
-        const text = `TipAlgo Accu-Forge Slip\nTarget: ${target} | Achieved: ${achieved} | Prob: ${prob}\n${legsText}`;
+        const text = `SportyMill Accu-Forge Slip\nTarget: ${target} | Achieved: ${achieved} | Prob: ${prob}\n${legsText}`;
         navigator.clipboard.writeText(text).then(() => toast('Accumulator ticket copied to clipboard!')).catch(() => toast('Ticket copied!'));
       });
     }

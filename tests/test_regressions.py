@@ -533,8 +533,32 @@ class TestRegressions(unittest.IsolatedAsyncioTestCase):
             top_tip = m.get("top_tip", {})
             label = top_tip.get("label", "")
             if "Win" in label and not ("Both" in label or "Draw" in label):
-                team_win = label.replace(" Win", "").strip()
+                team_win = label.split(":")[0].replace(" Win", "").strip()
                 self.assertIn(team_win, [m["home_team"], m["away_team"]], "Prediction team must belong to fixture")
+
+    # REGRESSION-025: Elimination of Generic Hardcoded Responses & Safe Device Slot Recycling
+    async def test_regression_025_no_generic_fallbacks_and_safe_hardware_auth(self):
+        # 1. Verify app.js no longer crashes on accuMinEdge or bankerCardsGrid
+        with open("static/app.js", "r", encoding="utf-8") as f:
+            app_js = f.read()
+            self.assertIn("bankerCardsGrid: document.getElementById('bankerCardsGrid') || document.getElementById('bankersSlateGrid')", app_js)
+            self.assertIn("dom.accuMinEdge ? (parseFloat(dom.accuMinEdge.value) || 0.01) : 0.01", app_js)
+            self.assertIn("state.user?.bankroll", app_js)
+
+        # 2. Verify whitelisted partner account device rotation
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as local_client:
+            # Login as tip_partner with multiple different devices
+            for i in range(6):
+                resp = await local_client.post("/auth/login", json={
+                    "username": "tip_partner",
+                    "password": "TipAlgo2026!",
+                    "device_id": f"partner_test_device_{i}",
+                    "device_name": f"Partner Chrome {i}"
+                })
+                # Whitelisted partner must NEVER be blocked with 403 DEVICE_LIMIT_REACHED
+                self.assertEqual(resp.status_code, 200, f"Device login {i} should succeed via seamless rotation")
+                data = resp.json()
+                self.assertIn("access_token", data)
 
 
 if __name__ == "__main__":

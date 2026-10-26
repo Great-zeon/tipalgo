@@ -678,44 +678,6 @@ class FootballDataService:
                         match_rec.away_odds = a_odd
                     match_rec.status = match_status
 
-                # 4. Ensure both teams exist in LeagueTable for Poisson/ML ratings
-                for team, is_home in [(home_name, True), (away_name, False)]:
-                    res_t = await db.execute(
-                        select(LeagueTable).where(
-                            LeagueTable.league_id == lcode,
-                            LeagueTable.team_name == team
-                        )
-                    )
-                    t_rec = res_t.scalar_one_or_none()
-                    if not t_rec:
-                        db.add(LeagueTable(
-                            league_id=lcode,
-                            team_name=team,
-                            position=10,
-                            played=12,
-                            wins=5,
-                            draws=3,
-                            losses=4,
-                            goals_for=16,
-                            goals_against=14,
-                            goal_difference=2,
-                            points=18,
-                            last_5_form="WDWLW",
-                            home_played=6,
-                            home_wins=3,
-                            home_draws=2,
-                            home_losses=1,
-                            away_played=6,
-                            away_wins=2,
-                            away_draws=1,
-                            away_losses=3,
-                            home_corners_avg=5.5,
-                            away_corners_avg=4.8,
-                            home_cards_avg=1.8,
-                            away_cards_avg=2.2,
-                            xg_for_home=1.55,
-                            xg_against_away=1.35
-                        ))
 
         await db.commit()
 
@@ -727,32 +689,63 @@ class FootballDataService:
             "message": f"Live sync complete! Ingested {synced_fixtures} verified matches from {self.provider} for {target_date or 'today'}."
         }
 
-    async def settle_completed_predictions(self, db: AsyncSession, from_app_models: Any) -> Dict[str, Any]:
+    async def settle_completed_predictions(self, db: AsyncSession, from_app_models: Any, predictor: Optional[Any] = None) -> Dict[str, Any]:
         """
         Results feedback loop: checks ended matches against PredictionLog,
-        marks outcomes, and calculates Brier scores.
+        marks outcomes, and updates Brier score weights & calibration models.
         """
         PredictionLog = from_app_models.PredictionLog
         HistoricalMatch = from_app_models.HistoricalMatch
 
         res = await db.execute(
-            select(HistoricalMatch).where(HistoricalMatch.status == "finished")
+            select(HistoricalMatch).where(
+                HistoricalMatch.status == "finished",
+                HistoricalMatch.home_score.isnot(None),
+                HistoricalMatch.away_score.isnot(None)
+            )
         )
         finished_matches = res.scalars().all()
         settled_count = 0
 
         for m in finished_matches:
+            h_s = m.home_score
+            a_s = m.away_score
+            actual = {
+                'home_win': h_s > a_s,
+                'draw': h_s == a_s,
+                'away_win': h_s < a_s,
+                'over_1_5': (h_s + a_s) >= 2,
+                'over_2_5': (h_s + a_s) >= 3,
+                'over_3_5': (h_s + a_s) >= 4,
+                'over_4_5': (h_s + a_s) >= 5,
+                'btts_yes': h_s > 0 and a_s > 0
+            }
+
+            # Feed into advanced predictor calibration loop
+            if predictor and hasattr(predictor, "advanced") and hasattr(predictor.advanced, "add_result"):
+                try:
+                    predictor.advanced.add_result(actual)
+                except Exception as ex:
+                    logger.warning(f"Error feeding result to predictor calibration loop: {ex}")
+
             logs_res = await db.execute(
                 select(PredictionLog).where(
                     PredictionLog.home_team == m.home_team,
-                    PredictionLog.away_team == m.away_team
+                    PredictionLog.away_team == m.away_team,
+                    PredictionLog.processed == False
                 )
             )
             logs = logs_res.scalars().all()
             for l in logs:
+                l.processed = True
                 settled_count += 1
+
+        if settled_count > 0:
+            await db.commit()
 
         return {
             "settled_count": settled_count,
-            "message": "Prediction settlement feedback loop processed."
+            "finished_matches_evaluated": len(finished_matches),
+            "status": "success",
+            "message": f"Prediction settlement feedback loop processed. Evaluated {len(finished_matches)} finished fixtures; updated {settled_count} prediction logs."
         }

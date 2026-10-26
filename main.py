@@ -2,7 +2,7 @@
 
 #!/usr/bin/env python3
 """
-TIPALGO v21 – FULLY PAID ENGINE (PRODUCTION v21.0)
+SPORTYMILL v21 – QUANTITATIVE SPORTS INTELLIGENCE (PRODUCTION v21.0)
 ============================================================
 All 32 endpoints from v20.6 + 1 NEW endpoint: /predict/value-screener
 
@@ -75,7 +75,7 @@ except ImportError:
 BASE_DIR = Path(__file__).resolve().parent
 
 class Config:
-    APP_NAME = "TipAlgo v21 – Paid-Only"
+    APP_NAME = "SportyMill v21 – Quantitative Sports Intelligence"
     DEBUG = os.getenv("DEBUG", "False").lower() == "true"
     ENVIRONMENT = os.getenv("ENVIRONMENT", "development").lower()
     _db_path = os.getenv("DATABASE_PATH", "").strip()
@@ -282,35 +282,229 @@ LEAGUE_METADATA = {
     "L_394": ("Super Liga", "Moldova"),
     "L_393": ("Premier League", "Malta"),
     "L_758": ("Premier Division", "Gibraltar"),
-    "L_737": ("FIFA Club World Cup", "International")
+    "L_737": ("FIFA Club World Cup", "International"),
+
+    # Comprehensive League ID Metadata (Expanding all Country & League abbreviations)
+    "PAN_LPF": ("Liga Panameña de Fútbol", "Panama"),
+    "PAN_LIGA": ("Liga Panameña de Fútbol", "Panama"),
+    "JAP_J1L": ("J1 League", "Japan"),
+    "JAP_J2L": ("J2 League", "Japan"),
+    "JAP_J3L": ("J3 League", "Japan"),
+    "JAP_JLE": ("J.League", "Japan"),
+    "JAP_WEL": ("WE League", "Japan"),
+    "JAP_JAPA": ("Japan Football League", "Japan"),
+    "JAP_NADE": ("Nadeshiko League", "Japan"),
+    "MEX_LIGA": ("Liga MX", "Mexico"),
+    "MEX_ASCE": ("Liga de Expansión MX", "Mexico"),
+    "AUS_ALE": ("A-League Men", "Australia"),
+    "AUS_LEAG": ("A-League Men", "Australia"),
+    "AUS_BUND": ("Austrian Bundesliga", "Austria"),
+    "HON_LIGA": ("Liga Nacional de Honduras", "Honduras"),
+    "HON_HKPL": ("Premier League", "Hong Kong"),
+    "HON_HKFA": ("First Division", "Hong Kong"),
+    "KOR_KLE": ("K League 1", "South Korea"),
+    "POL_LEAG": ("I Liga", "Poland"),
+    "POL_EKST": ("Ekstraklasa", "Poland"),
+    "BEL_FIRS": ("Belgian Pro League", "Belgium"),
+    "BEL_PREM": ("Belgian Pro League", "Belgium"),
+    "BEL_SECO": ("Challenger Pro League", "Belgium"),
+    "BEL_1D": ("Belgian First Division", "Belgium"),
+    "PAR_DIVI": ("División de Honor", "Paraguay"),
+    "ROM_LIGA": ("Liga I", "Romania"),
+    "ROM_LEAG": ("Liga II", "Romania"),
+    "COL_PRIM": ("Primera A", "Colombia"),
+    "COS_PRIM": ("Primera División", "Costa Rica"),
+    "COS_LIGA": ("Liga de Ascenso", "Costa Rica"),
+    "NIC_LIGA": ("Liga Primera", "Nicaragua"),
+    "URU_PRIM": ("Primera División", "Uruguay"),
+    "URU_SEGU": ("Segunda División", "Uruguay"),
+    "SAU_SAUD": ("Saudi Pro League", "Saudi Arabia"),
+    "MOR_BOTO": ("Botola Pro", "Morocco"),
+    "NIG_NPFL": ("Nigeria Premier Football League", "Nigeria"),
+    "CHI_CSL": ("Chinese Super League", "China"),
+    "CHI_LEAG": ("China League One", "China"),
+    "CHI_CHIN": ("Primera División", "Chile"),
+    "CHI_SEGU": ("Primera B", "Chile"),
+    "IND_LEAG": ("Indian Super League", "India"),
+    "IND_LIGA": ("I-League", "India"),
+    "IND_INDI": ("Indian Super League", "India"),
+    "ECU_LIGA": ("LigaPro Serie A", "Ecuador"),
+    "BOL_PRIM": ("División Profesional", "Bolivia"),
+    "GUA_LIGA": ("Liga Nacional", "Guatemala"),
+    "GUA_PRIM": ("Primera División", "Guatemala"),
+    "DEN_SUPE": ("Superliga", "Denmark"),
+    "DEN_1D": ("1st Division", "Denmark"),
+    "DEN_2D": ("2nd Division", "Denmark"),
+    "CRO_PRVA": ("HNL", "Croatia"),
+    "CRO_HNL": ("HNL", "Croatia"),
+    "CRO_SECO": ("First Football League", "Croatia"),
+    "SER_SUPE": ("SuperLiga", "Serbia"),
+    "SER_PRVA": ("Prva Liga", "Serbia"),
+    "UKR_PREM": ("Ukrainian Premier League", "Ukraine"),
+    "BUL_FIRS": ("First Professional Football League", "Bulgaria"),
+    "GRE_PANE": ("Super League 2", "Greece"),
+    "CAN_PREM": ("Canadian Premier League", "Canada"),
+    "SWI_SUPE": ("Swiss Super League", "Switzerland"),
+    "SWI_CHAL": ("Swiss Challenge League", "Switzerland"),
+    "RUS_PREM": ("Russian Premier League", "Russia"),
+    "RUS_FNL": ("Russian First League", "Russia"),
+    "NOR_ELIT": ("Eliteserien", "Norway"),
+    "NOR_OBOS": ("OBOS-ligaen", "Norway"),
+    "SWE_ALLS": ("Allsvenskan", "Sweden"),
+    "SWE_SUPE": ("Superettan", "Sweden"),
+    "FIN_VEIK": ("Veikkausliiga", "Finland"),
+    "CZE_FNL": ("National Football League", "Czech Republic"),
+    "AUT_BUND": ("Austrian Bundesliga", "Austria"),
+    "SLO_SUPE": ("PrvaLiga", "Slovenia"),
+    "SLO_2L": ("2. SNL", "Slovenia"),
+    "CYP_1D": ("First Division", "Cyprus"),
+    "CYP_FIRS": ("First Division", "Cyprus"),
+    "EST_MEIS": ("Premium Liiga", "Estonia"),
+    "GEO_EROV": ("Erovnuli Liga", "Georgia"),
+    "LIT_ALY": ("A Lyga", "Lithuania"),
+    "LAT_VIRS": ("Virslīga", "Latvia"),
+    "TUR_1L": ("TFF 1. Lig", "Turkey"),
+    "TUR_SUPE": ("Süper Lig", "Turkey"),
+    "BRA_SERI": ("Brasileirão Série A", "Brazil"),
+    "BRA_BRAZ": ("Brasileirão Série B", "Brazil"),
+    "BRA_CARI": ("Campeonato Carioca", "Brazil"),
+    "BRA_PAUL": ("Campeonato Paulista", "Brazil"),
+    "SEN_LIGU": ("Ligue 1", "Senegal"),
+    "TUN_LIGU": ("Ligue 1", "Tunisia"),
+    "KEN_PREM": ("Premier League", "Kenya"),
+    "GHA_PREM": ("Premier League", "Ghana"),
+    "ZAM_SUPE": ("Super League", "Zambia"),
+    "ANG_GIRA": ("Girabola", "Angola"),
+    "ALB_SUPE": ("Kategoria Superiore", "Albania"),
+    "BOS_PREM": ("Premier League", "Bosnia and Herzegovina"),
+    "KOS_SUPE": ("Superliga", "Kosovo"),
+    "MOL_SUPE": ("Super Liga", "Moldova"),
+    "UZB_SUPE": ("Super League", "Uzbekistan"),
+    "VIE_VLE": ("V.League 1", "Vietnam"),
+    "SIN_PREM": ("Premier League", "Singapore"),
+    "MAL_PREM": ("Premier League", "Malaysia"),
+    "MAL_SUPE": ("Super League", "Malaysia"),
+    "PER_PRIM": ("Liga 1", "Peru"),
+    "VEN_PRIM": ("Liga FUTVE", "Venezuela"),
+    "QAT_QSL": ("Stars League", "Qatar"),
+    "KUW_PREM": ("Premier League", "Kuwait"),
+    "BAH_PREM": ("Premier League", "Bahrain"),
+    "JOR_PRO": ("Pro League", "Jordan"),
+    "OMA_PROF": ("Professional League", "Oman"),
+    "ICE_ÚRVA": ("Besta deild karla", "Iceland"),
+    "FAR_MEIS": ("Premier League", "Faroe Islands"),
+    "LUX_BGL": ("National Division", "Luxembourg"),
+    "AND_1AD": ("Primera Divisió", "Andorra"),
+    "SAN_CAMP": ("Campionato Sammarinese", "San Marino"),
+    "WAL_PREM": ("Cymru Premier", "Wales"),
+    "GIB_NATI": ("National League", "Gibraltar"),
+    "NIR_PREM": ("NIFL Premiership", "Northern Ireland"),
+    "IRL_PREM": ("League of Ireland Premier Division", "Ireland"),
+    "SCO_CHAM": ("Scottish Championship", "Scotland")
 }
 
 KNOWN_SCRAPED_LEAGUES = {k: v[0] for k, v in LEAGUE_METADATA.items()}
 
+COUNTRY_CODE_MAP = {
+    "ENG": "England", "ESP": "Spain", "SPA": "Spain", "ITA": "Italy", "GER": "Germany", "FRA": "France",
+    "POR": "Portugal", "PRT": "Portugal", "NED": "Netherlands", "SCO": "Scotland", "TUR": "Turkey",
+    "BEL": "Belgium", "USA": "United States", "ARG": "Argentina", "COL": "Colombia", "BRA": "Brazil",
+    "BSA": "Brazil", "GRE": "Greece", "GSL": "Greece", "KOR": "South Korea", "MEX": "Mexico",
+    "DEN": "Denmark", "NOR": "Norway", "SWE": "Sweden", "SUI": "Switzerland", "SWI": "Switzerland",
+    "AUT": "Austria", "CRO": "Croatia", "CZE": "Czech Republic", "POL": "Poland", "UKR": "Ukraine",
+    "HUN": "Hungary", "SVK": "Slovakia", "SVN": "Slovenia", "SLO": "Slovenia", "SRB": "Serbia",
+    "SER": "Serbia", "BUL": "Bulgaria", "CYP": "Cyprus", "IRL": "Ireland", "NIR": "Northern Ireland",
+    "WAL": "Wales", "JPN": "Japan", "JAP": "Japan", "CHN": "China", "AUS": "Australia", "KSA": "Saudi Arabia",
+    "UAE": "United Arab Emirates", "QAT": "Qatar", "EGY": "Egypt", "NGA": "Nigeria", "NIG": "Nigeria",
+    "RSA": "South Africa", "MAR": "Morocco", "MOR": "Morocco", "ALG": "Algeria", "TUN": "Tunisia",
+    "GHA": "Ghana", "CMR": "Cameroon", "SEN": "Senegal", "CIV": "Ivory Coast", "CHI": "Chile",
+    "URU": "Uruguay", "PAR": "Paraguay", "BOL": "Bolivia", "PER": "Peru", "ECU": "Ecuador",
+    "VEN": "Venezuela", "CAN": "Canada", "CRC": "Costa Rica", "COS": "Costa Rica", "PAN": "Panama",
+    "HON": "Honduras", "GUA": "Guatemala", "SLV": "El Salvador", "EL": "El Salvador", "JAM": "Jamaica",
+    "SIN": "Singapore", "VIE": "Vietnam", "ICE": "Iceland", "FAR": "Faroe Islands", "LUX": "Luxembourg",
+    "AND": "Andorra", "SAN": "San Marino", "GIB": "Gibraltar", "KOS": "Kosovo", "MOL": "Moldova",
+    "UZB": "Uzbekistan", "GEO": "Georgia", "LAT": "Latvia", "LIT": "Lithuania", "BOS": "Bosnia and Herzegovina",
+    "ALB": "Albania", "ANG": "Angola", "ZAM": "Zambia", "KEN": "Kenya", "OMA": "Oman", "KUW": "Kuwait",
+    "BAH": "Bahrain", "JOR": "Jordan", "MAL": "Malaysia", "PHI": "Philippines", "NIC": "Nicaragua"
+}
+
+EXCLUDED_COMPETITION_KEYWORDS = [
+    "cup", "friendly", "friendlies", "amateur", "women", "femenin", "female", "frauen",
+    "femminil", "wsl", "u17", "u18", "u19", "u20", "u21", "u23", "youth",
+    "yth", "primavera", "revelação", "revelacao", "pl2", "premier league 2",
+    "beker", "pokal", "trophy", "fa cup", "efl cup", "carabao", "copa del rey",
+    "dfb pokal", "coupe de france", "coppa italia", "knvb", "reserve", "reserves",
+    "shield", "supercup", "super cup"
+]
+
+EXCLUDED_LEAGUE_IDS = {
+    "ENG_YTH", "ENG_PL2", "ENG_WSL", "ESP_FEM", "ESP_YTH", "ESP_RFEF",
+    "ITA_YTH", "ITA_FEM", "GER_FEM", "GER_YTH", "FRA_FEM", "FRA_YTH",
+    "FAC", "EFL", "CDR", "CIT", "DFB", "CDF", "L_666", "L_701", "L_702",
+    "L_703", "L_89", "ENG_FAT", "ENG_NL"
+}
+
+def is_excluded_competition(lid: str, league_name: Optional[str] = None, country: Optional[str] = None) -> bool:
+    if not lid:
+        return False
+    lid_upper = lid.upper().strip()
+    if lid_upper in EXCLUDED_LEAGUE_IDS:
+        return True
+    check_str = f"{lid_upper} {league_name or ''} {country or ''}".lower()
+    return any(kw in check_str for kw in EXCLUDED_COMPETITION_KEYWORDS)
+
 def format_league_display_name(lid: str) -> str:
     if not lid:
         return "International Football"
+    upper = lid.upper().strip()
+    if upper in LEAGUE_METADATA:
+        return LEAGUE_METADATA[upper][0]
     if lid in LEAGUE_METADATA:
         return LEAGUE_METADATA[lid][0]
-    if lid in config.LEAGUE_NAMES:
-        return config.LEAGUE_NAMES[lid]
+    if upper in config.LEAGUE_NAMES:
+        return config.LEAGUE_NAMES[upper]
     if lid.startswith("L_"):
-        return f"Pro Div #{lid.replace('L_', '')}"
-    return lid
+        num = lid.replace("L_", "")
+        return f"Professional League #{num}"
+    if "_" in upper:
+        prefix, suffix = upper.split("_", 1)
+        country = COUNTRY_CODE_MAP.get(prefix, "")
+        clean_suffix = suffix.replace("_", " ").title()
+        if country:
+            return f"{clean_suffix} ({country})"
+        return f"{prefix} {clean_suffix}"
+    return lid.replace("_", " ").title()
 
 def get_league_country(lid: str) -> str:
     if not lid:
         return "International"
+    upper = lid.upper().strip()
+    if upper in LEAGUE_METADATA:
+        raw_c = LEAGUE_METADATA[upper][1]
+        return COUNTRY_CODE_MAP.get(raw_c.upper(), raw_c)
     if lid in LEAGUE_METADATA:
-        return LEAGUE_METADATA[lid][1]
-    if lid in ["BSA"]: return "Brazil"
-    if lid in ["ARG"]: return "Argentina"
-    if lid in ["COL"]: return "Colombia"
-    if lid in ["PD"]: return "Spain"
-    if lid in ["SA"]: return "Italy"
-    if lid in ["BL1"]: return "Germany"
-    if lid in ["PL", "ELC", "EL1", "EL2"]: return "England"
-    if lid in ["UNL", "CL", "UEL"]: return "Europe"
+        raw_c = LEAGUE_METADATA[lid][1]
+        return COUNTRY_CODE_MAP.get(raw_c.upper(), raw_c)
+    if upper in ["BSA"]: return "Brazil"
+    if upper in ["ARG"]: return "Argentina"
+    if upper in ["COL"]: return "Colombia"
+    if upper in ["PD", "SD"]: return "Spain"
+    if upper in ["SA", "SB"]: return "Italy"
+    if upper in ["BL1", "BL2"]: return "Germany"
+    if upper in ["FL1", "FL2"]: return "France"
+    if upper in ["PL", "ELC", "EL1", "EL2"]: return "England"
+    if upper in ["UNL", "CL", "UEL", "UECL"]: return "Europe"
+    if upper in ["CAF_CL", "CAF_CC"]: return "Africa"
+    if upper in ["AFC_CL"]: return "Asia"
+    if upper in ["DED"]: return "Netherlands"
+    if upper in ["PPL", "PRT_L2"]: return "Portugal"
+    if upper in ["SC0"]: return "Scotland"
+    if upper in ["TUR"]: return "Turkey"
+    if upper in ["BEL", "BEL_1B"]: return "Belgium"
+    if upper in ["MLS"]: return "United States"
+    prefix = upper.split("_")[0] if "_" in upper else upper
+    if prefix in COUNTRY_CODE_MAP:
+        return COUNTRY_CODE_MAP[prefix]
     return "International"
 
 # ------------------------------------------------------------------
@@ -2012,38 +2206,136 @@ async def fetch_league_table(db: AsyncSession, league_id: str) -> Dict[str, Any]
         return cached
     result = await db.execute(select(LeagueTable).where(LeagueTable.league_id == league_id))
     rows = result.scalars().all()
-    data = {row.team_name: {
-        "position": row.position,
-        "goal_difference": row.goal_difference,
-        "last_5_form": row.last_5_form,
-        "points": row.points,
-        "goals_against": row.goals_against,
-        "played": row.played,
-        "goals_for": row.goals_for,
-        "wins": row.wins,
-        "draws": row.draws,
-        "losses": row.losses,
-        "home_played": row.home_played,
-        "home_wins": row.home_wins,
-        "home_goals_for": row.home_goals_for,
-        "home_goals_against": row.home_goals_against,
-        "away_played": row.away_played,
-        "away_wins": row.away_wins,
-        "away_goals_for": row.away_goals_for,
-        "away_goals_against": row.away_goals_against,
-        "home_clean_sheet_pct": row.home_clean_sheet_pct,
-        "away_clean_sheet_pct": row.away_clean_sheet_pct,
-        "home_failed_to_score_pct": row.home_failed_to_score_pct,
-        "away_failed_to_score_pct": row.away_failed_to_score_pct,
-        "home_corners_avg": row.home_corners_avg,
-        "away_corners_avg": row.away_corners_avg,
-        "home_cards_avg": row.home_cards_avg,
-        "away_cards_avg": row.away_cards_avg,
-        "xg_for_home": row.xg_for_home,
-        "xg_against_home": row.xg_against_home,
-        "xg_for_away": row.xg_for_away,
-        "xg_against_away": row.xg_against_away,
-    } for row in rows}
+    # Filter out mock rows where played == 12 and points == 18
+    valid_rows = [r for r in rows if not (r.played == 12 and r.points == 18)]
+    if valid_rows:
+        data = {row.team_name: {
+            "position": row.position,
+            "goal_difference": row.goal_difference,
+            "last_5_form": row.last_5_form,
+            "points": row.points,
+            "goals_against": row.goals_against,
+            "played": row.played,
+            "goals_for": row.goals_for,
+            "wins": row.wins,
+            "draws": row.draws,
+            "losses": row.losses,
+            "home_played": row.home_played,
+            "home_wins": row.home_wins,
+            "home_goals_for": row.home_goals_for,
+            "home_goals_against": row.home_goals_against,
+            "away_played": row.away_played,
+            "away_wins": row.away_wins,
+            "away_goals_for": row.away_goals_for,
+            "away_goals_against": row.away_goals_against,
+            "home_clean_sheet_pct": row.home_clean_sheet_pct,
+            "away_clean_sheet_pct": row.away_clean_sheet_pct,
+            "home_failed_to_score_pct": row.home_failed_to_score_pct,
+            "away_failed_to_score_pct": row.away_failed_to_score_pct,
+            "home_corners_avg": row.home_corners_avg,
+            "away_corners_avg": row.away_corners_avg,
+            "home_cards_avg": row.home_cards_avg,
+            "away_cards_avg": row.away_cards_avg,
+            "xg_for_home": row.xg_for_home,
+            "xg_against_home": row.xg_against_home,
+            "xg_for_away": row.xg_for_away,
+            "xg_against_away": row.xg_against_away,
+        } for row in valid_rows}
+    else:
+        # Dynamically compute real standings from finished HistoricalMatch records
+        stmt = select(HistoricalMatch).where(
+            HistoricalMatch.league_id == league_id,
+            HistoricalMatch.home_score.isnot(None),
+            HistoricalMatch.away_score.isnot(None)
+        ).order_by(HistoricalMatch.match_date.asc())
+        m_res = await db.execute(stmt)
+        matches = m_res.scalars().all()
+        teams = {}
+        for m in matches:
+            ht, at = m.home_team, m.away_team
+            try:
+                hs, as_ = int(m.home_score), int(m.away_score)
+            except (ValueError, TypeError):
+                continue
+            for t in (ht, at):
+                if t not in teams:
+                    teams[t] = {
+                        "played": 0, "wins": 0, "draws": 0, "losses": 0,
+                        "goals_for": 0, "goals_against": 0, "points": 0,
+                        "home_played": 0, "home_wins": 0, "home_goals_for": 0, "home_goals_against": 0,
+                        "away_played": 0, "away_wins": 0, "away_goals_for": 0, "away_goals_against": 0,
+                        "form": []
+                    }
+            teams[ht]["played"] += 1
+            teams[ht]["home_played"] += 1
+            teams[ht]["goals_for"] += hs
+            teams[ht]["home_goals_for"] += hs
+            teams[ht]["goals_against"] += as_
+            teams[ht]["home_goals_against"] += as_
+
+            teams[at]["played"] += 1
+            teams[at]["away_played"] += 1
+            teams[at]["goals_for"] += as_
+            teams[at]["away_goals_for"] += as_
+            teams[at]["goals_against"] += hs
+            teams[at]["away_goals_against"] += hs
+
+            if hs > as_:
+                teams[ht]["wins"] += 1
+                teams[ht]["home_wins"] += 1
+                teams[ht]["points"] += 3
+                teams[ht]["form"].append("W")
+                teams[at]["losses"] += 1
+                teams[at]["form"].append("L")
+            elif hs < as_:
+                teams[at]["wins"] += 1
+                teams[at]["away_wins"] += 1
+                teams[at]["points"] += 3
+                teams[at]["form"].append("W")
+                teams[ht]["losses"] += 1
+                teams[ht]["form"].append("L")
+            else:
+                teams[ht]["draws"] += 1
+                teams[ht]["points"] += 1
+                teams[ht]["form"].append("D")
+                teams[at]["draws"] += 1
+                teams[at]["points"] += 1
+                teams[at]["form"].append("D")
+
+        if len(teams) >= 2:
+            sorted_teams = sorted(teams.items(), key=lambda x: (x[1]["points"], x[1]["goals_for"] - x[1]["goals_against"], x[1]["goals_for"]), reverse=True)
+            data = {}
+            for pos, (t_name, s) in enumerate(sorted_teams, 1):
+                data[t_name] = {
+                    "position": pos,
+                    "goal_difference": s["goals_for"] - s["goals_against"],
+                    "last_5_form": "".join(s["form"][-5:]) if s["form"] else "N/A",
+                    "points": s["points"],
+                    "goals_against": s["goals_against"],
+                    "played": s["played"],
+                    "goals_for": s["goals_for"],
+                    "wins": s["wins"],
+                    "draws": s["draws"],
+                    "losses": s["losses"],
+                    "home_played": s["home_played"],
+                    "home_wins": s["home_wins"],
+                    "home_goals_for": s["home_goals_for"],
+                    "home_goals_against": s["home_goals_against"],
+                    "away_played": s["away_played"],
+                    "away_wins": s["away_wins"],
+                    "away_goals_for": s["away_goals_for"],
+                    "away_goals_against": s["away_goals_against"],
+                    "home_clean_sheet_pct": 0.35,
+                    "away_clean_sheet_pct": 0.25,
+                    "home_corners_avg": 5.2,
+                    "away_corners_avg": 4.5,
+                    "home_cards_avg": 1.9,
+                    "away_cards_avg": 2.1,
+                    "xg_for_home": 1.5,
+                    "xg_against_away": 1.3
+                }
+        else:
+            data = {}
     league_table_cache.set(cache_key, data)
     return data
 
@@ -2322,7 +2614,7 @@ class ResponseBuilder:
             "message": message,
             "explanation": {
                 "headline": "Prediction Unavailable — Insufficient Verified Data",
-                "rule": "TipAlgo requires complete, verified league standings and form before generating predictions.",
+                "rule": "SportyMill requires complete, verified league standings and form before generating predictions.",
                 "drivers": ["Team statistics missing or unverified"],
                 "stats": "Insufficient verified data",
                 "risks": ["Fabrication prevention guard triggered"]
@@ -4314,7 +4606,7 @@ async def lifespan(app: FastAPI):
         )
         logger.info("Sentry initialized")
 
-    logger.info("TipAlgo v21 started – Paid-only mode with Value Screener")
+    logger.info("SportyMill v21 started – Paid-only mode with Value Screener")
 
     # Background cache pre-warm for default date & initial resources so user gets instant sub-10ms response
     async def _prewarm_initial_cache():
@@ -4341,7 +4633,7 @@ async def lifespan(app: FastAPI):
     if _redis_client is not None:
         await _redis_client.close()
         logger.info("Redis connection closed")
-    logger.info("Shutting down TipAlgo v21")
+    logger.info("Shutting down SportyMill v21")
 
 docs_kwargs = {}
 if not config.DEBUG:
@@ -4351,7 +4643,7 @@ if not config.DEBUG:
         "openapi_url": None
     }
 
-app = FastAPI(title="TipAlgo v21 – Production", version="21.0", lifespan=lifespan, **docs_kwargs)
+app = FastAPI(title="SportyMill v21 – Production", version="21.0", lifespan=lifespan, **docs_kwargs)
 
 allowed_origins = [
     "http://localhost:8000",
@@ -4388,7 +4680,7 @@ async def root():
         with open(index_path) as f:
             return HTMLResponse(f.read())
     except FileNotFoundError:
-        return HTMLResponse("<h1>TipAlgo v21</h1><p>Static frontend not found.</p>")
+        return HTMLResponse("<h1>SportyMill v21</h1><p>Static frontend not found.</p>")
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
@@ -4497,7 +4789,7 @@ async def register_user(req: RegisterRequest, db: AsyncSession = Depends(get_db)
     
     clean_phone = req.phone_number.strip().replace(" ", "").replace("-", "")
     username_clean = req.username.strip()
-    email_val = req.email or f"{username_clean.lower()}@{clean_phone[-4:] if len(clean_phone)>=4 else 'user'}.tipalgo.com"
+    email_val = req.email or f"{username_clean.lower()}@{clean_phone[-4:] if len(clean_phone)>=4 else 'user'}.sportymill.com"
 
     res = await db.execute(
         select(User).where(
@@ -4586,7 +4878,12 @@ async def login_user(req: LoginRequest, request: Request, db: AsyncSession = Dep
         existing_res = await db.execute(select(AuthorizedDevice).where(AuthorizedDevice.device_id == device_id))
         existing_dev = existing_res.scalar_one_or_none()
 
-        active_devices_res = await db.execute(select(AuthorizedDevice).where(AuthorizedDevice.is_active == True))
+        active_devices_res = await db.execute(
+            select(AuthorizedDevice).where(
+                AuthorizedDevice.is_active == True,
+                AuthorizedDevice.username == user.username
+            )
+        )
         active_devices = [d for d in active_devices_res.scalars().all() if not existing_dev or d.id != existing_dev.id]
 
         if existing_dev and existing_dev.is_active:
@@ -4597,8 +4894,10 @@ async def login_user(req: LoginRequest, request: Request, db: AsyncSession = Dep
         else:
             # Device needs activation (either re-activating inactive row or inserting new row)
             if len(active_devices) >= config.MAX_SYSTEM_DEVICES:
-                # Check for Master Override PIN
-                if req.override_pin and req.override_pin.strip() == config.ADMIN_DEVICE_KEY:
+                # If partner or admin, or Master Override PIN provided, automatically rotate out oldest device slot
+                is_whitelisted = user.username in config.ALLOWED_USERNAMES
+                has_valid_pin = req.override_pin and req.override_pin.strip() == config.ADMIN_DEVICE_KEY
+                if is_whitelisted or has_valid_pin:
                     oldest_dev = sorted(active_devices, key=lambda d: d.last_login or d.created_at)[0]
                     oldest_dev.is_active = False
                     if existing_dev:
@@ -4620,7 +4919,7 @@ async def login_user(req: LoginRequest, request: Request, db: AsyncSession = Dep
                         )
                         db.add(new_dev)
                     await db.commit()
-                    logger.info(f"Master PIN used: Authorized device '{device_name}' replacing '{oldest_dev.device_name}'")
+                    logger.info(f"Authorized device registered with slot rotation: '{device_name}' replacing '{oldest_dev.device_name}' (whitelisted={is_whitelisted})")
                 else:
                     dev_summaries = [
                         {
@@ -5014,10 +5313,20 @@ async def auto_generate_date_fixtures(db: AsyncSession, target_date: str):
 async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: PredictorService, endpoint: Optional[str] = "all"):
     endpoint_counts = {ep["id"]: 0 for ep in ALL_33_ENDPOINTS_METADATA}
     match_cards = []
+    ep_filter = (endpoint or "all").strip().lower()
     
     for m in fixtures:
         if m.external_id and (m.external_id.startswith("SYN-") or m.external_id.startswith("auto_")):
             continue
+
+        league_id = m.league_id
+        country = get_league_country(league_id)
+        league_name = format_league_display_name(league_id)
+
+        # Exclude cups, friendlies, amateur, youth, and women competitions
+        if is_excluded_competition(league_id, league_name, country):
+            continue
+
         m_home_odds = float(m.home_odds or 2.10)
         m_draw_odds = float(m.draw_odds or 3.25)
         m_away_odds = float(m.away_odds or 3.40)
@@ -5117,9 +5426,15 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
         o35_p = float(all_p.get("over_3_5", 0.28))
         btts_y = float(all_p.get("btts_yes", 0.51))
         btts_n = float(all_p.get("btts_no", 0.49))
-        dc_p = round(home_prob + draw_prob, 2)
+        dc_home_p = round(home_prob + draw_prob, 2)
+        dc_away_p = round(away_prob + draw_prob, 2)
+        dc_win_p = max(dc_home_p, dc_away_p)
         win_nil_p = round(home_prob * btts_n, 2)
-        edge = max(home_prob - 1.0/m_home_odds, away_prob - 1.0/m_away_odds)
+        
+        home_edge = round(home_prob - (1.0 / max(1.01, m_home_odds)), 3)
+        away_edge = round(away_prob - (1.0 / max(1.01, m_away_odds)), 3)
+        draw_edge = round(draw_prob - (1.0 / max(1.01, m_draw_odds)), 3)
+        edge = max(home_edge, away_edge)
         h_pos = probs.get("home_pos", 10)
         a_pos = probs.get("away_pos", 10)
 
@@ -5128,65 +5443,70 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
         h_cards = 1.4 + ((1.0 - home_prob) * 1.5)
         a_cards = 1.6 + ((1.0 - away_prob) * 1.4)
 
-        q_eps = set()
-        if home_prob >= 0.46: q_eps.add("home-win")
-        if draw_prob >= 0.28: q_eps.add("draw")
-        if away_prob >= 0.30 or away_prob > home_prob: q_eps.add("away-win")
-        if dc_p >= 0.65: q_eps.add("double-chance")
-        if o15_p >= 0.70: q_eps.add("over-1-5")
-        if o25_p >= 0.50: q_eps.add("over-2-5")
-        if o35_p >= 0.28: q_eps.add("over-3-5")
-        if btts_y >= 0.48: q_eps.add("btts-yes")
-        if btts_n >= 0.46: q_eps.add("btts-no")
-        if home_prob >= 0.46 or draw_prob >= 0.28: q_eps.add("ht-result")
-        if win_nil_p >= 0.18: q_eps.add("win-to-nil")
-        if max(home_prob, draw_prob, away_prob) >= 0.45: q_eps.add("correct-score")
-        if (hc + ac) >= 9.0: q_eps.add("corners-total")
-        if abs(hc - ac) >= 0.6: q_eps.add("corners-1x2")
-        if (h_cards + a_cards) >= 3.6: q_eps.add("cards-total")
-        if abs(h_cards - a_cards) >= 0.3: q_eps.add("cards-1x2")
-        if o15_p >= 0.72: q_eps.add("goal-both-halves")
-        if home_prob >= 0.46 or o25_p >= 0.50: q_eps.add("team-total-goals")
-        if btts_y >= 0.48 and o25_p >= 0.48: q_eps.add("btts-over-2-5")
-        if (m_away_odds >= 2.5 and away_prob > (1.0 / m_away_odds)) or away_prob >= 0.32: q_eps.add("away-underdog")
-        if max(home_prob, away_prob) >= 0.50: q_eps.add("fade-underdog")
-        if abs(h_pos - a_pos) >= 3 or abs(home_prob - away_prob) >= 0.18: q_eps.add("form-gap")
-        if (m_home_odds < 1.90 and home_prob < 0.52) or (m_away_odds < 2.0 and away_prob < 0.45) or abs(home_prob - 1.0/m_home_odds) > 0.08: q_eps.add("underdog-trap")
-        if max(home_prob, draw_prob, away_prob) >= 0.45: q_eps.add("ml-predictor")
-        if (edge >= 0.01 and max(home_prob, away_prob) >= 0.48) or dc_p >= 0.75: q_eps.add("super-tips")
-        if max(home_prob, dc_p, o15_p) >= 0.68: q_eps.add("sure-bet")
-        if home_prob >= 0.50: q_eps.add("straight-home-win")
-        if (1.0 - float(all_p.get("home_clean_sheet", 0.35))) >= 0.65: q_eps.add("team-to-score")
-        if len(q_eps) >= 3: q_eps.add("batch-scan")
-        if dc_p >= 0.65 or o15_p >= 0.70: q_eps.add("accumulator")
-        if u25_p >= 0.48: q_eps.add("no-three-goals")
-        if dc_p >= 0.72: q_eps.add("strong-home-dc")
-        if edge >= 0.01 or home_prob >= 0.50: q_eps.add("value-screener")
-        
-        for ep_key in q_eps:
-            endpoint_counts[ep_key] = endpoint_counts.get(ep_key, 0) + 1
-            
-        if endpoint and endpoint != "all" and endpoint not in q_eps:
-            continue
-            
-        league_id = m.league_id
-        country = get_league_country(league_id)
-        
-        o25_market_odds = round(max(1.45, 1.0 / (o25_p * 0.93)), 2)
-        btts_market_odds = round(max(1.50, 1.0 / (btts_y * 0.93)), 2)
-        u25_market_odds = round(max(1.48, 1.0 / (u25_p * 0.92)), 2)
-        o15_market_odds = round(max(1.18, 1.0 / (o15_p * 0.94)), 2)
+        o25_market_odds = round(max(1.45, 1.0 / (max(0.05, o25_p) * 0.93)), 2)
+        btts_market_odds = round(max(1.50, 1.0 / (max(0.05, btts_y) * 0.93)), 2)
+        u25_market_odds = round(max(1.48, 1.0 / (max(0.05, u25_p) * 0.92)), 2)
+        o15_market_odds = round(max(1.18, 1.0 / (max(0.05, o15_p) * 0.94)), 2)
+        o35_market_odds = round(max(1.95, 1.0 / (max(0.05, o35_p) * 0.92)), 2)
+        btts_no_market_odds = round(max(1.55, 1.0 / (max(0.05, btts_n) * 0.92)), 2)
 
         if home_prob >= away_prob:
             dc_label = f"{m.home_team} or Draw (1X)"
             dc_market = "1X (Home or Draw)"
-            dc_win_p = dc_p
-            dc_odds = round(max(1.14, 1.0 / (dc_win_p * 0.94)), 2)
+            dc_odds = round(max(1.14, 1.0 / (max(0.05, dc_home_p) * 0.94)), 2)
         else:
             dc_label = f"{m.away_team} or Draw (X2)"
             dc_market = "X2 (Away or Draw)"
-            dc_win_p = round(away_prob + draw_prob, 2)
-            dc_odds = round(max(1.14, 1.0 / (dc_win_p * 0.94)), 2)
+            dc_odds = round(max(1.14, 1.0 / (max(0.05, dc_away_p) * 0.94)), 2)
+
+        dc_edge = round(dc_win_p - (1.0 / dc_odds), 3)
+        o15_edge = round(o15_p - (1.0 / o15_market_odds), 3)
+        o25_edge = round(o25_p - (1.0 / o25_market_odds), 3)
+        u25_edge = round(u25_p - (1.0 / u25_market_odds), 3)
+        btts_y_edge = round(btts_y - (1.0 / btts_market_odds), 3)
+        btts_n_edge = round(btts_n - (1.0 / btts_no_market_odds), 3)
+
+        # Precise algorithmic threshold qualification
+        q_eps = set()
+        if home_prob >= 0.50 and home_prob > away_prob and home_edge >= 0.02: q_eps.add("home-win")
+        if draw_prob >= 0.28 and draw_edge >= 0.01: q_eps.add("draw")
+        if away_prob >= 0.36 and away_prob > home_prob and away_edge >= 0.02: q_eps.add("away-win")
+        if dc_win_p >= 0.68 and dc_edge >= 0.01: q_eps.add("double-chance")
+        if o15_p >= 0.78 and o15_edge >= 0.02: q_eps.add("over-1-5")
+        if o25_p >= 0.54 and o25_edge >= 0.02: q_eps.add("over-2-5")
+        if o35_p >= 0.32 and (o35_p - 1.0/o35_market_odds) >= 0.01: q_eps.add("over-3-5")
+        if btts_y >= 0.52 and btts_y_edge >= 0.02: q_eps.add("btts-yes")
+        if btts_n >= 0.50 and btts_n_edge >= 0.01: q_eps.add("btts-no")
+        if home_prob >= 0.50 or draw_prob >= 0.32: q_eps.add("ht-result")
+        if win_nil_p >= 0.20 and home_prob >= 0.50: q_eps.add("win-to-nil")
+        if max(home_prob, draw_prob, away_prob) >= 0.48: q_eps.add("correct-score")
+        if (hc + ac) >= 9.2: q_eps.add("corners-total")
+        if abs(hc - ac) >= 0.8: q_eps.add("corners-1x2")
+        if (h_cards + a_cards) >= 3.6: q_eps.add("cards-total")
+        if abs(h_cards - a_cards) >= 0.4: q_eps.add("cards-1x2")
+        if o15_p >= 0.76 and (home_prob >= 0.45 or away_prob >= 0.45): q_eps.add("goal-both-halves")
+        if home_prob >= 0.50 or o25_p >= 0.54: q_eps.add("team-total-goals")
+        if btts_y >= 0.50 and o25_p >= 0.50: q_eps.add("btts-over-2-5")
+        if (m_away_odds >= 2.50 and away_edge >= 0.02 and away_prob >= 0.30): q_eps.add("away-underdog")
+        if max(home_prob, away_prob) >= 0.52 and max(home_edge, away_edge) >= 0.02: q_eps.add("fade-underdog")
+        if abs(h_pos - a_pos) >= 3 or abs(home_prob - away_prob) >= 0.20: q_eps.add("form-gap")
+        if (m_home_odds < 1.90 and home_prob < 0.50) or (m_away_odds < 2.0 and away_prob < 0.42): q_eps.add("underdog-trap")
+        if max(home_prob, draw_prob, away_prob) >= 0.48: q_eps.add("ml-predictor")
+        if (edge >= 0.03 and max(home_prob, away_prob) >= 0.52) or dc_win_p >= 0.76: q_eps.add("super-tips")
+        if (home_edge >= 0.04 and home_prob >= 0.55) or (away_edge >= 0.04 and away_prob >= 0.45) or dc_win_p >= 0.78: q_eps.add("sure-bet")
+        if home_prob >= 0.54 and home_edge >= 0.03: q_eps.add("straight-home-win")
+        if (1.0 - float(all_p.get("home_clean_sheet", 0.35))) >= 0.68: q_eps.add("team-to-score")
+        if len(q_eps) >= 3: q_eps.add("batch-scan")
+        if dc_win_p >= 0.70 or o15_p >= 0.78: q_eps.add("accumulator")
+        if u25_p >= 0.52 and u25_edge >= 0.02: q_eps.add("no-three-goals")
+        if dc_home_p >= 0.74 and home_prob >= away_prob: q_eps.add("strong-home-dc")
+        if edge >= 0.03 or home_prob >= 0.52: q_eps.add("value-screener")
+        
+        for ep_key in q_eps:
+            endpoint_counts[ep_key] = endpoint_counts.get(ep_key, 0) + 1
+            
+        if ep_filter != "all" and ep_filter not in q_eps:
+            continue
 
         tips = [
             {
@@ -5194,20 +5514,23 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
                 "odds": dc_odds,
                 "prob_pct": round(dc_win_p * 100),
                 "market": dc_market,
-                "qualified": "double-chance" in q_eps or dc_win_p >= 0.70
+                "endpoint_id": "double-chance",
+                "qualified": "double-chance" in q_eps
             },
             {
-                "label": "Over 1.5 Total Match Goals",
+                "label": "Over 1.5 Goals",
                 "odds": o15_market_odds,
                 "prob_pct": round(o15_p * 100),
-                "market": "Over 1.5 Total Match Goals",
-                "qualified": "over-1-5" in q_eps or o15_p >= 0.70
+                "market": "Over 1.5 Goals",
+                "endpoint_id": "over-1-5",
+                "qualified": "over-1-5" in q_eps
             },
             {
-                "label": f"{m.home_team} Win",
+                "label": f"{m.home_team}: Home Win",
                 "odds": round(m_home_odds, 2),
                 "prob_pct": round(home_prob * 100),
                 "market": f"{m.home_team} Win",
+                "endpoint_id": "home-win",
                 "qualified": "home-win" in q_eps
             },
             {
@@ -5215,60 +5538,286 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
                 "odds": o25_market_odds,
                 "prob_pct": round(o25_p * 100),
                 "market": "Over 2.5 Goals",
-                "qualified": "over-2-5" in q_eps or o25_p >= 0.50
+                "endpoint_id": "over-2-5",
+                "qualified": "over-2-5" in q_eps
             },
             {
-                "label": "BTTS: Yes",
+                "label": "Both Teams to Score",
                 "odds": btts_market_odds,
                 "prob_pct": round(btts_y * 100),
                 "market": "Both Teams to Score",
-                "qualified": "btts-yes" in q_eps or btts_y >= 0.50
+                "endpoint_id": "btts-yes",
+                "qualified": "btts-yes" in q_eps
             },
             {
                 "label": "Under 2.5 Goals",
                 "odds": u25_market_odds,
                 "prob_pct": round(u25_p * 100),
                 "market": "Under 2.5 Goals",
-                "qualified": "no-three-goals" in q_eps or u25_p >= 0.50
+                "endpoint_id": "no-three-goals",
+                "qualified": "no-three-goals" in q_eps
             }
         ]
 
-        candidates = []
-        if home_prob >= 0.52:
-            candidates.append((tips[2], int(home_prob * 100) + 10))
-        elif away_prob >= 0.52:
-            away_tip = {
-                "label": f"{m.away_team} Win",
+        endpoint_tip_map = {
+            "home-win": {
+                "label": f"{m.home_team}: Home Win",
+                "odds": round(m_home_odds, 2),
+                "prob_pct": round(home_prob * 100),
+                "market": f"{m.home_team} Win",
+                "endpoint_id": "home-win"
+            },
+            "straight-home-win": {
+                "label": f"{m.home_team}: Home Win",
+                "odds": round(m_home_odds, 2),
+                "prob_pct": round(home_prob * 100),
+                "market": f"{m.home_team} Win",
+                "endpoint_id": "straight-home-win"
+            },
+            "strong-home-dc": {
+                "label": f"{m.home_team} or Draw (1X)",
+                "odds": dc_odds,
+                "prob_pct": round(dc_home_p * 100),
+                "market": "1X (Home or Draw)",
+                "endpoint_id": "strong-home-dc"
+            },
+            "away-win": {
+                "label": f"{m.away_team}: Away Win",
                 "odds": round(m_away_odds, 2),
                 "prob_pct": round(away_prob * 100),
                 "market": f"{m.away_team} Win",
-                "qualified": "away-win" in q_eps
+                "endpoint_id": "away-win"
+            },
+            "away-underdog": {
+                "label": f"{m.away_team}: Away Win",
+                "odds": round(m_away_odds, 2),
+                "prob_pct": round(away_prob * 100),
+                "market": f"{m.away_team} Win",
+                "endpoint_id": "away-underdog"
+            },
+            "draw": {
+                "label": "Match Draw (X)",
+                "odds": round(m_draw_odds, 2),
+                "prob_pct": round(draw_prob * 100),
+                "market": "Draw",
+                "endpoint_id": "draw"
+            },
+            "double-chance": {
+                "label": dc_label,
+                "odds": dc_odds,
+                "prob_pct": round(dc_win_p * 100),
+                "market": dc_market,
+                "endpoint_id": "double-chance"
+            },
+            "over-1-5": {
+                "label": "Over 1.5 Goals",
+                "odds": o15_market_odds,
+                "prob_pct": round(o15_p * 100),
+                "market": "Over 1.5 Goals",
+                "endpoint_id": "over-1-5"
+            },
+            "over-2-5": {
+                "label": "Over 2.5 Goals",
+                "odds": o25_market_odds,
+                "prob_pct": round(o25_p * 100),
+                "market": "Over 2.5 Goals",
+                "endpoint_id": "over-2-5"
+            },
+            "over-3-5": {
+                "label": "Over 3.5 Goals",
+                "odds": o35_market_odds,
+                "prob_pct": round(o35_p * 100),
+                "market": "Over 3.5 Goals",
+                "endpoint_id": "over-3-5"
+            },
+            "btts-yes": {
+                "label": "Both Teams to Score",
+                "odds": btts_market_odds,
+                "prob_pct": round(btts_y * 100),
+                "market": "Both Teams to Score",
+                "endpoint_id": "btts-yes"
+            },
+            "btts-no": {
+                "label": "BTTS: No (Clean Sheet)",
+                "odds": btts_no_market_odds,
+                "prob_pct": round(btts_n * 100),
+                "market": "BTTS: No",
+                "endpoint_id": "btts-no"
+            },
+            "btts-over-2-5": {
+                "label": "BTTS & Over 2.5 Combo",
+                "odds": round(max(1.90, 1.0 / (max(0.1, btts_y * o25_p) * 0.90)), 2),
+                "prob_pct": round((btts_y * o25_p) * 100),
+                "market": "BTTS & Over 2.5 Combo",
+                "endpoint_id": "btts-over-2-5"
+            },
+            "no-three-goals": {
+                "label": "Under 2.5 Goals",
+                "odds": u25_market_odds,
+                "prob_pct": round(u25_p * 100),
+                "market": "Under 2.5 Goals",
+                "endpoint_id": "no-three-goals"
+            },
+            "goal-both-halves": {
+                "label": "Goal in Both Halves",
+                "odds": round(max(1.45, 1.0 / (max(0.1, o15_p) * 0.88)), 2),
+                "prob_pct": round(o15_p * 0.92 * 100),
+                "market": "Goal in Both Halves",
+                "endpoint_id": "goal-both-halves"
+            },
+            "win-to-nil": {
+                "label": f"{m.home_team if home_prob >= away_prob else m.away_team}: Win to Nil",
+                "odds": round(max(2.10, 1.0 / (max(0.15, win_nil_p) * 0.90)), 2),
+                "prob_pct": round(win_nil_p * 100),
+                "market": "Win to Nil",
+                "endpoint_id": "win-to-nil"
+            },
+            "corners-total": {
+                "label": "Over 9.5 Total Corners",
+                "odds": 1.85,
+                "prob_pct": round(min(88, max(52, ((hc + ac) / 10.0) * 55))),
+                "market": "Over 9.5 Corners",
+                "endpoint_id": "corners-total"
+            },
+            "corners-1x2": {
+                "label": f"{m.home_team if hc >= ac else m.away_team}: Most Corners",
+                "odds": 1.75,
+                "prob_pct": round(min(85, max(54, (max(hc, ac) / (hc + ac)) * 100))),
+                "market": "Corners Winner",
+                "endpoint_id": "corners-1x2"
+            },
+            "cards-total": {
+                "label": "Over 3.5 Total Cards",
+                "odds": 1.80,
+                "prob_pct": round(min(86, max(50, ((h_cards + a_cards) / 4.0) * 54))),
+                "market": "Over 3.5 Cards",
+                "endpoint_id": "cards-total"
+            },
+            "cards-1x2": {
+                "label": f"{m.home_team if h_cards >= a_cards else m.away_team}: Most Cards",
+                "odds": 1.95,
+                "prob_pct": round(min(82, max(52, (max(h_cards, a_cards) / (h_cards + a_cards)) * 100))),
+                "market": "Cards Winner",
+                "endpoint_id": "cards-1x2"
+            },
+            "team-total-goals": {
+                "label": f"{m.home_team if home_prob >= away_prob else m.away_team}: Over 1.5 Team Goals",
+                "odds": round(max(1.50, 1.0 / (max(home_prob, away_prob) * 0.92)), 2),
+                "prob_pct": round(max(home_prob, away_prob) * 100),
+                "market": "Team Total Over 1.5",
+                "endpoint_id": "team-total-goals"
+            },
+            "team-to-score": {
+                "label": f"{m.away_team if away_prob >= 0.35 else m.home_team}: To Score (Anytime)",
+                "odds": 1.35,
+                "prob_pct": round((1.0 - float(all_p.get("home_clean_sheet", 0.35))) * 100),
+                "market": "Team to Score",
+                "endpoint_id": "team-to-score"
+            },
+            "fade-underdog": {
+                "label": f"{m.home_team if home_prob >= away_prob else m.away_team}: Fade Underdog",
+                "odds": round(m_home_odds if home_prob >= away_prob else m_away_odds, 2),
+                "prob_pct": round((home_prob if home_prob >= away_prob else away_prob) * 100),
+                "market": f"{m.home_team if home_prob >= away_prob else m.away_team} Win",
+                "endpoint_id": "fade-underdog"
+            },
+            "value-screener": {
+                "label": f"{m.home_team}: Value Edge" if home_edge >= max(away_edge, 0.02) else (f"{m.away_team}: Value Edge" if away_edge >= 0.02 else f"{m.home_team if home_prob >= away_prob else m.away_team}: Fair Price"),
+                "odds": round(m_home_odds if (home_edge >= max(away_edge, 0.02) or home_prob >= away_prob) else m_away_odds, 2),
+                "prob_pct": round((home_prob if (home_edge >= max(away_edge, 0.02) or home_prob >= away_prob) else away_prob) * 100),
+                "market": f"{m.home_team} Win" if (home_edge >= max(away_edge, 0.02) or home_prob >= away_prob) else f"{m.away_team} Win",
+                "endpoint_id": "value-screener"
+            },
+            "ml-predictor": {
+                "label": f"{m.home_team if home_prob >= away_prob else m.away_team}: Ensemble Pick",
+                "odds": round(m_home_odds if home_prob >= away_prob else m_away_odds, 2),
+                "prob_pct": round(min(92, max(50, (home_prob if home_prob >= away_prob else away_prob) * 102))),
+                "market": f"{m.home_team if home_prob >= away_prob else m.away_team} Win",
+                "endpoint_id": "ml-predictor"
+            },
+            "sure-bet": {
+                "label": "Over 1.5 Goals Foundation" if o15_p >= max(dc_win_p, 0.80) else (dc_label if dc_win_p >= 0.75 else f"{m.home_team}: Match Banker"),
+                "odds": o15_market_odds if o15_p >= max(dc_win_p, 0.80) else (dc_odds if dc_win_p >= 0.75 else round(m_home_odds, 2)),
+                "prob_pct": round(o15_p * 100) if o15_p >= max(dc_win_p, 0.80) else (round(dc_win_p * 100) if dc_win_p >= 0.75 else round(home_prob * 100)),
+                "market": "Over 1.5 Goals" if o15_p >= max(dc_win_p, 0.80) else (dc_market if dc_win_p >= 0.75 else f"{m.home_team} Win"),
+                "endpoint_id": "sure-bet"
+            },
+            "form-gap": {
+                "label": f"{m.home_team if home_prob >= away_prob else m.away_team}: Form Momentum",
+                "odds": round(m_home_odds if home_prob >= away_prob else m_away_odds, 2),
+                "prob_pct": round((home_prob if home_prob >= away_prob else away_prob) * 100),
+                "market": f"{m.home_team if home_prob >= away_prob else m.away_team} Win",
+                "endpoint_id": "form-gap"
+            },
+            "super-tips": {
+                "label": f"{m.home_team}: Super Home Banker" if home_prob >= 0.58 else (dc_label if dc_win_p >= 0.75 else f"{m.home_team if home_prob >= away_prob else m.away_team}: High Conviction"),
+                "odds": round(m_home_odds, 2) if home_prob >= 0.58 else (dc_odds if dc_win_p >= 0.75 else round(m_home_odds if home_prob >= away_prob else m_away_odds, 2)),
+                "prob_pct": round(home_prob * 100) if home_prob >= 0.58 else (round(dc_win_p * 100) if dc_win_p >= 0.75 else round(max(home_prob, away_prob) * 100)),
+                "market": f"{m.home_team} Win" if home_prob >= 0.58 else (dc_market if dc_win_p >= 0.75 else f"{m.home_team if home_prob >= away_prob else m.away_team} Win"),
+                "endpoint_id": "super-tips"
+            },
+            "accumulator": {
+                "label": dc_label if dc_win_p >= 0.72 else ("Over 1.5 Goals" if o15_p >= 0.78 else f"{m.home_team if home_prob >= away_prob else m.away_team}: Win"),
+                "odds": dc_odds if dc_win_p >= 0.72 else (o15_market_odds if o15_p >= 0.78 else round(m_home_odds if home_prob >= away_prob else m_away_odds, 2)),
+                "prob_pct": round(dc_win_p * 100) if dc_win_p >= 0.72 else (round(o15_p * 100) if o15_p >= 0.78 else round(max(home_prob, away_prob) * 100)),
+                "market": dc_market if dc_win_p >= 0.72 else ("Over 1.5 Goals" if o15_p >= 0.78 else f"{m.home_team if home_prob >= away_prob else m.away_team} Win"),
+                "endpoint_id": "accumulator"
+            },
+            "batch-scan": {
+                "label": f"{m.home_team if home_prob >= away_prob else m.away_team}: Algorithmic Scan",
+                "odds": round(m_home_odds if home_prob >= away_prob else m_away_odds, 2),
+                "prob_pct": round(max(home_prob, away_prob) * 100),
+                "market": f"{m.home_team if home_prob >= away_prob else m.away_team} Win",
+                "endpoint_id": "batch-scan"
             }
-            candidates.append((away_tip, int(away_prob * 100) + 8))
+        }
 
-        if dc_win_p >= 0.74:
-            candidates.append((tips[0], int(dc_win_p * 100)))
-        if o15_p >= 0.78:
-            candidates.append((tips[1], int(o15_p * 100)))
-        if o25_p >= 0.60:
-            candidates.append((tips[3], int(o25_p * 100) + 4))
-        if btts_y >= 0.56:
-            candidates.append((tips[4], int(btts_y * 100)))
-        if u25_p >= 0.62:
-            candidates.append((tips[5], int(u25_p * 100)))
-
-        if candidates:
-            candidates.sort(key=lambda c: c[1], reverse=True)
-            top_tip = candidates[0][0]
+        # If a specific endpoint was requested, ONLY show that endpoint's exact prediction
+        if ep_filter != "all" and ep_filter in endpoint_tip_map:
+            top_tip = endpoint_tip_map[ep_filter]
         else:
-            top_tip = max(tips, key=lambda t: t["prob_pct"])
+            # For general slate, select highest conviction pick (Home Win, Away Win, BTTS, O2.5) without forcing Over 1.5 everywhere
+            if home_prob >= 0.50 and home_prob > away_prob and home_edge >= 0.03:
+                top_tip = tips[2]  # Home Win
+            elif away_prob >= 0.40 and away_prob > home_prob and away_edge >= 0.03:
+                top_tip = {
+                    "label": f"{m.away_team}: Away Win",
+                    "odds": round(m_away_odds, 2),
+                    "prob_pct": round(away_prob * 100),
+                    "market": f"{m.away_team} Win",
+                    "endpoint_id": "away-win",
+                    "qualified": "away-win" in q_eps
+                }
+            elif o25_p >= 0.56 and o25_edge >= 0.02:
+                top_tip = tips[3]  # Over 2.5 Goals
+            elif btts_y >= 0.54 and btts_y_edge >= 0.02:
+                top_tip = tips[4]  # BTTS: Yes
+            elif dc_win_p >= 0.74 and dc_edge >= 0.02:
+                top_tip = tips[0]  # Double Chance
+            elif u25_p >= 0.56 and u25_edge >= 0.02:
+                top_tip = tips[5]  # Under 2.5 Goals
+            elif o15_p >= 0.78:
+                top_tip = tips[1]  # Over 1.5 Goals
+            else:
+                top_tip = tips[0]
 
-        if home_prob > 0.55:
-            banter = f"Omo, {m.home_team} dey enter this match with full ground force! Defense solid, strikers hungry. Easy work!"
-        elif o25_p > 0.55:
-            banter = f"Net go shake tire today! Both teams dey attack like say tomorrow no dey. Goals go enter basket!"
+        # Dynamic, fixture-specific Nigerian pidgin commentary
+        if home_prob >= 0.65:
+            banter = f"Omo, {m.home_team} pitch na fortress today! Defense solid, attack hot with {round(home_prob*100)}% win likelihood. Easy work for home boys!"
+        elif away_prob >= 0.55:
+            banter = f"Sharp movement from {m.away_team}! Bookie give them {m_away_odds} odds but algorithm confirm say three points dey travel with visitor today."
+        elif away_edge >= 0.05 and m_away_odds >= 2.50:
+            banter = f"Oga, shine your eye! Bookmaker sleep on {m.away_team} at heavy {m_away_odds} odds, value edge +{round(away_edge*100, 1)}% dey call!"
+        elif o25_p >= 0.65:
+            banter = f"Net go shake tire today! Both teams dey attack like say tomorrow no dey. Over 2.5 goals at {round(o25_p*100)}% na cash!"
+        elif u25_p >= 0.62:
+            banter = f"Strict tactical lockdown o! {m.home_team} and {m.away_team} dey pack bus. 1 goal or stalemate na the tight vibe."
+        elif btts_y >= 0.60:
+            banter = f"Both keepers go pick ball inside net today! {m.home_team} and {m.away_team} get sharp boots, BTTS at {round(btts_y*100)}% sweet die."
+        elif abs(home_prob - away_prob) < 0.08:
+            banter = f"Wahala clash! {m.home_team} vs {m.away_team} na two fighting rams. Nobody wan gree, point sharing or tight 1-0 na the vibe!"
         else:
-            banter = f"Tight tactical battle o! Nobody wan gree for anybody, point sharing or 1-0 na the vibe."
+            banter = f"Model scan confirm solid {top_tip['label']} at @{top_tip['odds']} odds. Follow the numbers, protect bankroll!"
             
         match_time = m.match_date.strftime("%H:%M") if hasattr(m.match_date, "strftime") else str(m.match_date)[11:16]
         
@@ -5291,15 +5840,32 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
             m.external_id and (m.external_id.startswith("auto_") or m.external_id.startswith("SYN-") or m.external_id.startswith("demo_"))
         )
         
+        # Real historical matches lookup for last 5 games generally and last 5 home/away
+        h_recent_all = await get_team_recent_matches(db, m.home_team, None, 5)
+        h_recent_home = await get_team_recent_matches(db, m.home_team, "home", 5)
+        a_recent_all = await get_team_recent_matches(db, m.away_team, None, 5)
+        a_recent_away = await get_team_recent_matches(db, m.away_team, "away", 5)
+
         home_raw_form = home_i.get("last_5_form", "") if (not is_fallback and isinstance(home_i, dict)) else ""
         away_raw_form = away_i.get("last_5_form", "") if (not is_fallback and isinstance(away_i, dict)) else ""
-        h_form = get_deterministic_form_list(m.home_team, "all", home_raw_form)
-        h_venue_form = get_deterministic_form_list(m.home_team, "home", "")
-        a_form = get_deterministic_form_list(m.away_team, "all", away_raw_form)
-        a_venue_form = get_deterministic_form_list(m.away_team, "away", "")
 
-        favored_team = m.home_team if home_prob > away_prob + 0.05 else (m.away_team if away_prob > home_prob + 0.05 else None)
-        favored_outcome = f"{m.home_team} Favored" if home_prob > away_prob + 0.05 else (f"{m.away_team} Favored" if away_prob > home_prob + 0.05 else "Even Matchup")
+        h_form = [x["result"] for x in h_recent_all] if h_recent_all else []
+        if len(h_form) < 5 and home_raw_form:
+            fill = [c.upper() for c in home_raw_form if c.upper() in ('W', 'D', 'L')]
+            h_form = (h_form + fill)[:5]
+
+        h_venue_form = [x["result"] for x in h_recent_home] if h_recent_home else []
+        if len(h_venue_form) < 5 and h_form:
+            h_venue_form = h_form[:len(h_form)]
+
+        a_form = [x["result"] for x in a_recent_all] if a_recent_all else []
+        if len(a_form) < 5 and away_raw_form:
+            fill = [c.upper() for c in away_raw_form if c.upper() in ('W', 'D', 'L')]
+            a_form = (a_form + fill)[:5]
+
+        a_venue_form = [x["result"] for x in a_recent_away] if a_recent_away else []
+        if len(a_venue_form) < 5 and a_form:
+            a_venue_form = a_form[:len(a_form)]
 
         match_cards.append({
             "id": m.id,
@@ -5308,8 +5874,6 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
             "odds_status": "unverified_fallback" if is_fallback_odds else "live_provider",
             "home_team": m.home_team,
             "away_team": m.away_team,
-            "favored_team": favored_team,
-            "favored_outcome": favored_outcome,
             "home_prob_pct": round(home_prob * 100),
             "away_prob_pct": round(away_prob * 100),
             "home_logo": getattr(m, "home_logo", None),
@@ -5322,7 +5886,7 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
             "home_score": h_score,
             "away_score": a_score,
             "league_id": m.league_id,
-            "league_name": format_league_display_name(m.league_id),
+            "league_name": league_name,
             "country": country,
             "match_date": m.match_date.isoformat() if hasattr(m.match_date, "isoformat") else str(m.match_date),
             "time": match_time,
@@ -5330,6 +5894,7 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
             "draw_odds": round(m_draw_odds, 2),
             "away_odds": round(m_away_odds, 2),
             "tips": tips,
+            "endpoint_tips": endpoint_tip_map,
             "top_tip": top_tip,
             "top_prob": top_tip["prob_pct"],
             "is_banker_80": top_tip["prob_pct"] >= 80,
@@ -5375,10 +5940,15 @@ async def get_calendar_daily_slate(
 
     all_cached_data = calendar_slate_cache.get(f"slate:{target_date}:all")
     if all_cached_data and ep_filter != "all":
-        filtered_cards = [
-            m for m in all_cached_data.get("matches", [])
-            if ep_filter in m.get("qualified_endpoints", [])
-        ]
+        filtered_cards = []
+        for orig_m in all_cached_data.get("matches", []):
+            if ep_filter in orig_m.get("qualified_endpoints", []):
+                m_copy = copy.deepcopy(orig_m)
+                if "endpoint_tips" in m_copy and ep_filter in m_copy["endpoint_tips"]:
+                    m_copy["top_tip"] = m_copy["endpoint_tips"][ep_filter]
+                    m_copy["top_prob"] = m_copy["top_tip"]["prob_pct"]
+                filtered_cards.append(m_copy)
+
         filtered_payload = {
             "selected_date": target_date,
             "available_dates": all_cached_data.get("available_dates", []),
@@ -5822,7 +6392,7 @@ async def payment_initialize(
             raise HTTPException(500, f"Payment gateway error: {e}")
     else:
         # Mock payment initialization for testing/demo sandbox
-        mock_ref = f"TIPALGO-{uuid.uuid4().hex[:10].upper()}"
+        mock_ref = f"SPORTYMILL-{uuid.uuid4().hex[:10].upper()}"
         return {
             "status": "success",
             "mode": "demo_sandbox",
@@ -5858,7 +6428,7 @@ async def payment_verify(
             "status": "success",
             "tier": user.subscription_tier,
             "expiry": user.subscription_expiry.isoformat(),
-            "message": "Subscription activated successfully! Enjoy 30 days of TipAlgo Pro tips."
+            "message": "Subscription activated successfully! Enjoy 30 days of SportyMill Pro tips."
         }
     raise HTTPException(400, "Payment verification was unsuccessful.")
 
@@ -5889,7 +6459,8 @@ async def trigger_live_data_sync(
 @app.post("/admin/settle-predictions")
 async def admin_settle_predictions(
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user)
+    user: User = Depends(get_current_user),
+    predictor: PredictorService = Depends(get_predictor)
 ):
     if not user.is_admin:
         raise HTTPException(403, "Admin required")
@@ -5902,7 +6473,7 @@ async def admin_settle_predictions(
     m.HistoricalMatch = HistoricalMatch
     m.PredictionLog = PredictionLog
 
-    result = await service.settle_completed_predictions(db, m)
+    result = await service.settle_completed_predictions(db, m, predictor=predictor)
     return result
 
 
@@ -6194,7 +6765,7 @@ async def get_match_analytics(
             ]
     else:
         if is_balanced:
-            verdict_headline = f"TipAlgo Model Verdict: Highly Contested Matchup ({home_team} vs {away_team})"
+            verdict_headline = f"SportyMill Model Verdict: Highly Contested Matchup ({home_team} vs {away_team})"
             verdict_tag = "BALANCED RISK PROFILE"
             narrative = (
                 f"Statistical indicators project a tightly contested fixture between {home_team} ({home_streak}) "
@@ -6207,7 +6778,7 @@ async def get_match_analytics(
                 {"num": "03", "title": "Risk Floor Enforcement", "desc": "Mandatory +4.0% value threshold requires capital preservation."}
             ]
         elif is_home_favored:
-            verdict_headline = f"TipAlgo Model Verdict: Statistical Superiority of {home_team}"
+            verdict_headline = f"SportyMill Model Verdict: Statistical Superiority of {home_team}"
             verdict_tag = f"HIGH CONVICTION (+{favored_edge:.1f}% VALUE EDGE)" if favored_edge > 0 else "BALANCED RISK PROFILE"
             narrative = (
                 f"{home_team} presents a decisively positive statistical profile entering this fixture, driven by an expected goals (xG) output "
@@ -6221,7 +6792,7 @@ async def get_match_analytics(
                 {"num": "03", "title": "Optimal Kelly Capital Sizing", "desc": f"Guarantees capital safety via fractional Kelly formula and +4.0% value threshold."}
             ]
         else:
-            verdict_headline = f"TipAlgo Model Verdict: Statistical Superiority of {away_team}"
+            verdict_headline = f"SportyMill Model Verdict: Statistical Superiority of {away_team}"
             verdict_tag = f"AWAY CONVICTION (+{favored_edge:.1f}% VALUE EDGE)" if favored_edge > 0 else "BALANCED RISK PROFILE"
             narrative = (
                 f"Despite playing as the visiting side, {away_team} holds decisive statistical superiority over {home_team}, "
@@ -6237,7 +6808,7 @@ async def get_match_analytics(
     # Sub-Strategy Detection from Core Script
     sub_strat_info = SubStrategyDetector.detect_all(home_odds, away_odds, home_streak, away_streak)
 
-    # 4. Recommended TipAlgo High-Conviction Selections
+    # 4. Recommended SportyMill High-Conviction Selections
     dc_prob = all_probs.get('double_chance_1x', home_prob + draw_prob)
     dc_odds = round(max(1.18, 1.0 / (dc_prob * 0.95)), 2)
     o15_prob = all_probs.get('over_1_5', 0.78)
@@ -6273,7 +6844,7 @@ async def get_match_analytics(
             "tier_badge": "SAFE BANKER SELECTION" if not is_banter else "SAFE BANKER PICK",
             "title": safe_sel,
             "selection": safe_sel,
-            "model_source": "TipAlgo Core Engine",
+            "model_source": "SportyMill Core Engine",
             "odds": safe_odds,
             "probability": f"{safe_prob_val*100:.1f}%",
             "edge": f"{safe_edge_val:+.1f}%",
@@ -6289,7 +6860,7 @@ async def get_match_analytics(
             "tier_badge": "VALUE SCREENER EDGE" if not is_banter else "SWEET VALUE EDGE",
             "title": f"{home_team} Win & Over 1.5 Goals",
             "selection": f"{home_team} Win & Over 1.5 Goals",
-            "model_source": "TipAlgo Value Model",
+            "model_source": "SportyMill Value Model",
             "odds": val_odds,
             "probability": f"{val_prob_val*100:.1f}%",
             "edge": f"{val_edge_val:+.1f}%",
@@ -6305,7 +6876,7 @@ async def get_match_analytics(
             "tier_badge": "HIGH MULTIPLIER COMBO" if not is_banter else "MEGA CASHOUT ACCUMULATOR",
             "title": f"{home_team} Win + Over 2.5 Goals",
             "selection": f"{home_team} Win + Over 2.5 Goals",
-            "model_source": "TipAlgo Multiplier Model",
+            "model_source": "SportyMill Multiplier Model",
             "odds": combo_odds,
             "probability": f"{combo_prob_val*100:.1f}%",
             "edge": f"{combo_edge_val:+.1f}%",
@@ -6367,6 +6938,10 @@ async def get_match_analytics(
     btts_n_prob = all_probs.get('btts_no', 0.48)
     clean_home_prob = all_probs.get('home_clean_sheet', 0.38)
     win_nil_prob = round(home_prob * btts_n_prob, 2)
+    hc = float(home_info.get("corners_avg", 5.2) if isinstance(home_info, dict) else 5.2)
+    ac = float(away_info.get("corners_avg", 4.5) if isinstance(away_info, dict) else 4.5)
+    h_cards = float(home_info.get("cards_avg", 1.8) if isinstance(home_info, dict) else 1.8)
+    a_cards = float(away_info.get("cards_avg", 2.1) if isinstance(away_info, dict) else 2.1)
 
     audit_endpoints = [
         make_audit_row(
@@ -6425,52 +7000,99 @@ async def get_match_analytics(
             f"{home_team} win match without allowing visitor score at all."
         ),
         make_audit_row(
-            "Corners Total (Over 9.5)", "props", "Over 9.5 Corners", 1.82, 0.58,
+            "Corners Total (Over 9.5)", "props", "Over 9.5 Corners",
+            round(max(1.50, 1.0 / (max(0.20, min(0.85, ((hc + ac) / 10.0) * 0.55)) * 0.92)), 2),
+            round(min(0.85, max(0.25, ((hc + ac) / 10.0) * 0.55)), 2),
             "Wing-play activity and high block clearances predict heavy corner counts.",
             "Plenty wing attacks and crosses mean corner kicks go surplus."
         ),
         make_audit_row(
-            "Cards Total (Over 3.5)", "props", "Over 3.5 Cards", 1.85, 0.55,
+            "Cards Total (Over 3.5)", "props", "Over 3.5 Cards",
+            round(max(1.50, 1.0 / (max(0.20, min(0.82, ((h_cards + a_cards) / 4.0) * 0.54)) * 0.92)), 2),
+            round(min(0.82, max(0.25, ((h_cards + a_cards) / 4.0) * 0.54)), 2),
             "Foul friction index and referee disciplinary metrics exceed standard baseline.",
             "Tackles go fly as both teams dey fight for points, cards go show."
         ),
         make_audit_row(
-            "AI Value Screener (v21)", "ai", f"{home_team} Mispricing", home_odds, home_prob,
+            "AI Value Screener (v21)", "ai", f"{home_team if home_edge >= away_edge else away_team} Mispricing",
+            home_odds if home_edge >= away_edge else away_odds,
+            home_prob if home_edge >= away_edge else away_prob,
             "Institutional radar confirms bookmaker odds offer positive expected value.",
             "Our AI scan catch sweet value wey bookmaker misprice for this game."
         )
     ]
 
-    # 7. Recent Form and Head-to-Head History
+    # 7. Recent Form and Head-to-Head History from Real Match Data
+    h_recent_matches = await get_team_recent_matches(db, home_team, None, 5)
+    a_recent_matches = await get_team_recent_matches(db, away_team, None, 5)
+
+    def format_recent_match_display(m):
+        raw_d = m.get("date") or m.get("match_date") or ""
+        date_str = ""
+        if raw_d:
+            try:
+                dt = datetime.fromisoformat(str(raw_d).replace("Z", "+00:00"))
+                date_str = dt.strftime("%b %d")
+            except Exception:
+                date_str = str(raw_d)[:10]
+        return {
+            "opp": m.get("opponent", "Opponent"),
+            "score": m.get("score", "0 - 0"),
+            "res": m.get("result", "D"),
+            "date": date_str or "Recent",
+            "venue": m.get("venue", "home")
+        }
+
+    # Head-to-Head real historical lookup
+    h2h_stmt = select(HistoricalMatch).where(
+        or_(
+            and_(HistoricalMatch.home_team == home_team, HistoricalMatch.away_team == away_team),
+            and_(HistoricalMatch.home_team == away_team, HistoricalMatch.away_team == home_team)
+        ),
+        HistoricalMatch.home_score.isnot(None),
+        HistoricalMatch.away_score.isnot(None)
+    ).order_by(HistoricalMatch.match_date.desc()).limit(10)
+    h2h_matches = (await db.execute(h2h_stmt)).scalars().all()
+
+    h2h_home_wins = 0
+    h2h_away_wins = 0
+    h2h_draws = 0
+    h2h_total_goals = 0
+
+    for hm in h2h_matches:
+        try:
+            h2h_total_goals += (int(hm.home_score) + int(hm.away_score))
+            if hm.home_score == hm.away_score:
+                h2h_draws += 1
+            elif (hm.home_team == home_team and hm.home_score > hm.away_score) or \
+                 (hm.away_team == home_team and hm.away_score > hm.home_score):
+                h2h_home_wins += 1
+            else:
+                h2h_away_wins += 1
+        except (ValueError, TypeError):
+            continue
+
+    h2h_count = len(h2h_matches)
+    avg_goals_str = f"{(h2h_total_goals / max(1, h2h_count)):.1f} goals/game" if h2h_count > 0 else "N/A"
+
     form_and_h2h = {
         "home": {
             "name": home_team,
-            "form": home_streak,
-            "matches": [
-                {"opp": "Recent Match 1", "score": "2 - 1", "res": home_streak[0] if len(home_streak)>0 else "W", "date": "Sep 28"},
-                {"opp": "Recent Match 2", "score": "3 - 0", "res": home_streak[1] if len(home_streak)>1 else "W", "date": "Sep 24"},
-                {"opp": "Recent Match 3", "score": "1 - 1", "res": home_streak[2] if len(home_streak)>2 else "D", "date": "Sep 21"},
-                {"opp": "Recent Match 4", "score": "2 - 0", "res": home_streak[3] if len(home_streak)>3 else "W", "date": "Sep 17"},
-                {"opp": "Recent Match 5", "score": "1 - 0", "res": home_streak[4] if len(home_streak)>4 else "W", "date": "Sep 14"}
-            ]
+            "form": "".join([x["result"] for x in h_recent_matches]) if h_recent_matches else (home_streak if home_streak != "N/A" else "N/A"),
+            "matches": [format_recent_match_display(x) for x in h_recent_matches]
         },
         "away": {
             "name": away_team,
-            "form": away_streak,
-            "matches": [
-                {"opp": "Recent Match 1", "score": "1 - 1", "res": away_streak[0] if len(away_streak)>0 else "D", "date": "Sep 28"},
-                {"opp": "Recent Match 2", "score": "0 - 1", "res": away_streak[1] if len(away_streak)>1 else "L", "date": "Sep 24"},
-                {"opp": "Recent Match 3", "score": "2 - 2", "res": away_streak[2] if len(away_streak)>2 else "D", "date": "Sep 21"},
-                {"opp": "Recent Match 4", "score": "1 - 0", "res": away_streak[3] if len(away_streak)>3 else "W", "date": "Sep 17"},
-                {"opp": "Recent Match 5", "score": "1 - 2", "res": away_streak[4] if len(away_streak)>4 else "L", "date": "Sep 14"}
-            ]
+            "form": "".join([x["result"] for x in a_recent_matches]) if a_recent_matches else (away_streak if away_streak != "N/A" else "N/A"),
+            "matches": [format_recent_match_display(x) for x in a_recent_matches]
         },
         "h2h": {
-            "total_matches": 6,
-            "home_wins": 3,
-            "draws": 2,
-            "away_wins": 1,
-            "avg_goals": "2.8 goals/game"
+            "total_matches": h2h_count,
+            "home_wins": h2h_home_wins,
+            "draws": h2h_draws,
+            "away_wins": h2h_away_wins,
+            "avg_goals": avg_goals_str,
+            "message": f"Historical clash record between {home_team} and {away_team}" if h2h_count > 0 else "First recorded meeting in tracked database"
         }
     }
 
@@ -6481,6 +7103,9 @@ async def get_match_analytics(
         if table_dict:
             sorted_teams = sorted(table_dict.items(), key=lambda kv: kv[1].get("position", 99))
             for t_name, t_info in sorted_teams:
+                # Exclude mock rows
+                if t_info.get("played") == 12 and t_info.get("points") == 18 and len(sorted_teams) > 1 and all(x[1].get("played") == 12 and x[1].get("points") == 18 for x in sorted_teams):
+                    continue
                 standings_list.append({
                     "position": t_info.get("position", 1),
                     "team": t_name,
@@ -6492,7 +7117,7 @@ async def get_match_analytics(
                     "goals_against": t_info.get("goals_against", 0),
                     "goal_difference": t_info.get("goal_difference", 0),
                     "points": t_info.get("points", 0),
-                    "last_5_form": t_info.get("last_5_form", "WWDLD")
+                    "last_5_form": t_info.get("last_5_form", "N/A")
                 })
     except Exception as e:
         logger.warning(f"Standings fetch notice: {e}")
