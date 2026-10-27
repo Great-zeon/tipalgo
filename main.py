@@ -7638,7 +7638,7 @@ async def sync_league_tables_data(
     for r in league_rows:
         lid = r["league_id"]
         tname = r["team_name"]
-        existing = (await db.execute(select(LeagueTable).where(LeagueTable.league_id == lid, LeagueTable.team_name == tname))).scalar_one_or_none()
+        existing = (await db.execute(select(LeagueTable).where(LeagueTable.league_id == lid, LeagueTable.team_name == tname))).scalars().first()
         filtered = {k: v for k, v in r.items() if k != "id" and hasattr(LeagueTable, k)}
         if "updated_at" in filtered and isinstance(filtered["updated_at"], str):
             try:
@@ -7657,14 +7657,23 @@ async def sync_league_tables_data(
     for r in h2h_rows:
         ht = r.get("home_team")
         at = r.get("away_team")
-        existing = (await db.execute(select(HeadToHead).where(HeadToHead.home_team == ht, HeadToHead.away_team == at))).scalar_one_or_none()
-        if not existing:
-            filtered = {k: v for k, v in r.items() if k != "id" and hasattr(HeadToHead, k)}
-            if "match_date" in filtered and isinstance(filtered["match_date"], str):
+        filtered = {k: v for k, v in r.items() if k != "id" and hasattr(HeadToHead, k)}
+        m_dt = None
+        if "match_date" in filtered:
+            if isinstance(filtered["match_date"], str):
                 try:
-                    filtered["match_date"] = datetime.fromisoformat(filtered["match_date"])
+                    m_dt = datetime.fromisoformat(filtered["match_date"])
                 except Exception:
-                    filtered["match_date"] = datetime.now(timezone.utc)
+                    m_dt = datetime.now(timezone.utc)
+            else:
+                m_dt = filtered["match_date"]
+            filtered["match_date"] = m_dt
+
+        q = select(HeadToHead).where(HeadToHead.home_team == ht, HeadToHead.away_team == at)
+        if m_dt is not None:
+            q = q.where(HeadToHead.match_date == m_dt)
+        existing = (await db.execute(q)).scalars().first()
+        if not existing:
             db.add(HeadToHead(**filtered))
             h2h_count += 1
 
