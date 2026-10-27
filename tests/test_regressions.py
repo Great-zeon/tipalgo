@@ -13,7 +13,8 @@ from sqlalchemy import select, delete
 from main import (
     app, config, AsyncSessionLocal, User, LeagueTable, HistoricalMatch,
     PredictorService, ResponseBuilder, InsufficientDataError,
-    generate_correct_score_tip, get_verified_squad_meta, create_access_token
+    generate_correct_score_tip, get_verified_squad_meta, create_access_token,
+    _calculate_kelly_stake
 )
 from football_ingestion import FootballDataService
 
@@ -559,6 +560,113 @@ class TestRegressions(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(resp.status_code, 200, f"Device login {i} should succeed via seamless rotation")
                 data = resp.json()
                 self.assertIn("access_token", data)
+
+    # REGRESSION-026: Mathematical Calculations Verification (Implied Prob, Edge, Expected Value, Kelly Formula, and Allocation Caps)
+    def test_regression_026_mathematical_calculations_and_caps(self):
+        bankroll = 1000000.0
+        odds = 2.00
+        prob = 0.55
+        implied_prob = 1.0 / odds
+        edge = prob - implied_prob
+        ev = (prob * odds) - 1.0
+        self.assertAlmostEqual(edge, 0.05, places=4)
+        self.assertAlmostEqual(ev, 0.10, places=4)
+
+        # Full Kelly = (1 * 0.55 - 0.45) / 1 = 0.10. Quarter Kelly = 0.025. Stake = 25,000
+        stake = _calculate_kelly_stake(prob, odds, bankroll)
+        self.assertEqual(stake, 25000.0)
+
+        # Negative edge must yield strictly 0.0 stake
+        stake_neg = _calculate_kelly_stake(0.60, 1.50, bankroll)
+        self.assertEqual(stake_neg, 0.0)
+
+        # Max allocation cap (8%) enforcement
+        stake_cap = _calculate_kelly_stake(0.80, 3.00, bankroll)
+        self.assertEqual(stake_cap, 80000.0)
+
+        # Bankroll validation (None, 0, or negative)
+        self.assertEqual(_calculate_kelly_stake(0.55, 2.00, None), 0.0)
+        self.assertEqual(_calculate_kelly_stake(0.55, 2.00, 0), 0.0)
+        self.assertEqual(_calculate_kelly_stake(0.55, 2.00, -5000), 0.0)
+
+    # REGRESSION-027: Multi-Fixture Model Differentiation (3 Distinct Matches produce distinct inputs and outputs)
+    async def test_regression_027_three_fixtures_differentiation(self):
+        f1_payload = {"home_team": "Sevilla", "away_team": "Osasuna", "league_id": "PD", "home_odds": 2.10, "draw_odds": 3.25, "away_odds": 3.80, "bankroll": 1000000.0, "min_edge": 0.04}
+        f2_payload = {"home_team": "Arsenal", "away_team": "Chelsea", "league_id": "PL", "home_odds": 1.75, "draw_odds": 3.60, "away_odds": 4.50, "bankroll": 1000000.0, "min_edge": 0.04}
+        f3_payload = {"home_team": "Inter", "away_team": "Juventus", "league_id": "SA", "home_odds": 1.95, "draw_odds": 3.40, "away_odds": 4.10, "bankroll": 1000000.0, "min_edge": 0.04}
+
+        r1 = await self.client.post("/predict/value-screener", json=f1_payload, headers=self.auth_headers)
+        r2 = await self.client.post("/predict/value-screener", json=f2_payload, headers=self.auth_headers)
+        r3 = await self.client.post("/predict/value-screener", json=f3_payload, headers=self.auth_headers)
+
+        self.assertEqual(r1.status_code, 200)
+        self.assertEqual(r2.status_code, 200)
+        self.assertEqual(r3.status_code, 200)
+
+        self.assertEqual(r1.json()["match"], "Sevilla vs Osasuna")
+        self.assertEqual(r2.json()["match"], "Arsenal vs Chelsea")
+        self.assertEqual(r3.json()["match"], "Inter vs Juventus")
+
+        p1 = await self.client.post("/predict/home-win", json={"home_team": "Sevilla", "away_team": "Osasuna", "league_id": "PD", "home_odds": 2.10}, headers=self.auth_headers)
+        p2 = await self.client.post("/predict/home-win", json={"home_team": "Arsenal", "away_team": "Chelsea", "league_id": "PL", "home_odds": 1.75}, headers=self.auth_headers)
+        p3 = await self.client.post("/predict/home-win", json={"home_team": "Inter", "away_team": "Juventus", "league_id": "SA", "home_odds": 1.95}, headers=self.auth_headers)
+
+        self.assertEqual(p1.status_code, 200)
+        self.assertEqual(p2.status_code, 200)
+        self.assertEqual(p3.status_code, 200)
+
+        j1, j2, j3 = p1.json(), p2.json(), p3.json()
+        self.assertEqual(j1["match"], "Sevilla vs Osasuna")
+        self.assertEqual(j2["match"], "Arsenal vs Chelsea")
+        self.assertEqual(j3["match"], "Inter vs Juventus")
+        self.assertNotEqual(j1["message"], j2["message"])
+        self.assertNotEqual(j2["message"], j3["message"])
+
+    # REGRESSION-028: Accumulator Parlay Combined Odds Multiplication and Clean Edge Rejection
+    async def test_regression_028_accumulator_combined_odds_math(self):
+        resp = await self.client.post("/predict/accumulator", json={
+            "target_odds": 3.0,
+            "max_legs": 3,
+            "min_probability": 0.50,
+            "min_edge": 0.01,
+            "tolerance": 0.35
+        }, headers=self.auth_headers)
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        if data.get("pattern_matched"):
+            self.assertGreaterEqual(len(data["legs"]), 2)
+            expected_combined = 1.0
+            for leg in data["legs"]:
+                expected_combined *= leg["odds"]
+            self.assertAlmostEqual(data["achieved_odds"], round(expected_combined, 2), delta=0.05)
+
+        # Impossible parlay fails cleanly without server error
+        resp_imp = await self.client.post("/predict/accumulator", json={
+            "target_odds": 50.0,
+            "max_legs": 2,
+            "min_probability": 0.99,
+            "min_edge": 0.08,
+            "tolerance": 0.05
+        }, headers=self.auth_headers)
+        self.assertEqual(resp_imp.status_code, 200)
+        self.assertFalse(resp_imp.json().get("pattern_matched", True))
+
+    # REGRESSION-029: Multi-User Device Allocation Isolation and Auth Enforcement
+    async def test_regression_029_device_allocation_isolation(self):
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as local_client:
+            # Register devices for user 1 (tip_partner)
+            for i in range(3):
+                r = await local_client.post("/auth/login", json={"username": "tip_partner", "password": "TipAlgo2026!", "device_id": f"p_dev_{i}"})
+                self.assertEqual(r.status_code, 200)
+
+            # Register devices for user 2 (tip_algo) - must succeed and not be blocked by tip_partner's slots
+            for j in range(3):
+                r = await local_client.post("/auth/login", json={"username": "tip_algo", "password": "TipAlgo2026!", "device_id": f"a_dev_{j}"})
+                self.assertEqual(r.status_code, 200)
+
+            # Invalid password must still be rejected with 401
+            r_unauth = await local_client.post("/auth/login", json={"username": "tip_partner", "password": "BadPassword!", "device_id": "intruder"})
+            self.assertEqual(r_unauth.status_code, 401)
 
 
 if __name__ == "__main__":
