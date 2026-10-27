@@ -7612,7 +7612,81 @@ async def sync_league_tables(
         raise HTTPException(401, "Invalid admin token")
     from seed import seed
     await seed()
+    league_table_cache.clear()
+    leagues_teams_cache.clear()
+    upcoming_fixtures_cache.clear()
+    calendar_slate_cache.clear()
+    banker_slate_cache.clear()
+    h2h_cache.clear()
+    venue_form_cache.clear()
+    recent_matches_cache.clear()
     return {"status": "success", "message": "League tables and starter data seeded successfully"}
+
+@app.post("/admin/sync-league-tables-data")
+async def sync_league_tables_data(
+    request: Request,
+    admin_token: str = Header(..., alias="X-Admin-Token"),
+    db: AsyncSession = Depends(get_db)
+):
+    if admin_token != config.ADMIN_TOKEN:
+        raise HTTPException(401, "Invalid admin token")
+    data = await request.json()
+    league_rows = data.get("league_tables", [])
+    h2h_rows = data.get("head_to_head", [])
+    
+    lt_count = 0
+    for r in league_rows:
+        lid = r["league_id"]
+        tname = r["team_name"]
+        existing = (await db.execute(select(LeagueTable).where(LeagueTable.league_id == lid, LeagueTable.team_name == tname))).scalar_one_or_none()
+        filtered = {k: v for k, v in r.items() if k != "id" and hasattr(LeagueTable, k)}
+        if "updated_at" in filtered and isinstance(filtered["updated_at"], str):
+            try:
+                filtered["updated_at"] = datetime.fromisoformat(filtered["updated_at"])
+            except Exception:
+                filtered["updated_at"] = datetime.now(timezone.utc)
+        if existing:
+            for k, v in filtered.items():
+                if k not in ("league_id", "team_name"):
+                    setattr(existing, k, v)
+        else:
+            db.add(LeagueTable(**filtered))
+        lt_count += 1
+
+    h2h_count = 0
+    for r in h2h_rows:
+        ht = r.get("home_team")
+        at = r.get("away_team")
+        existing = (await db.execute(select(HeadToHead).where(HeadToHead.home_team == ht, HeadToHead.away_team == at))).scalar_one_or_none()
+        if not existing:
+            filtered = {k: v for k, v in r.items() if k != "id" and hasattr(HeadToHead, k)}
+            if "match_date" in filtered and isinstance(filtered["match_date"], str):
+                try:
+                    filtered["match_date"] = datetime.fromisoformat(filtered["match_date"])
+                except Exception:
+                    filtered["match_date"] = datetime.now(timezone.utc)
+            db.add(HeadToHead(**filtered))
+            h2h_count += 1
+
+    await db.commit()
+
+    # Clear caches
+    league_table_cache.clear()
+    leagues_teams_cache.clear()
+    upcoming_fixtures_cache.clear()
+    calendar_slate_cache.clear()
+    banker_slate_cache.clear()
+    h2h_cache.clear()
+    venue_form_cache.clear()
+    recent_matches_cache.clear()
+
+    return {
+        "status": "success",
+        "league_tables_synced": lt_count,
+        "head_to_head_synced": h2h_count,
+        "message": f"Successfully synced {lt_count} league table entries and {h2h_count} head-to-head records."
+    }
+
 
 @app.post("/webhook/paystack")
 async def paystack_webhook(request: Request, db: AsyncSession = Depends(get_db)):
