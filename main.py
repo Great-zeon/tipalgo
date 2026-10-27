@@ -7592,10 +7592,12 @@ async def upload_database(
 
 @app.get("/admin/backup-database")
 async def backup_database(
-    admin_token: str = Header(..., alias="X-Admin-Token")
+    admin_token: str = Header(..., alias="X-Admin-Token"),
+    db: AsyncSession = Depends(get_db)
 ):
     if admin_token != config.ADMIN_TOKEN:
         raise HTTPException(401, "Invalid admin token")
+    await db.execute(text("PRAGMA wal_checkpoint(TRUNCATE);"))
     target_db_path = config.DATABASE_URL.replace("sqlite+aiosqlite:///", "")
     if not os.path.exists(target_db_path):
         raise HTTPException(404, "Database file not found")
