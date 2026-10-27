@@ -7590,6 +7590,28 @@ async def upload_database(
         "message": "Database successfully written to persistent volume and initialized."
     }
 
+@app.get("/admin/backup-database")
+async def backup_database(
+    admin_token: str = Header(..., alias="X-Admin-Token")
+):
+    if admin_token != config.ADMIN_TOKEN:
+        raise HTTPException(401, "Invalid admin token")
+    target_db_path = config.DATABASE_URL.replace("sqlite+aiosqlite:///", "")
+    if not os.path.exists(target_db_path):
+        raise HTTPException(404, "Database file not found")
+    return FileResponse(target_db_path, media_type="application/octet-stream", filename="tipalgo_production_backup.db")
+
+@app.post("/admin/sync-league-tables")
+async def sync_league_tables(
+    admin_token: str = Header(..., alias="X-Admin-Token"),
+    db: AsyncSession = Depends(get_db)
+):
+    if admin_token != config.ADMIN_TOKEN:
+        raise HTTPException(401, "Invalid admin token")
+    from seed import seed
+    await seed()
+    return {"status": "success", "message": "League tables and starter data seeded successfully"}
+
 @app.post("/webhook/paystack")
 async def paystack_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     payload = await request.body()

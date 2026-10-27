@@ -1,5 +1,7 @@
 .env
 .env.*
+.admin_token
+*backup*.db
 !.env.example
 *.db
 *.sqlite
