@@ -42,6 +42,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import Response, HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel, Field, validator
 import uvicorn, bcrypt, jwt
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
@@ -1939,12 +1940,34 @@ def normalize_team_name(name: str) -> str:
         return ""
     n = ''.join(c for c in unicodedata.normalize('NFD', name) if unicodedata.category(c) != 'Mn')
     n = n.strip().lower()
+    n = n.replace(".", "")
     for suffix in [" fc", " cf", " afc", " sc", " f.c.", " c.f."]:
         if n.endswith(suffix):
             n = n[:-len(suffix)].strip()
     return n
 
 TEAM_ALIAS_MAP = {
+    "ath bilbao": "athletic club",
+    "ath. bilbao": "athletic club",
+    "athletic bilbao": "athletic club",
+    "athletic club": "athletic club",
+    "athletic club de bilbao": "athletic club",
+    "atletico": "atletico madrid",
+    "atletico madrid": "atletico madrid",
+    "atletico de madrid": "atletico madrid",
+    "atl madrid": "atletico madrid",
+    "osasuna": "osasuna",
+    "ca osasuna": "osasuna",
+    "hull": "hull city",
+    "hull city": "hull city",
+    "hull city afc": "hull city",
+    "malaga": "málaga",
+    "malaga cf": "málaga",
+    "málaga": "málaga",
+    "santander": "santander",
+    "racing santander": "santander",
+    "racing club santander": "santander",
+    "racing club de santander": "santander",
     "man city": "manchester city",
     "manchester city fc": "manchester city",
     "man united": "manchester united",
@@ -1961,13 +1984,26 @@ TEAM_ALIAS_MAP = {
     "sheffield utd": "sheffield united",
     "nottingham": "nottingham forest",
     "nottm forest": "nottingham forest",
-    "atletico": "atletico madrid",
-    "atletico de madrid": "atletico madrid",
-    "athletic bilbao": "athletic club",
+    "not forest": "nottingham forest",
     "barca": "barcelona",
     "fc barcelona": "barcelona",
     "real madrid cf": "real madrid",
 }
+
+def get_team_alias_candidates(team: str) -> List[str]:
+    if not team:
+        return []
+    candidates = {team, team.strip()}
+    norm = normalize_team_name(team)
+    if norm:
+        candidates.add(norm)
+    if norm in TEAM_ALIAS_MAP:
+        candidates.add(TEAM_ALIAS_MAP[norm])
+    for k, v in TEAM_ALIAS_MAP.items():
+        if k == norm or v == norm:
+            candidates.add(k)
+            candidates.add(v)
+    return [c for c in candidates if c]
 
 def resolve_team_name(team_name: str, table: Dict[str, Any]) -> Optional[str]:
     if not team_name or not table:
@@ -1978,7 +2014,8 @@ def resolve_team_name(team_name: str, table: Dict[str, Any]) -> Optional[str]:
     alias_target = TEAM_ALIAS_MAP.get(clean_target, clean_target)
     for k in table.keys():
         clean_k = normalize_team_name(k)
-        if clean_k == clean_target or clean_k == alias_target:
+        alias_k = TEAM_ALIAS_MAP.get(clean_k, clean_k)
+        if clean_k == clean_target or clean_k == alias_target or alias_k == clean_target or alias_k == alias_target:
             return k
     matches = [k for k in table.keys() if clean_target in normalize_team_name(k) or normalize_team_name(k) in clean_target]
     if len(matches) == 1:
@@ -2339,6 +2376,34 @@ async def fetch_league_table(db: AsyncSession, league_id: str) -> Dict[str, Any]
     league_table_cache.set(cache_key, data)
     return data
 
+async def fetch_league_table_team(db: AsyncSession, team_name: str) -> Optional[Dict[str, Any]]:
+    cache_key = f"team_league_rec:{team_name}"
+    cached = league_table_cache.get(cache_key)
+    if cached is not None:
+        return cached
+    candidates = get_team_alias_candidates(team_name)
+    clauses = [LeagueTable.team_name.ilike(f"%{c}%") for c in candidates]
+    stmt = select(LeagueTable).where(or_(*clauses)).limit(1)
+    res = await db.execute(stmt)
+    row = res.scalar_one_or_none()
+    if row:
+        data = {
+            "position": row.position,
+            "goal_difference": row.goal_difference,
+            "last_5_form": row.last_5_form,
+            "points": row.points,
+            "goals_against": row.goals_against,
+            "played": row.played,
+            "goals_for": row.goals_for,
+            "wins": row.wins,
+            "draws": row.draws,
+            "losses": row.losses,
+        }
+        league_table_cache.set(cache_key, data)
+        return data
+    league_table_cache.set(cache_key, None)
+    return None
+
 async def get_h2h_home_wins(db: AsyncSession, home_team: str, away_team: str, limit: int = 5) -> int:
     h2h_key = f"h2h_wins:{home_team}:{away_team}:{limit}"
     cached = h2h_cache.get(h2h_key)
@@ -2448,32 +2513,37 @@ async def get_team_recent_matches(db: AsyncSession, team: str, venue: Optional[s
     cached = recent_matches_cache.get(cache_key)
     if cached is not None:
         return cached
+
+    candidates = get_team_alias_candidates(team)
+    home_clauses = [HistoricalMatch.home_team.ilike(f"%{c}%") for c in candidates]
+    away_clauses = [HistoricalMatch.away_team.ilike(f"%{c}%") for c in candidates]
+
     if venue == "home":
         stmt = select(HistoricalMatch).where(
-            HistoricalMatch.home_team == team,
+            or_(*home_clauses),
             HistoricalMatch.home_score.isnot(None),
             HistoricalMatch.away_score.isnot(None)
         ).order_by(HistoricalMatch.match_date.desc()).limit(limit)
     elif venue == "away":
         stmt = select(HistoricalMatch).where(
-            HistoricalMatch.away_team == team,
+            or_(*away_clauses),
             HistoricalMatch.home_score.isnot(None),
             HistoricalMatch.away_score.isnot(None)
         ).order_by(HistoricalMatch.match_date.desc()).limit(limit)
     else:
         stmt = select(HistoricalMatch).where(
-            or_(
-                HistoricalMatch.home_team == team,
-                HistoricalMatch.away_team == team
-            ),
+            or_(*(home_clauses + away_clauses)),
             HistoricalMatch.home_score.isnot(None),
             HistoricalMatch.away_score.isnot(None)
         ).order_by(HistoricalMatch.match_date.desc()).limit(limit)
+
     result = await db.execute(stmt)
     matches = result.scalars().all()
     recent_matches = []
+    norm_candidates = {normalize_team_name(c) for c in candidates}
     for m in matches:
-        is_home = m.home_team == team
+        m_home_norm = normalize_team_name(m.home_team)
+        is_home = any(c in m_home_norm or m_home_norm in c for c in norm_candidates)
         score_for = m.home_score if is_home else m.away_score
         score_against = m.away_score if is_home else m.home_score
         opponent = m.away_team if is_home else m.home_team
@@ -4643,7 +4713,7 @@ if not config.DEBUG:
         "openapi_url": None
     }
 
-app = FastAPI(title="SportyMill v21 – Production", version="21.0", lifespan=lifespan, **docs_kwargs)
+app = FastAPI(title="SportyMill v21 | Production", version="21.0", lifespan=lifespan, **docs_kwargs)
 
 allowed_origins = [
     "http://localhost:8000",
@@ -4655,8 +4725,20 @@ extra_origins = os.getenv("ALLOWED_ORIGINS")
 if extra_origins:
     allowed_origins.extend([o.strip() for o in extra_origins.split(",") if o.strip()])
 
+app.add_middleware(GZipMiddleware, minimum_size=500)
 app.add_middleware(CORSMiddleware, allow_origins=allowed_origins, allow_credentials=True,
                    allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["*"])
+
+@app.middleware("http")
+async def add_performance_cache_headers(request: Request, call_next):
+    response = await call_next(request)
+    req_path = request.url.path
+    if req_path.startswith("/static/"):
+        if req_path.endswith((".jpg", ".jpeg", ".png", ".webp", ".svg", ".ico", ".woff", ".woff2")):
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        elif req_path.endswith((".css", ".js")):
+            response.headers["Cache-Control"] = "public, max-age=86400"
+    return response
 
 @app.exception_handler(InsufficientDataError)
 async def insufficient_data_exception_handler(request: Request, exc: InsufficientDataError):
@@ -4688,6 +4770,66 @@ async def favicon():
     if fav_path.exists():
         return FileResponse(fav_path, media_type="image/x-icon")
     return Response(status_code=204)
+
+@app.get("/favicon.svg", include_in_schema=False)
+async def favicon_svg():
+    path = BASE_DIR / "static" / "favicon.svg"
+    if path.exists():
+        return FileResponse(path, media_type="image/svg+xml")
+    return Response(status_code=204)
+
+@app.get("/favicon-32x32.png", include_in_schema=False)
+async def favicon_32():
+    path = BASE_DIR / "static" / "favicon-32x32.png"
+    if path.exists():
+        return FileResponse(path, media_type="image/png")
+    return Response(status_code=204)
+
+@app.get("/favicon-16x16.png", include_in_schema=False)
+async def favicon_16():
+    path = BASE_DIR / "static" / "favicon-16x16.png"
+    if path.exists():
+        return FileResponse(path, media_type="image/png")
+    return Response(status_code=204)
+
+@app.get("/apple-touch-icon.png", include_in_schema=False)
+async def apple_touch_icon():
+    path = BASE_DIR / "static" / "apple-touch-icon.png"
+    if path.exists():
+        return FileResponse(path, media_type="image/png")
+    return Response(status_code=204)
+
+@app.get("/privacy", response_class=HTMLResponse)
+@app.head("/privacy", include_in_schema=False)
+async def privacy_page():
+    page_path = BASE_DIR / "static" / "privacy.html"
+    if page_path.exists():
+        return HTMLResponse(page_path.read_text(encoding="utf-8"))
+    return HTMLResponse("<h1>404 Not Found</h1>", status_code=404)
+
+@app.get("/terms", response_class=HTMLResponse)
+@app.head("/terms", include_in_schema=False)
+async def terms_page():
+    page_path = BASE_DIR / "static" / "terms.html"
+    if page_path.exists():
+        return HTMLResponse(page_path.read_text(encoding="utf-8"))
+    return HTMLResponse("<h1>404 Not Found</h1>", status_code=404)
+
+@app.get("/404", response_class=HTMLResponse)
+@app.head("/404", include_in_schema=False)
+async def not_found_page():
+    page_path = BASE_DIR / "static" / "404.html"
+    if page_path.exists():
+        return HTMLResponse(page_path.read_text(encoding="utf-8"), status_code=404)
+    return HTMLResponse("<h1>404 Not Found</h1>", status_code=404)
+
+@app.exception_handler(404)
+async def custom_404_handler(request: Request, exc):
+    if "text/html" in request.headers.get("accept", ""):
+        page_404 = BASE_DIR / "static" / "404.html"
+        if page_404.exists():
+            return HTMLResponse(page_404.read_text(encoding="utf-8"), status_code=404)
+    return JSONResponse(status_code=404, content={"detail": "Not Found"})
 
 @app.get("/health")
 async def health(request: Request):
@@ -5846,8 +5988,18 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
         a_recent_all = await get_team_recent_matches(db, m.away_team, None, 5)
         a_recent_away = await get_team_recent_matches(db, m.away_team, "away", 5)
 
-        home_raw_form = home_i.get("last_5_form", "") if (not is_fallback and isinstance(home_i, dict)) else ""
-        away_raw_form = away_i.get("last_5_form", "") if (not is_fallback and isinstance(away_i, dict)) else ""
+        home_raw_form = home_i.get("last_5_form", "") if (isinstance(home_i, dict) and home_i.get("last_5_form")) else ""
+        away_raw_form = away_i.get("last_5_form", "") if (isinstance(away_i, dict) and away_i.get("last_5_form")) else ""
+
+        if not home_raw_form:
+            h_rec = await fetch_league_table_team(db, m.home_team)
+            if h_rec and h_rec.get("last_5_form"):
+                home_raw_form = h_rec["last_5_form"]
+
+        if not away_raw_form:
+            a_rec = await fetch_league_table_team(db, m.away_team)
+            if a_rec and a_rec.get("last_5_form"):
+                away_raw_form = a_rec["last_5_form"]
 
         h_form = [x["result"] for x in h_recent_all] if h_recent_all else []
         if len(h_form) < 5 and home_raw_form:

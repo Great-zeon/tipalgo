@@ -3,7 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SportyMill – Quantitative Sports Betting Intelligence</title>
+  <title>SportyMill | Quantitative Football Betting Intelligence &amp; Algorithmic Value Detection</title>
+  <meta name="description" content="Institutional-grade quantitative football intelligence. Poisson goal simulations, +EV value screener, 80%+ bankers, and Kelly bankroll optimization across all major leagues.">
+  <meta name="keywords" content="football betting algorithms, soccer prediction engine, expected value betting, Poisson distribution, Kelly criterion staking, value screener, accumulators">
+  <meta name="author" content="SportyMill Quant Analytics">
+  <meta name="robots" content="index, follow">
+  <meta property="og:title" content="SportyMill | Quantitative Football Betting Intelligence">
+  <meta property="og:description" content="Institutional-grade quantitative football intelligence. Poisson goal simulations, +EV value screener, and Kelly staking across all major leagues.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://tipalgo.com/">
+  <meta property="og:image" content="/static/img/sportymill_logo.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="SportyMill | Quantitative Football Betting Intelligence">
+  <meta name="twitter:description" content="Data-driven football predictions, mathematical +EV value screener, and Kelly staking models.">
   
   <!-- Favicon Suite: Scalable SVG + Multi-Resolution ICO + Apple Touch -->
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
@@ -13,10 +25,10 @@
   <link rel="shortcut icon" href="/static/favicon.ico">
   <meta name="theme-color" content="#080e1a">
   
-  <!-- Modern Clean Typography -->
+  <!-- Modern Clean Typography with swap display -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   
   <link rel="stylesheet" href="/static/style.css?v=75">
 </head>
@@ -29,7 +41,7 @@
     <header class="top-navbar" id="siteTopNavbar">
       <!-- Left: Logo & Brand -->
       <div class="nav-left-brand">
-        <a href="#" class="platform-logo" id="navBrandLogo" data-tab-target="view-calendar" title="SportyMill – Quantitative Sports Betting Intelligence">
+        <a href="/" class="platform-logo" id="navBrandLogo" data-tab-target="view-calendar" title="SportyMill | Quantitative Sports Betting Intelligence">
           <div class="logo-mark" aria-label="SportyMill Quant Emblem">
             <svg viewBox="0 0 36 36" width="28" height="28" fill="none" class="sportymill-logo-svg" xmlns="http://www.w3.org/2000/svg">
               <defs>
@@ -197,6 +209,15 @@
         </div>
         </div>
 
+        <!-- Mobile Menu Hamburger Button -->
+        <button type="button" class="btn-mobile-menu-toggle" id="btnMobileMenuToggle" aria-label="Open Navigation Menu" title="Toggle Navigation Menu">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+
         <!-- Notifications Popover -->
         <div class="notifications-popover" id="popoverNotifications">
           <div class="notif-popover-header">
@@ -220,6 +241,72 @@
           </div>
         </div>
     </header>
+
+  <!-- ===================================================================
+       RESPONSIVE MOBILE NAVIGATION DRAWER
+       =================================================================== -->
+  <div class="mobile-menu-backdrop" id="mobileMenuBackdrop" aria-hidden="true">
+    <div class="mobile-menu-drawer" id="mobileMenuDrawer" role="dialog" aria-modal="true" aria-label="Mobile Navigation">
+      <div class="mobile-menu-header">
+        <div class="nav-left-brand">
+          <a href="/" class="platform-logo" data-tab-target="view-calendar">
+            <span class="logo-brand">Sporty<span class="logo-brand-accent">Mill</span></span>
+          </a>
+        </div>
+        <button type="button" class="btn-close-mobile-menu" id="btnCloseMobileMenu" aria-label="Close menu">&times;</button>
+      </div>
+
+      <nav class="mobile-menu-nav">
+        <a href="#" class="mobile-nav-link active" data-tab-target="view-calendar" id="mobNavMatches">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+          <span>Matches Slate</span>
+        </a>
+        <a href="#" class="mobile-nav-link" data-tab-target="view-grand" id="mobNavGrand">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+          <span>33 Endpoints</span>
+        </a>
+        <a href="#" class="mobile-nav-link" data-tab-target="view-bankers" id="mobNavBankers">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span>80%+ Bankers</span>
+        </a>
+        <a href="#" class="mobile-nav-link" data-tab-target="view-screener" id="mobNavScreener">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+          <span>Value Screener</span>
+        </a>
+        <a href="#" class="mobile-nav-link" data-tab-target="view-accumulator" id="mobNavAccu">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          <span>Accu-Forge</span>
+        </a>
+        <a href="#" class="mobile-nav-link" data-tab-target="view-batch" id="mobNavBatch">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+          <span>Full Slate</span>
+        </a>
+        <a href="#" class="mobile-nav-link" data-tab-target="view-about" id="mobNavAbout">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          <span>About Model</span>
+        </a>
+        <a href="#" class="mobile-nav-link" id="mobNavSupport">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>Support &amp; FAQ</span>
+        </a>
+
+        <div class="mobile-nav-divider"></div>
+
+        <a href="/privacy" class="mobile-nav-link">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span>Privacy Policy</span>
+        </a>
+        <a href="/terms" class="mobile-nav-link">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          <span>Terms &amp; Conditions</span>
+        </a>
+      </nav>
+
+      <div class="mobile-menu-footer-actions">
+        <button type="button" class="btn-login-modal" id="btnMobileLogin" style="width:100%; border-radius:8px;">Sign In</button>
+      </div>
+    </div>
+  </div>
 
     <!-- Main Content Area -->
     <main class="content-area">
@@ -323,7 +410,7 @@
                     <circle cx="11" cy="11" r="8"></circle>
                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                   </svg>
-                  <input type="search" id="inputCalendarSearchTeam" name="sports_search_query" class="grand-search-input calendar-team-search-input" placeholder="Search teams, leagues, or matches..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                  <input type="search" id="inputCalendarSearchTeam" name="match_lookup_query" class="grand-search-input calendar-team-search-input" placeholder="Search teams, leagues, or matches..." autocomplete="one-time-code" data-lpignore="true" data-1p-ignore="true" data-form-type="other" readonly onfocus="this.removeAttribute('readonly');" autocorrect="off" autocapitalize="off" spellcheck="false">
                   <button type="button" class="btn-clear-cal-search" id="btnClearCalSearch" title="Clear search" style="display: none;">
                     <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                   </button>
@@ -428,13 +515,13 @@
                 <span class="edge-glowing-pill" id="heroEdgeBadge">+5.7% Positive Edge</span>
               </div>
               
-              <div class="pool-amount" id="heroPickTitle">Arsenal Win @ 1.65</div>
-              <div class="pool-max-badge" id="heroModelProbability">Win Likelihood: 66.4% · Bookmaker Implied: 60.6%</div>
+              <div class="pool-amount" id="heroPickTitle">Select a Match to Inspect Model Edge</div>
+              <div class="pool-max-badge" id="heroModelProbability">Algorithmic probability distribution and edge computed per match</div>
 
               <!-- Form Momentum Bar -->
               <div class="hero-form-row">
                 <div class="form-team-col">
-                  <span class="team-label" id="heroHomeTeamName">Arsenal:</span>
+                  <span class="team-label" id="heroHomeTeamName">Home Team:</span>
                   <div class="streak-badges" id="heroHomeStreak">
                     <span class="streak-pill w">W</span>
                     <span class="streak-pill w">W</span>
@@ -445,7 +532,7 @@
                 </div>
                 <div class="form-vs-badge">VS</div>
                 <div class="form-team-col">
-                  <span class="team-label" id="heroAwayTeamName">Chelsea:</span>
+                  <span class="team-label" id="heroAwayTeamName">Away Team:</span>
                   <div class="streak-badges" id="heroAwayStreak">
                     <span class="streak-pill w">W</span>
                     <span class="streak-pill d">D</span>
@@ -560,7 +647,7 @@
         <div class="footystats-match-hero-card">
           <div class="footy-meta-row">
             <div class="footy-breadcrumb">
-              <span class="footy-globe-icon">⚽</span>
+              <span class="footy-globe-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg></span>
               <span id="footyBreadcrumbLeague">CONMEBOL Libertadores Femenina</span>
             </div>
             <div class="footy-match-datetime" id="footyMatchDateTime">
@@ -675,7 +762,7 @@
             <!-- 2. Mathematical Model Summary & Match Context -->
             <div class="footy-stat-card footy-ai-card">
               <div class="footy-ai-header">
-                <span class="footy-ai-badge">📊</span>
+                <span class="footy-ai-badge"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
                 <h3 class="footy-ai-title">Mathematical Model Summary &amp; Match Context</h3>
               </div>
               <div class="footy-ai-narrative" id="footyAiSummaryText">
@@ -724,7 +811,7 @@
             <div class="footy-stat-card" id="footySurePickSection">
               <div class="footy-card-header">
                 <div style="display:flex; align-items:center; gap:0.5rem;">
-                  <span style="font-size:1.15rem;">🎯</span>
+                  <span style="display:inline-flex; align-items:center;"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span>
                   <h2 class="footy-card-title">Primary Algorithmic Sure Prediction</h2>
                 </div>
                 <span class="badge-sure-pick">Single Top Probability Pick</span>
@@ -734,7 +821,7 @@
               </div>
             </div>
 
-            <!-- 6. SECTION 2: TECHNICAL ALGORITHMIC AUDIT — WHY THIS PREDICTION WAS PICKED -->
+            <!-- 6. SECTION 2: TECHNICAL ALGORITHMIC AUDIT - WHY THIS PREDICTION WAS PICKED -->
             <div class="footy-stat-card footy-why-audit-card" id="footyWhyAuditSection">
               <div class="why-audit-header">
                 <div class="why-badge-pill">TECHNICAL AUDIT</div>
@@ -746,7 +833,7 @@
               <div class="why-pillars-grid">
                 <div class="why-pillar-card">
                   <div class="why-pillar-num">01</div>
-                  <div class="why-pillar-icon">⚽</div>
+                  <div class="why-pillar-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg></div>
                   <h3 class="why-pillar-title">Why This Winner Was Picked</h3>
                   <p class="why-pillar-desc" id="whyWinnerDesc">
                     Bivariate Poisson simulation calculates expected attacking output against opponent defensive concession rate, factoring in recent form streaks.
@@ -754,7 +841,7 @@
                 </div>
                 <div class="why-pillar-card">
                   <div class="why-pillar-num">02</div>
-                  <div class="why-pillar-icon">📈</div>
+                  <div class="why-pillar-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
                   <h3 class="why-pillar-title">Why This Specific Odd &amp; Market</h3>
                   <p class="why-pillar-desc" id="whyOddsDesc">
                     The algorithmic probability exceeds the bookmaker implied break-even price by a positive mathematical value edge (minimum +4.0% floor), creating long-term positive expectancy.
@@ -762,7 +849,7 @@
                 </div>
                 <div class="why-pillar-card">
                   <div class="why-pillar-num">03</div>
-                  <div class="why-pillar-icon">🛡️</div>
+                  <div class="why-pillar-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
                   <h3 class="why-pillar-title">Why This Recommended Stake</h3>
                   <p class="why-pillar-desc" id="whyStakeDesc">
                     Derived strictly via fractional Kelly Criterion sizing to maximize exponential bankroll growth while providing full defense against drawdowns.
@@ -796,7 +883,7 @@
           <div class="footy-sidebar-col">
             <div class="footy-stat-card footy-standings-card">
               <div class="footy-card-header standings-header">
-                <span class="trophy-icon">🏆</span>
+                <span class="trophy-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.45 1-1 1H8c-.55 0-1 .45-1 1v1h10v-1c0-.55-.45-1-1-1h-1c-.55 0-1-.45-1-1v-2.34"/><path d="M18 4H6v7a6 6 0 0 0 12 0V4z"/></svg></span>
                 <h3 class="footy-card-title" id="footyStandingsTitle">League Standings Table</h3>
               </div>
               <div class="footy-standings-table-wrap" id="footyStandingsTableWrap">
@@ -985,7 +1072,7 @@
               <!-- Functional Edit Profile Details Form -->
               <div class="profile-section-card">
                 <div class="profile-section-head">
-                  <div class="prof-sec-icon">👤</div>
+                  <div class="prof-sec-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
                   <div>
                     <h3>Edit Profile Details</h3>
                     <p>Update your personal display name, username, and contact phone.</p>
@@ -1011,7 +1098,7 @@
               <!-- Functional Password Reset via SMS OTP -->
               <div class="profile-section-card">
                 <div class="profile-section-head">
-                  <div class="prof-sec-icon">🔐</div>
+                  <div class="prof-sec-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
                   <div>
                     <h3>Security &amp; SMS OTP Password Reset</h3>
                     <p>Reset or update your account password using instant SMS OTP verification.</p>
@@ -1049,7 +1136,7 @@
             <div class="profile-side-col">
               <div class="profile-bankroll-card">
                 <div class="bankroll-card-header">
-                  <div class="bankroll-icon-badge">⚖️</div>
+                  <div class="bankroll-icon-badge"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 16l3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1z"/><path d="M2 16l3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h18"/></svg></div>
                   <div>
                     <h3 class="bankroll-card-title">Bankroll Allocation &amp; Capital Management</h3>
                     <p class="bankroll-card-subtitle">Kelly Criterion fractional capital protection guidelines.</p>
@@ -1135,7 +1222,7 @@
               <div class="about-card-tag red">THE COMMON BETTING TRAP</div>
               <h3 class="about-card-heading">Why Most Bettors Lose Money</h3>
               <p class="about-card-text">
-                Most fans bet with emotion—backing their favorite clubs, chasing long accumulator slips, or following hyped social media tipsters. Bookmakers profit from this by baking in high margins. Betting randomly without checking team form or odds value makes it almost impossible to stay ahead.
+                Most fans bet with emotion: backing their favorite clubs, chasing long accumulator slips, or following hyped social media tipsters. Bookmakers profit from this by baking in high margins. Betting randomly without checking team form or odds value makes it almost impossible to stay ahead.
               </p>
               <ul class="about-checklist negative">
                 <li><span>&times;</span> Emotional bets placed on big-name clubs regardless of form</li>
@@ -1189,7 +1276,7 @@
                 <p class="pillar-desc">
                   Winning long-term requires smart money management. SportyMill suggests safe, sensible stake ranges for each game so you never risk too much on one ticket and keep your betting budget safe.
                 </p>
-                <div class="pillar-formula">Recommended Safe Stake: ₦1,000 &ndash; ₦5,000</div>
+                <div class="pillar-formula">Recommended Safe Stake: ₦1,000 - ₦5,000</div>
               </div>
             </div>
           </div>
@@ -1346,7 +1433,7 @@
           <!-- Desktop Sidebar Navigation (Faithful to Mockup & User Spec) -->
           <aside class="dash-sidebar" id="dashSidebar">
             <div class="dash-sidebar-header">
-              <div class="dash-sidebar-brand" id="dashBrandLogoHome" role="button" tabindex="0" title="Return to SportyMill Homepage">
+              <a href="/" class="dash-sidebar-brand" id="dashBrandLogoHome" role="button" tabindex="0" title="Return to SportyMill Homepage" style="text-decoration:none;">
                 <div class="dash-logo-icon">
                   <svg viewBox="0 0 36 36" width="26" height="26" fill="none" class="sportymill-logo-svg" xmlns="http://www.w3.org/2000/svg">
                     <defs>
@@ -1769,7 +1856,7 @@
                     <!-- Pro Subscription Lock Overlay (For Free Users) -->
                     <div class="pro-lock-blur-overlay" id="screenerProLockOverlay" style="display:none;">
                       <div class="pro-lock-card">
-                        <div class="lock-icon">🔒</div>
+                        <div class="lock-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
                         <h3>Pro Quant Model Locked</h3>
                         <p>Upgrade to SportyMill Pro to unlock unlimited real-time side-agnostic value screening.</p>
                         <button type="button" class="btn-dash-lime btn-open-paystack-modal">Upgrade to Pro (₦15,000/mo) →</button>
@@ -2026,6 +2113,80 @@
         </div>
       </section>
 
+    
+      <!-- ===================================================================
+           INSTITUTIONAL SITE FOOTER
+           =================================================================== -->
+      <footer class="site-footer" id="siteFooter">
+        <div class="footer-inner">
+          <div class="footer-top-grid">
+            <!-- Col 1: Brand & Description -->
+            <div class="footer-brand-col">
+              <a href="/" class="footer-logo-row">
+                <span class="logo-brand" style="font-size:1.25rem;">Sporty<span class="logo-brand-accent">Mill</span></span>
+              </a>
+              <p class="footer-brand-desc">
+                Institutional-grade sports betting intelligence powered by Poisson goal simulations, mathematical +EV detection, and fractional Kelly bankroll management across all major global leagues.
+              </p>
+              <div class="footer-disclaimer-card">
+                SportyMill provides statistical expectancy models and quantitative betting intelligence for analytical purposes. No mathematical model can eliminate inherent match variance. Please gamble responsibly (18+).
+              </div>
+            </div>
+
+            <!-- Col 2: Platform Navigation -->
+            <div class="footer-col">
+              <div class="footer-col-title">Platform</div>
+              <ul class="footer-links-list">
+                <li><a href="#" class="footer-link" data-tab-target="view-calendar">Matches Slate</a></li>
+                <li><a href="#" class="footer-link" data-tab-target="view-grand">33 Endpoints Matrix</a></li>
+                <li><a href="#" class="footer-link" data-tab-target="view-bankers">80%+ Bankers</a></li>
+                <li><a href="#" class="footer-link" data-tab-target="view-screener">Value Screener</a></li>
+                <li><a href="#" class="footer-link" data-tab-target="view-accumulator">Accu-Forge Parlay</a></li>
+                <li><a href="#" class="footer-link" data-tab-target="view-about">About Methodology</a></li>
+              </ul>
+            </div>
+
+            <!-- Col 3: Legal & Regulatory -->
+            <div class="footer-col">
+              <div class="footer-col-title">Compliance</div>
+              <ul class="footer-links-list">
+                <li><a href="/privacy" class="footer-link">Privacy Policy</a></li>
+                <li><a href="/terms" class="footer-link">Terms &amp; Conditions</a></li>
+                <li><a href="#" class="footer-link" id="footerLinkResponsible">Responsible Wagering</a></li>
+                <li><a href="/404" class="footer-link">System Status (404)</a></li>
+              </ul>
+            </div>
+
+            <!-- Col 4: Contact & Verification (Clickable Phone and Email) -->
+            <div class="footer-col">
+              <div class="footer-col-title">Direct Support</div>
+              <div class="footer-contact-item">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                <span>Call Desk: <a href="tel:+2348008472546" class="footer-contact-link">+234 (0) 800 TIP ALGO</a></span>
+              </div>
+              <div class="footer-contact-item">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                <span>Support: <a href="mailto:support@sportymill.com" class="footer-contact-link">support@sportymill.com</a></span>
+              </div>
+              <p style="margin-top:0.75rem; font-size:0.76rem; color:#64748b; line-height:1.45;">
+                Client desk operates 7 days a week from 07:00 to 23:00 GMT+1 with priority escalation for active subscribers.
+              </p>
+            </div>
+          </div>
+
+          <div class="footer-bottom-row">
+            <div>
+              &copy; <span id="footerCopyrightYear">2026</span> SportyMill (TipAlgo Platform). All rights reserved.
+            </div>
+            <div class="footer-bottom-links">
+              <a href="/privacy" class="footer-link">Privacy Policy</a>
+              <a href="/terms" class="footer-link">Terms of Service</a>
+              <a href="#" class="footer-link" id="footerBtnHelpModal">Support Desk</a>
+            </div>
+          </div>
+        </div>
+      </footer>
+
     </main>
 
     <!-- Floating Bet Slip Popup for Mobile Phone View Faithful to User Mockup -->
@@ -2174,8 +2335,8 @@
           </div>
           <div class="filter-stake-chips" id="filterStakeChips">
             <button type="button" class="stake-chip active" data-min="0" data-max="0">Any Stake</button>
-            <button type="button" class="stake-chip" data-min="1000" data-max="3000">₦1k – ₦3k (Safe Play)</button>
-            <button type="button" class="stake-chip" data-min="2500" data-max="5000">₦2.5k – ₦5k (Medium)</button>
+            <button type="button" class="stake-chip" data-min="1000" data-max="3000">₦1k - ₦3k (Safe Play)</button>
+            <button type="button" class="stake-chip" data-min="2500" data-max="5000">₦2.5k - ₦5k (Medium)</button>
             <button type="button" class="stake-chip" data-min="5000" data-max="50000">₦5k+ (Sure Bankers)</button>
           </div>
         </div>
@@ -2325,7 +2486,7 @@
         <form id="formRegister" class="auth-tab-panel">
           <div class="modal-row">
             <label for="regUsername">Username</label>
-            <input type="text" id="regUsername" class="clean-input" placeholder="e.g. nigerian_bettor" required>
+            <input type="text" id="regUsername" class="clean-input" placeholder="e.g. analyst_pro" required>
           </div>
           <div class="modal-row">
             <label for="regPhoneNumber">Phone Number (SMS Notifications &amp; OTP)</label>
@@ -2486,11 +2647,11 @@
       <div class="modal-body">
         <div class="modal-row">
           <label for="customHomeTeam">Home Squad</label>
-          <input type="text" id="customHomeTeam" class="clean-input" value="Arsenal" placeholder="e.g. Real Madrid">
+          <input type="text" id="customHomeTeam" class="clean-input" value="" placeholder="e.g. Real Madrid">
         </div>
         <div class="modal-row">
           <label for="customAwayTeam">Away Squad</label>
-          <input type="text" id="customAwayTeam" class="clean-input" value="Chelsea" placeholder="e.g. Barcelona">
+          <input type="text" id="customAwayTeam" class="clean-input" value="" placeholder="e.g. Barcelona">
         </div>
         <div class="modal-row-grid">
           <div>
@@ -2753,28 +2914,28 @@
 
         <div class="upgrade-features-list">
           <div class="upgrade-feat-item">
-            <span class="feat-check">✓</span>
+            <span class="feat-check"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
             <div>
               <strong>Unlimited Value Screener</strong>
               <p>Scan any home or away line across 18 major leagues with verified ML probability.</p>
             </div>
           </div>
           <div class="upgrade-feat-item">
-            <span class="feat-check">✓</span>
+            <span class="feat-check"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
             <div>
               <strong>Accu-Forge™ Parlay Engine</strong>
               <p>Synthesize positive expectation accumulators up to 10 legs with custom tolerance.</p>
             </div>
           </div>
           <div class="upgrade-feat-item">
-            <span class="feat-check">✓</span>
+            <span class="feat-check"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
             <div>
               <strong>Kelly Fractional Staking</strong>
               <p>Automated capital allocation protecting your bankroll against drawdown.</p>
             </div>
           </div>
           <div class="upgrade-feat-item">
-            <span class="feat-check">✓</span>
+            <span class="feat-check"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
             <div>
               <strong>Full Slate Batch Scanning</strong>
               <p>Simulate all scheduled matches simultaneously with instant CSV export.</p>
@@ -2789,7 +2950,7 @@
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
           <span>Pay ₦15,000 with Paystack →</span>
         </button>
-        <span class="paystack-secure-lbl">🔒 256-Bit SSL Encrypted &amp; PCI-DSS Certified via Paystack</span>
+        <span class="paystack-secure-lbl">256-Bit SSL Encrypted &amp; PCI-DSS Certified via Paystack</span>
       </div>
     </div>
   </div>

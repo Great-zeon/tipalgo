@@ -1,4 +1,4 @@
-# TIPALGO v21 — PRODUCTION DEPLOYMENT & OPERATION MANUAL
+# TIPALGO v21 - PRODUCTION DEPLOYMENT & OPERATION MANUAL
 
 This guide details how to deploy the TipAlgo Football Prediction Platform on **Railway** (or any containerized PaaS/VPS) connected to a **custom domain**, maintaining SQLite data persistence and zero-downtime health monitoring.
 
@@ -49,7 +49,7 @@ ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
 
 ### Step 4: Transfer Existing Database to Persistent Volume
 To preserve your production dataset without committing `tipalgo.db` to GitHub:
-* **Option A (Safest & Simplest — Direct Over HTTPS):**
+* **Option A (Safest & Simplest - Direct Over HTTPS):**
   Once your Railway service is deployed and has its public domain (e.g. `https://your-service.up.railway.app`), run this command from your local terminal:
   ```bash
   curl -X POST https://<railway-domain>/admin/upload-database \

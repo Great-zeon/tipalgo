@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 - Fixture Not Found | SportyMill Quantitative Sports Intelligence</title>
+  <meta name="description" content="The requested page, market endpoint, or fixture analysis could not be located on the SportyMill platform.">
+  <meta name="robots" content="noindex, follow">
+  
+  <!-- Favicon Suite -->
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="alternate icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+  <link rel="alternate icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
+  <link rel="shortcut icon" href="/static/favicon.ico">
+  <meta name="theme-color" content="#080e1a">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css?v=76">
+  <style>
+    .not-found-wrapper {
+      min-height: 70vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 1.5rem;
+      text-align: center;
+    }
+    .not-found-box {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 3.5rem 2.5rem;
+      max-width: 580px;
+      width: 100%;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .error-code-badge {
+      font-family: var(--font-mono, monospace);
+      font-size: 4.5rem;
+      font-weight: 800;
+      color: #38bdf8;
+      line-height: 1;
+      letter-spacing: -0.04em;
+      margin-bottom: 1rem;
+      text-shadow: 0 0 40px rgba(56, 189, 248, 0.3);
+    }
+    .error-tag {
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: #94a3b8;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 0.25rem 0.75rem;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 1.25rem;
+    }
+    .error-title {
+      color: #ffffff;
+      font-size: 1.45rem;
+      font-weight: 800;
+      margin: 0 0 0.75rem 0;
+    }
+    .error-desc {
+      color: #94a3b8;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      margin: 0 0 2rem 0;
+      max-width: 440px;
+    }
+    .error-actions-row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+    }
+    .btn-return-home {
+      background: #0284c7;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 0.88rem;
+      padding: 0.75rem 1.4rem;
+      border-radius: 8px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: background 0.18s ease;
+    }
+    .btn-return-home:hover {
+      background: #0369a1;
+    }
+    .btn-secondary-link {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #cbd5e1;
+      font-weight: 600;
+      font-size: 0.88rem;
+      padding: 0.75rem 1.25rem;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: background 0.18s ease, color 0.18s ease;
+    }
+    .btn-secondary-link:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body class="light-platform">
+  <div class="app-wrapper">
+
+    <!-- Top Navigation Bar -->
+    <header class="top-navbar" id="siteTopNavbar">
+      <div class="nav-left-brand">
+        <a href="/" class="platform-logo" title="SportyMill | Quantitative Sports Intelligence">
+          <div class="logo-mark">
+            <svg viewBox="0 0 36 36" width="28" height="28" fill="none" class="sportymill-logo-svg" xmlns="http://www.w3.org/2000/svg">
+              <polygon points="18,10 25.5,15.5 22.5,24.5 13.5,24.5 10.5,15.5" fill="#090f1d" stroke="#38bdf8" stroke-width="1.8" stroke-linejoin="round"/>
+              <circle cx="18" cy="18.5" r="1.8" fill="#38bdf8"/>
+              <path d="M26.5 13 L34 5 L34 18 L24.5 21.5 Z" fill="#10b981"/>
+              <circle cx="34" cy="5" r="2.2" fill="#34d399"/>
+              <path d="M15.5 8 L8.5 2.5 L2 10 L8.5 14 Z" fill="#10b981"/>
+              <path d="M8.5 17.5 L1 14 L1 24.5 L10.5 25 Z" fill="#38bdf8"/>
+              <path d="M11.5 26.5 L4.5 28 L9.5 35 L17 32 Z" fill="#10b981"/>
+              <path d="M19 32 L26.5 35 L31.5 28 L24.5 26.5 Z" fill="#38bdf8"/>
+            </svg>
+          </div>
+          <span class="logo-brand">Sporty<span class="logo-brand-accent">Mill</span></span>
+        </a>
+      </div>
+
+      <nav class="nav-center-menu">
+        <a href="/" class="top-nav-item">Matches</a>
+        <a href="/#view-grand" class="top-nav-item">33 Endpoints</a>
+        <a href="/#view-bankers" class="top-nav-item">80%+ Bankers</a>
+        <a href="/#view-screener" class="top-nav-item">Value Screener</a>
+        <a href="/#view-accumulator" class="top-nav-item">Accu-Forge</a>
+      </nav>
+
+      <div class="nav-right-actions">
+        <a href="/" class="btn-login-modal" style="text-decoration:none; display:inline-flex; align-items:center; border-radius:8px; padding:0.45rem 1rem;">Back to Platform</a>
+      </div>
+    </header>
+
+    <main class="content-area">
+      <div class="not-found-wrapper">
+        <div class="not-found-box">
+          <div class="error-code-badge">404</div>
+          <span class="error-tag">Endpoint Or Fixture Not Found</span>
+          <h1 class="error-title">Page Out of Bounds</h1>
+          <p class="error-desc">
+            The fixture route, market query, or resource you requested could not be resolved by our model dispatch engine. It may have expired or moved.
+          </p>
+          <div class="error-actions-row">
+            <a href="/" class="btn-return-home">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              <span>Return to Matches Slate</span>
+            </a>
+            <a href="/#view-screener" class="btn-secondary-link">Open Value Screener</a>
+            <a href="/#view-bankers" class="btn-secondary-link">View Bankers</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <footer class="site-footer">
+        <div class="footer-inner">
+          <div class="footer-bottom-row">
+            <div>&copy; 2026 SportyMill (TipAlgo Platform). All rights reserved.</div>
+            <div class="footer-bottom-links">
+              <a href="/" class="footer-link">Home</a>
+              <a href="/privacy" class="footer-link">Privacy Policy</a>
+              <a href="/terms" class="footer-link">Terms of Service</a>
+              <a href="mailto:support@sportymill.com" class="footer-link">Contact Support</a>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </main>
+  </div>
+</body>
+</html>

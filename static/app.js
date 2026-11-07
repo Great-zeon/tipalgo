@@ -1,5 +1,5 @@
 /**
- * SportyMill Enterprise – Sports Betting Intelligence Platform
+ * SportyMill Enterprise - Sports Betting Intelligence Platform
  * Client-Side Application Core
  */
 
@@ -337,12 +337,23 @@
     platformToast: document.getElementById('platformToast')
   };
 
-  // Notification Toast Helper
-  function toast(msg) {
+  // Notification Toast Helper (Success, Error, Info Support)
+  function toast(msg, type = 'info') {
     if (!dom.platformToast) return;
-    dom.platformToast.textContent = msg;
-    dom.platformToast.classList.add('show');
-    setTimeout(() => dom.platformToast.classList.remove('show'), 2800);
+    dom.platformToast.className = `platform-toast ${type} show`;
+    let iconSvg = '';
+    if (type === 'success') {
+      iconSvg = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+    } else if (type === 'error') {
+      iconSvg = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#f87171" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+    } else {
+      iconSvg = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+    }
+    dom.platformToast.innerHTML = `<span style="display:inline-flex; align-items:center;">${iconSvg}</span><span>${msg}</span>`;
+    if (window._toastTimeout) clearTimeout(window._toastTimeout);
+    window._toastTimeout = setTimeout(() => {
+      dom.platformToast.classList.remove('show');
+    }, 3200);
   }
 
   function getOrCreateDeviceId() {
@@ -721,8 +732,8 @@
         
         if (dom.heroPickTitle) {
           dom.heroPickTitle.textContent = isInsufficient 
-            ? 'Prediction Unavailable — Insufficient Verified Data'
-            : 'Model Pass — No Qualifying Value';
+            ? 'Prediction Unavailable: Insufficient Verified Data'
+            : 'Model Pass: No Qualifying Value';
         }
         if (dom.heroOddsValue) {
           dom.heroOddsValue.textContent = f.home_odds ? `Odds: ${Number(f.home_odds).toFixed(2)}` : 'Odds: Unavailable';
@@ -804,7 +815,7 @@
     } catch (e) {
       console.warn('Hero calculation note:', e);
       const isBanter = state.personalityMode === 'BANTER';
-      if (dom.heroPickTitle) dom.heroPickTitle.textContent = 'Prediction Unavailable — Verified Data Missing';
+      if (dom.heroPickTitle) dom.heroPickTitle.textContent = 'Prediction Unavailable: Verified Data Missing';
       if (dom.heroOddsValue) dom.heroOddsValue.textContent = f.home_odds ? `Odds: ${Number(f.home_odds).toFixed(2)}` : 'Odds: Unavailable';
       if (dom.heroModelProbability) dom.heroModelProbability.textContent = 'Data note: ' + (e.message || 'Unable to compute');
       if (dom.heroEdgeBadge) {
@@ -1643,7 +1654,7 @@
       cardWinLikelihood: "Win Likelihood",
       cardAnalyticsBtn: "Analytics",
       cardAddSlip: "Add to Slip",
-      cardInSlip: "✓ In Slip",
+      cardInSlip: "In Slip",
       cardBankerBadge: "80%+ BANKER",
 
       slipTitle: "Your Bet Slip",
@@ -1709,7 +1720,7 @@
       btnAddCustom: "+ Add Your Game",
       syncBtnText: "Refresh Matches",
 
-      calHeader: "⚽ Matches Wey Dey Play By Date",
+      calHeader: "Matches Wey Dey Play By Date",
       calSub: "Tap here choose any day make you see matches",
       calBadgeSuffix: "Matches Dey",
       calYesterday: "Yesterday Match",
@@ -1728,7 +1739,7 @@
       cardWinLikelihood: "Chance to Enter",
       cardAnalyticsBtn: "Check Gist",
       cardAddSlip: "Chop Am",
-      cardInSlip: "✓ Don Enter",
+      cardInSlip: "Don Enter",
       cardBankerBadge: "80%+ BANKER",
 
       slipTitle: "Your Naija Chop Slip",
@@ -1762,7 +1773,7 @@
       pillAllMarkets: "All Options",
 
       textBackOverview: "← Go Back to Matches",
-      analyticsModePill: "FULL MATCH GIST 🔥",
+      analyticsModePill: "FULL MATCH GIST",
       labelHomeOdds: "Home Win (1)",
       labelDrawOdds: "Draw / Stalemate (X)",
       labelAwayOdds: "Away Win (2)",
@@ -1809,17 +1820,17 @@
     if (notifItems && notifItems.length >= 3) {
       const t0 = notifItems[0].querySelector('.notif-item-title');
       const d0 = notifItems[0].querySelector('.notif-item-desc');
-      if (t0) t0.textContent = isBanter ? '+8.4% Sweet Value Spike ⚡' : '+8.4% EV Value Spike';
+      if (t0) t0.textContent = isBanter ? '+8.4% Sweet Value Spike' : '+8.4% EV Value Spike';
       if (d0) d0.textContent = isBanter ? 'Liverpool vs Man City get heavy goal vibration under Poisson simulation.' : 'Liverpool vs Man City home edge confirmed under Poisson goal simulation.';
 
       const t1 = notifItems[1].querySelector('.notif-item-title');
       const d1 = notifItems[1].querySelector('.notif-item-desc');
-      if (t1) t1.textContent = isBanter ? '80%+ Sure Banker Pass 🛡️' : '80%+ Banker Filter';
+      if (t1) t1.textContent = isBanter ? '80%+ Sure Banker Pass' : '80%+ Banker Filter';
       if (d1) d1.textContent = isBanter ? 'Arsenal or Draw (1X) don pass all our strict safety checks cleanly.' : 'Arsenal or Draw (1X) qualified under multi-strategy safety filter.';
 
       const t2 = notifItems[2].querySelector('.notif-item-title');
       const d2 = notifItems[2].querySelector('.notif-item-desc');
-      if (t2) t2.textContent = isBanter ? 'Over 2.5 Goals Radar ⚽' : 'Over 2.5 Goals Radar';
+      if (t2) t2.textContent = isBanter ? 'Over 2.5 Goals Radar' : 'Over 2.5 Goals Radar';
       if (d2) d2.textContent = isBanter ? 'Bayern vs Dortmund project 3.45 heavy match goals.' : 'Bayern vs Dortmund projected 3.45 xG total volume.';
     }
 
@@ -2081,7 +2092,7 @@
     // League Standings Card Header
     const standingsH2 = document.querySelector('.footy-side-col .footy-card-header .footy-card-title');
     if (standingsH2) {
-      standingsH2.innerHTML = `${isBanter ? '🏆 League Table (Who Dey Top &amp; Bottom)' : '🏆 League Standings Table'}`;
+      standingsH2.innerHTML = `${isBanter ? 'League Table (Who Dey Top &amp; Bottom)' : ' League Standings Table'}`;
     }
 
     // Sure Pick Section
@@ -2179,7 +2190,7 @@
     const screenerFormDesc = document.querySelector('#dash-pane-screener .dash-form-desc');
     if (screenerFormDesc) screenerFormDesc.textContent = isBanter ? 'E dey fish out the strong team wey get sharp odds and correct ginger.' : 'Finds the strong side (home or away) at any price.';
     const btnRunScreener = document.getElementById('btnDashRunScreener');
-    if (btnRunScreener) btnRunScreener.textContent = isBanter ? 'Bring the Chop Tip ⚡' : 'Get tip';
+    if (btnRunScreener) btnRunScreener.textContent = isBanter ? 'Bring the Chop Tip' : 'Get tip';
 
     const resDriversTitle = document.getElementById('resDriversTitle');
     if (resDriversTitle) resDriversTitle.textContent = isBanter ? 'Why Model Select Am (Ginger)' : 'Drivers';
@@ -2192,7 +2203,7 @@
     const accuStageTitle = document.querySelector('#dash-pane-accu .dash-stage-title');
     if (accuStageTitle) accuStageTitle.textContent = isBanter ? 'Accu-Forge & Multi Combinator' : 'Accu-Forge and Batch Scan';
     const btnRunAccu = document.getElementById('btnDashRunAccu');
-    if (btnRunAccu) btnRunAccu.textContent = isBanter ? 'Forge Sweet Ticket 🚀' : 'Build accumulator';
+    if (btnRunAccu) btnRunAccu.textContent = isBanter ? 'Forge Sweet Ticket' : 'Build accumulator';
     const batchAddBtn = document.getElementById('btnAccuBatchAddMatch');
     if (batchAddBtn) batchAddBtn.textContent = isBanter ? '+ Add Game' : '+ Add match';
     const batchPasteBtn = document.getElementById('btnAccuBatchPasteCsv');
@@ -2235,7 +2246,7 @@
       catLabel: 'Match Winners',
       icon: '1',
       formula: 'P(H) ≥ 46% · Positive Kelly Edge',
-      targetOdds: '1.45 – 2.30',
+      targetOdds: '1.45 - 2.30',
       minProb: '≥ 46%',
       desc: 'Predicts straight Home victory where bivariate Poisson probability exceeds bookmaker implied probability with verified positive Kelly edge.'
     },
@@ -2247,7 +2258,7 @@
       catLabel: 'Match Winners',
       icon: 'X',
       formula: 'P(D) ≥ 28% · Tight Variance',
-      targetOdds: '3.10 – 3.75',
+      targetOdds: '3.10 - 3.75',
       minProb: '≥ 28%',
       desc: 'Isolates high-probability stalemates where defensive parity, tight goal expectancy, and low scoring variance favor level scorelines.'
     },
@@ -2259,7 +2270,7 @@
       catLabel: 'Match Winners',
       icon: '2',
       formula: 'P(A) ≥ 30% or P(A) > P(H)',
-      targetOdds: '2.40 – 3.90',
+      targetOdds: '2.40 - 3.90',
       minProb: '≥ 30%',
       desc: 'Screens lucrative value on traveling sides possessing superior transition attack and counter-pressing efficiency over vulnerable hosts.'
     },
@@ -2271,7 +2282,7 @@
       catLabel: 'Match Winners',
       icon: '1X',
       formula: 'P(1X / X2) ≥ 65% · High Coverage',
-      targetOdds: '1.18 – 1.45',
+      targetOdds: '1.18 - 1.45',
       minProb: '≥ 65%',
       desc: 'Ultra-conservative bankroll compounder combining Win and Draw probabilities into a unified hedge with over 65% mathematical security.'
     },
@@ -2283,7 +2294,7 @@
       catLabel: 'Goals & Totals',
       icon: 'O1.5',
       formula: 'P(Over 1.5) ≥ 70%',
-      targetOdds: '1.20 – 1.40',
+      targetOdds: '1.20 - 1.40',
       minProb: '≥ 70%',
       desc: 'High-frequency totals benchmark filtering fixtures where combined Poisson scoring expectancy projects at least 2 match goals with 70%+ confidence.'
     },
@@ -2295,7 +2306,7 @@
       catLabel: 'Goals & Totals',
       icon: 'O2.5',
       formula: 'P(Over 2.5) ≥ 50% · λ_tot > 2.7',
-      targetOdds: '1.65 – 2.15',
+      targetOdds: '1.65 - 2.15',
       minProb: '≥ 50%',
       desc: 'Standard quantitative goal feast benchmark identifying open fixtures with mutual attacking potency and weak defensive suppression.'
     },
@@ -2307,7 +2318,7 @@
       catLabel: 'Goals & Totals',
       icon: 'O3.5',
       formula: 'P(Over 3.5) ≥ 28% · Extreme xG',
-      targetOdds: '2.60 – 3.80',
+      targetOdds: '2.60 - 3.80',
       minProb: '≥ 28%',
       desc: 'Explosive high-multiplier encounters targeting matchups between porous backlines and prolific attacking units with extreme expected goals.'
     },
@@ -2319,7 +2330,7 @@
       catLabel: 'Goals & Totals',
       icon: 'BTTS',
       formula: 'P(BTTS) ≥ 48% · Mutual Concession',
-      targetOdds: '1.60 – 2.05',
+      targetOdds: '1.60 - 2.05',
       minProb: '≥ 48%',
       desc: 'Evaluates mutual goal expectation by factoring both sides’ clean sheet deficit and attacking scoring consistency across recent match series.'
     },
@@ -2331,7 +2342,7 @@
       catLabel: 'Goals & Totals',
       icon: 'NG',
       formula: 'P(BTTS: No) ≥ 46% · Low xG',
-      targetOdds: '1.80 – 2.30',
+      targetOdds: '1.80 - 2.30',
       minProb: '≥ 46%',
       desc: 'Defensive containment model projecting that at least one side will record a clean sheet or fail to breach disciplined defensive blocks.'
     },
@@ -2343,7 +2354,7 @@
       catLabel: 'Match Winners',
       icon: 'HT',
       formula: '1st Half Poisson Matrix · P ≥ 46%',
-      targetOdds: '2.00 – 2.90',
+      targetOdds: '2.00 - 2.90',
       minProb: '≥ 46%',
       desc: 'First-half tactical dominance model isolating teams that strike early and maintain defensive discipline within the opening 45 minutes.'
     },
@@ -2355,7 +2366,7 @@
       catLabel: 'Match Winners',
       icon: 'W2N',
       formula: 'P(Win & Nil) ≥ 18% · Elite Defense',
-      targetOdds: '2.50 – 4.20',
+      targetOdds: '2.50 - 4.20',
       minProb: '≥ 18%',
       desc: 'High-odds specialty line coupling heavy favorite victory with complete defensive shutout of opponent attacking output.'
     },
@@ -2367,7 +2378,7 @@
       catLabel: 'Match Winners',
       icon: 'CS',
       formula: 'Bivariate Poisson 8×8 Matrix Peak',
-      targetOdds: '5.50 – 14.0',
+      targetOdds: '5.50 - 14.0',
       minProb: 'Peak Cell',
       desc: 'Calculates the full bivariate Poisson distribution across 64 possible scorelines to isolate highest mathematical probability exact scores.'
     },
@@ -2379,7 +2390,7 @@
       catLabel: 'Corners & Cards',
       icon: 'CNR',
       formula: 'Exp Corners ≥ 9.0 · Flank Index',
-      targetOdds: '1.75 – 2.10',
+      targetOdds: '1.75 - 2.10',
       minProb: '≥ 52%',
       desc: 'Corner volume projection modeled from wide-channel attack frequency, winger crossing rates, and opposing defensive shot blocks.'
     },
@@ -2391,7 +2402,7 @@
       catLabel: 'Corners & Cards',
       icon: 'C1X2',
       formula: 'Corner Differential ≥ 0.6',
-      targetOdds: '1.60 – 2.40',
+      targetOdds: '1.60 - 2.40',
       minProb: 'Dominant',
       desc: 'Corner handicap match-up measuring territorial dominance in the final third and cross-origin territory control.'
     },
@@ -2403,7 +2414,7 @@
       catLabel: 'Corners & Cards',
       icon: 'CRD',
       formula: 'Cards Exp ≥ 3.6 · Strict Ref',
-      targetOdds: '1.70 – 2.15',
+      targetOdds: '1.70 - 2.15',
       minProb: '≥ 55%',
       desc: 'Disciplinary card volume projected from referee historical booking strictness, rivalry derby tension, and tactical foul rates.'
     },
@@ -2415,7 +2426,7 @@
       catLabel: 'Corners & Cards',
       icon: 'K1X2',
       formula: 'Booking Asymmetry ≥ 0.3',
-      targetOdds: '1.80 – 2.50',
+      targetOdds: '1.80 - 2.50',
       minProb: 'Frictional',
       desc: 'Asymmetric aggression model predicting which squad will accumulate more bookings based on defensive tackle deficits and discipline.'
     },
@@ -2427,7 +2438,7 @@
       catLabel: 'Goals & Totals',
       icon: 'GBH',
       formula: 'P(Goal 1H & 2H) ≥ 72%',
-      targetOdds: '1.55 – 1.95',
+      targetOdds: '1.55 - 1.95',
       minProb: '≥ 72%',
       desc: 'Continuous offensive tempo model forecasting that at least 1 goal will be registered in both the 1st and 2nd 45-minute periods.'
     },
@@ -2439,7 +2450,7 @@
       catLabel: 'Goals & Totals',
       icon: 'TTG',
       formula: 'Team Expected λ ≥ 1.65',
-      targetOdds: '1.65 – 2.25',
+      targetOdds: '1.65 - 2.25',
       minProb: '≥ 50%',
       desc: 'Individual club scoring threshold identifying offensive juggernauts projected to score 2 or more team goals independently.'
     },
@@ -2451,7 +2462,7 @@
       catLabel: 'Combos & Halves',
       icon: 'B+O',
       formula: 'P(BTTS) ≥ 48% & P(O2.5) ≥ 48%',
-      targetOdds: '1.95 – 2.60',
+      targetOdds: '1.95 - 2.60',
       minProb: '≥ 48%',
       desc: 'High-multiplier parlay engine bundling Both Teams To Score with Over 2.5 Goals for maximized single-match return.'
     },
@@ -2463,7 +2474,7 @@
       catLabel: 'Sure & Value Bets',
       icon: 'A-UD',
       formula: 'Away Odds ≥ 2.50 · Model P > Implied P',
-      targetOdds: '2.50 – 4.50',
+      targetOdds: '2.50 - 4.50',
       minProb: '≥ 32%',
       desc: 'Identifies underpriced visiting teams where bookmaker home bias skews pricing, creating mispriced value on the road.'
     },
@@ -2475,7 +2486,7 @@
       catLabel: 'Sure & Value Bets',
       icon: 'FADE',
       formula: 'Max Prob ≥ 50% · Anti-Hype',
-      targetOdds: '1.50 – 1.95',
+      targetOdds: '1.50 - 1.95',
       minProb: '≥ 50%',
       desc: 'Systematically opposes over-hyped public underdogs entering mean-reversion spots against fundamentally superior opposition.'
     },
@@ -2487,7 +2498,7 @@
       catLabel: 'Sure & Value Bets',
       icon: 'FORM',
       formula: 'Form Trend vs Table Gap ≥ 3',
-      targetOdds: '1.70 – 2.40',
+      targetOdds: '1.70 - 2.40',
       minProb: 'Trend Peak',
       desc: 'Capitalizes on wide discrepancies between recent underlying expected goals form and misleading official league table positions.'
     },
@@ -2511,7 +2522,7 @@
       catLabel: 'Statistical Radar',
       icon: 'ENS',
       formula: 'Logistic Ensemble Weights · P ≥ 45%',
-      targetOdds: '1.60 – 2.40',
+      targetOdds: '1.60 - 2.40',
       minProb: '≥ 45%',
       desc: 'Machine learning ensemble synthesizing Elo power rankings, rolling momentum vectors, and squad availability indexes.'
     },
@@ -2523,7 +2534,7 @@
       catLabel: 'Sure & Value Bets',
       icon: 'CONS',
       formula: 'Edge ≥ 1.0% & Prob ≥ 48%',
-      targetOdds: '1.50 – 2.20',
+      targetOdds: '1.50 - 2.20',
       minProb: '≥ 48%',
       desc: 'Aggregated consensus selections that successfully pass multi-model cross-validation with positive mathematical expectation.'
     },
@@ -2535,7 +2546,7 @@
       catLabel: 'Sure & Value Bets',
       icon: 'HIGH-P',
       formula: 'P(Outcome) ≥ 68% · Capital Guard',
-      targetOdds: '1.20 – 1.55',
+      targetOdds: '1.20 - 1.55',
       minProb: '≥ 68%',
       desc: 'Ultra high-probability selections crafted specifically for low-drawdown capital preservation and high-stake compounding.'
     },
@@ -2547,7 +2558,7 @@
       catLabel: 'Match Winners',
       icon: 'H-WIN',
       formula: 'P(H) ≥ 50% · Clean 1X2 Line',
-      targetOdds: '1.50 – 2.10',
+      targetOdds: '1.50 - 2.10',
       minProb: '≥ 50%',
       desc: 'High-conviction straight 1X2 home win filter requiring clear tactical superiority, form momentum, and over 50% Poisson win likelihood.'
     },
@@ -2559,7 +2570,7 @@
       catLabel: 'Goals & Totals',
       icon: 'TTS',
       formula: 'P(Goal Scored) ≥ 65%',
-      targetOdds: '1.22 – 1.48',
+      targetOdds: '1.22 - 1.48',
       minProb: '≥ 65%',
       desc: 'Projects whether an individual team will breach the opponent net based on opponent defensive concession rates and attacking pressure.'
     },
@@ -2583,7 +2594,7 @@
       catLabel: 'Combos & Halves',
       icon: 'PARLAY',
       formula: 'Parlay Optimization Leg Filter',
-      targetOdds: '2.50 – 15.0',
+      targetOdds: '2.50 - 15.0',
       minProb: 'Compounding',
       desc: 'Accu-Forge parlay bundling algorithm optimizing multi-leg ticket structure and maximizing expected payout value per unit staked.'
     },
@@ -2595,7 +2606,7 @@
       catLabel: 'Goals & Totals',
       icon: 'U2.5',
       formula: 'P(Under 2.5) ≥ 48% · Low Volatility',
-      targetOdds: '1.65 – 2.20',
+      targetOdds: '1.65 - 2.20',
       minProb: '≥ 48%',
       desc: 'Low-scoring containment filter identifying games governed by compact tactical blocks, low expected goals, and cautious styles.'
     },
@@ -2607,7 +2618,7 @@
       catLabel: 'Match Winners',
       icon: 'H-DC',
       formula: 'P(1X) ≥ 72% · Unbeaten Fortress',
-      targetOdds: '1.14 – 1.35',
+      targetOdds: '1.14 - 1.35',
       minProb: '≥ 72%',
       desc: 'Unbeaten home streak model protecting against draws for top-tier hosts playing in front of dominant home support.'
     },
@@ -2734,25 +2745,27 @@
     return { analysis, algoResponse };
   }
 
-  // Helper: Form Run Pills (W/D/L badges)
+  // Helper: Form Run Pills (W/D/L badges) - always 5 slots with honest verified metrics
   function renderFormRunPills(formArray) {
-    if (!Array.isArray(formArray) || !formArray.length) {
-      return `<div class="em-form-pills-row" title="No prior matches recorded in database">
-        <span class="em-form-pill empty" title="No prior matches recorded">—</span>
-        <span class="em-form-pill empty" title="No prior matches recorded">—</span>
-        <span class="em-form-pill empty" title="No prior matches recorded">—</span>
-        <span class="em-form-pill empty" title="No prior matches recorded">—</span>
-        <span class="em-form-pill empty" title="No prior matches recorded">—</span>
-      </div>`;
-    }
-    return `<div class="em-form-pills-row">
-      ${formArray.slice(0, 5).map(res => {
-        const ch = (String(res).charAt(0) || 'D').toUpperCase();
+    const list = Array.isArray(formArray) ? formArray : [];
+    const pills = [];
+    for (let i = 0; i < 5; i++) {
+      if (i < list.length && list[i]) {
+        const ch = (String(list[i]).charAt(0) || 'D').toUpperCase();
         const cls = ch === 'W' ? 'w' : (ch === 'L' ? 'l' : 'd');
-        const title = ch === 'W' ? 'Win' : (ch === 'L' ? 'Loss' : 'Draw');
-        return `<span class="em-form-pill ${cls}" title="${title}">${ch}</span>`;
-      }).join('')}
-    </div>`;
+        const title = ch === 'W' ? 'Win (Verified match result)' : (ch === 'L' ? 'Loss (Verified match result)' : 'Draw (Verified match result)');
+        pills.push(`<span class="em-form-pill ${cls}" title="${title}">${ch}</span>`);
+      } else {
+        const title = list.length === 0
+          ? 'No prior verified matches on record in current season dataset (unfabricated data)'
+          : `Match ${i + 1}: Prior verified record pending season sync`;
+        pills.push(`<span class="em-form-pill empty" title="${title}">-</span>`);
+      }
+    }
+    const containerTitle = list.length === 0 
+      ? 'No prior verified league matches on record for current season (zero fabricated data)'
+      : `${list.length} verified match result(s) on record`;
+    return `<div class="em-form-pills-row" title="${containerTitle}">${pills.join('')}</div>`;
   }
 
   // Helper: Unified Employer Mockup Match Card (Canva Layout)
@@ -2965,7 +2978,7 @@
                   <div class="em-settled-status-group">
                     <span class="em-settled-score-pill">Score: ${hScore} - ${aScore}</span>
                     <span class="em-settled-outcome-pill ${isPredictionWon ? 'won' : 'lost'}">
-                      ${isPredictionWon ? '✓ PREDICTION WON' : '✗ PREDICTION LOST'}
+                      ${isPredictionWon ? 'PREDICTION WON' : 'PREDICTION LOST'}
                     </span>
                     <button type="button" class="em-info-circle-btn btn-grid-details"
                       data-home="${esc(m.home_team)}" data-away="${esc(m.away_team)}" data-league="${m.league_id || ''}" data-idx="${rowIdx}"
@@ -3152,7 +3165,7 @@
             <div class="grid-settled-status-row">
               <span class="grid-settled-score">Score: ${hScore} - ${aScore}</span>
               <span class="grid-settled-outcome ${isPredictionWon ? 'won' : 'lost'}">
-                ${isPredictionWon ? '✓ PREDICTION WON' : '✗ PREDICTION LOST'}
+                ${isPredictionWon ? 'PREDICTION WON' : 'PREDICTION LOST'}
               </span>
             </div>
             <div class="grid-settled-analysis ${isPredictionWon ? 'won' : 'lost'}">
@@ -3203,7 +3216,7 @@
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 5v14M5 12h14"></path>
               </svg>
-              <span>${inSlipTop ? (isBanter ? '✓ Don Enter' : '✓ In Slip') : (isBanter ? 'Chop Am' : 'Add to Slip')}</span>
+              <span>${inSlipTop ? (isBanter ? 'Don Enter' : 'In Slip') : (isBanter ? 'Chop Am' : 'Add to Slip')}</span>
             </button>
           `}
         </div>
@@ -3325,7 +3338,7 @@
     if (!filtered.length) {
       grid.innerHTML = `
         <div class="grand-empty-search-state">
-          <div class="empty-icon">🔍</div>
+          <div class="empty-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
           <h3>No Matching Models Found</h3>
           <p>No model in the 33-market quantitative suite matches "<strong>${escapeHtmlUtil(grandSearchQuery)}</strong>".</p>
           <button class="btn-reset-grand-search" id="btnResetGrandSearch">Clear Filter &amp; Show All 33</button>
@@ -3429,7 +3442,7 @@
       name: endpointId,
       category: 'outcomes',
       catLabel: 'Model Market',
-      icon: '🎯',
+      icon: '',
       formula: 'Poisson Expectancy Filter',
       desc: 'Algorithmic model criteria'
     };
@@ -3456,7 +3469,7 @@
         </div>
 
         <div class="drilldown-title-cluster">
-          <div class="drilldown-icon-box">${epObj.icon || '🎯'}</div>
+          <div class="drilldown-icon-box">${epObj.icon || ''}</div>
           <div class="drilldown-meta-col">
             <h2 class="drilldown-title">${epObj.name}</h2>
             <p class="drilldown-desc">${epObj.desc}</p>
@@ -3689,7 +3702,7 @@
       if (!matches.length) {
         feed.innerHTML = `
           <div class="grand-empty-search-state">
-            <div class="empty-icon">🛡️</div>
+            <div class="empty-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
             <h3>No Fixtures Qualified for ${epObj.name}</h3>
             <p>
               The quantitative algorithm evaluated fixtures for this date but none exceeded the strict statistical probability threshold or positive Kelly edge. Non-conforming fixtures are filtered out to preserve bankroll capital.
@@ -3768,7 +3781,7 @@
       if (feed) {
         feed.innerHTML = `
           <div class="grand-empty-search-state">
-            <div class="empty-icon">⚠️</div>
+            <div class="empty-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
             <h3>Unable to Load Slate</h3>
             <p>Could not load matches for ${epObj.name}. Please try again.</p>
             <div style="display: flex; justify-content: center; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem;">
@@ -3943,7 +3956,7 @@
         if (narrativeBox) {
           narrativeBox.innerHTML = `
             <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 1rem; color: #991b1b;">
-              <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 0.25rem;">Prediction Unavailable — Insufficient Verified Data</div>
+              <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 0.25rem;">Prediction Unavailable: Insufficient Verified Data</div>
               <div style="font-size: 0.85rem; color: #b91c1c;">${data.message || 'Complete verified league standings or match history are not available for this fixture. Model cannot responsibly predict.'}</div>
             </div>
           `;
@@ -3960,7 +3973,7 @@
       if (narrativeBox) {
         narrativeBox.innerHTML = `
           <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 1rem; color: #991b1b;">
-            <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 0.25rem;">Prediction Unavailable — Insufficient Verified Data</div>
+            <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 0.25rem;">Prediction Unavailable: Insufficient Verified Data</div>
             <div style="font-size: 0.85rem; color: #b91c1c;">${err.message || 'Complete verified league standings or match history are not available for this fixture. Model cannot responsibly predict.'}</div>
           </div>
         `;
@@ -4025,7 +4038,7 @@
           return `<span class="footy-sq ${cls}">${c}</span>`;
         }).join('');
       } else {
-        footyHomeSquares.innerHTML = `<span class="footy-sq empty" title="No prior matches recorded">—</span>`;
+        footyHomeSquares.innerHTML = `<span class="footy-sq empty" title="No prior matches recorded">-</span>`;
       }
     }
 
@@ -4047,7 +4060,7 @@
           return `<span class="footy-sq ${cls}">${c}</span>`;
         }).join('');
       } else {
-        footyAwaySquares.innerHTML = `<span class="footy-sq empty" title="No prior matches recorded">—</span>`;
+        footyAwaySquares.innerHTML = `<span class="footy-sq empty" title="No prior matches recorded">-</span>`;
       }
     }
 
@@ -4295,7 +4308,7 @@
             <div class="sure-pred-cta-box">
               <button type="button" class="btn-sure-add-slip pick-trigger ${inSlip ? 'in-slip' : ''}"
                 data-home="${esc(data.match_info.home_team)}" data-away="${esc(data.match_info.away_team)}" data-league="${data.match_info.league_id || 'PL'}" data-market="${esc(topTicket.selection)}" data-odds="${topTicket.odds}">
-                <span>${inSlip ? (isBanter ? '✓ Don Enter Slip' : '✓ Added to Bet Slip') : (isBanter ? '+ Chop Am For Slip' : '+ Add to Bet Slip')}</span>
+                <span>${inSlip ? (isBanter ? 'Don Enter Slip' : 'Added to Bet Slip') : (isBanter ? '+ Chop Am For Slip' : '+ Add to Bet Slip')}</span>
               </button>
             </div>
           </div>
@@ -4322,7 +4335,7 @@
           const nowInSlip = state.betslip.items.some(i => i.match === `${home} vs ${away}` && i.market === market);
           sureBtn.classList.toggle('in-slip', nowInSlip);
           const sp = sureBtn.querySelector('span');
-          if (sp) sp.textContent = nowInSlip ? '✓ Added to Bet Slip' : '+ Add to Bet Slip';
+          if (sp) sp.textContent = nowInSlip ? 'Added to Bet Slip' : '+ Add to Bet Slip';
         };
       }
     }
@@ -4461,8 +4474,8 @@
     const away = data.away || { name: matchInfo.away_team, form: '', matches: [] };
     const h2h = data.h2h || { total_matches: 0, home_wins: 0, draws: 0, away_wins: 0, avg_goals: '0.0' };
     const isBanter = state.personalityMode === 'BANTER';
-    const homeFormStr = home.form ? home.form : '— — — — —';
-    const awayFormStr = away.form ? away.form : '— — — — —';
+    const homeFormStr = home.form ? home.form : '- - - - -';
+    const awayFormStr = away.form ? away.form : '- - - - -';
     const homeMatches = home.matches || [];
     const awayMatches = away.matches || [];
 
@@ -5717,7 +5730,7 @@
       const minS = state.calendar.minStake;
       const maxS = state.calendar.maxStake;
       if (minS != null && maxS != null && minS > 0 && maxS > 0) {
-        selStakeBadge.textContent = `₦${(minS/1000).toFixed(minS % 1000 ? 1 : 0)}k – ₦${(maxS/1000).toFixed(maxS % 1000 ? 1 : 0)}k`;
+        selStakeBadge.textContent = `₦${(minS/1000).toFixed(minS % 1000 ? 1 : 0)}k - ₦${(maxS/1000).toFixed(maxS % 1000 ? 1 : 0)}k`;
       } else if (minS != null && minS > 0) {
         selStakeBadge.textContent = `₦${(minS/1000).toFixed(minS % 1000 ? 1 : 0)}k+`;
       } else if (maxS != null && maxS > 0) {
@@ -6134,6 +6147,18 @@
       }
     }
 
+    // Defend against browser credential autofill leaking username into search query
+    const inputCalSearchEl = document.getElementById('inputCalendarSearchTeam') || dom.inputCalendarSearchTeam;
+    const knownCredentialNames = ['tip_algo', 'demopro', 'admin', 'tip_partner', (state.user?.username || '').toLowerCase(), (state.user?.email || '').toLowerCase()].filter(Boolean);
+    if (state.calendar.searchQuery && knownCredentialNames.includes(state.calendar.searchQuery.toLowerCase())) {
+      state.calendar.searchQuery = '';
+      state.calendar.isClubSearchActive = false;
+      state.calendar.teamSearchResults = null;
+      if (inputCalSearchEl) inputCalSearchEl.value = '';
+      const btnClearCal = document.getElementById('btnClearCalSearch');
+      if (btnClearCal) btnClearCal.style.display = 'none';
+    }
+
     // Multi-Date Club Search vs Single Slate Filter
     if (state.calendar.isClubSearchActive && state.calendar.teamSearchResults) {
       matches = state.calendar.teamSearchResults;
@@ -6250,7 +6275,7 @@
           <p class="empty-sub">${emptyMsg}</p>
           ${(state.calendar.data && state.calendar.data.provider_status === 'error' && state.calendar.data.provider_message) ? `
             <div style="margin: 0.85rem auto; max-width: 440px; padding: 0.6rem 0.85rem; background: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.35); border-radius: 8px; color: #f43f5e; font-size: 0.8rem; font-weight: 600; line-height: 1.4; text-align: left;">
-              ⚠️ <strong>Data Provider Notice:</strong> ${esc(state.calendar.data.provider_message)}
+              <strong>Data Provider Notice:</strong> ${esc(state.calendar.data.provider_message)}
             </div>
           ` : ''}
           <div class="empty-actions">
@@ -6341,8 +6366,8 @@
     if (stakeFallbackNotice) {
       fallbackNoticeHtml = `
         <div class="stake-fallback-alert" style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); color: #fcd34d; padding: 0.75rem 1rem; border-radius: 12px; margin-bottom: 1.25rem; font-size: 0.82rem; font-weight: 600; display: flex; align-items: center; gap: 0.6rem;">
-          <span style="font-size: 1.15rem;">⚠️</span>
-          <span>No predictions match exact stake range <strong>₦${stakeFallbackNotice.min.toLocaleString()} – ₦${stakeFallbackNotice.max === Infinity ? '+' : stakeFallbackNotice.max.toLocaleString()}</strong>. Showing closest recommendations below (Closest Stake: <strong>₦${stakeFallbackNotice.closest.toLocaleString()}</strong>).</span>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+          <span>No predictions match exact stake range <strong>₦${stakeFallbackNotice.min.toLocaleString()} - ₦${stakeFallbackNotice.max === Infinity ? '+' : stakeFallbackNotice.max.toLocaleString()}</strong>. Showing closest recommendations below (Closest Stake: <strong>₦${stakeFallbackNotice.closest.toLocaleString()}</strong>).</span>
         </div>
       `;
     }
@@ -6487,7 +6512,7 @@
                         <p class="banner-copy-text">Get recommended safe stake sizes for every match so you manage your budget wisely, stick with high-confidence bankers, and avoid careless losses.</p>
                         <div class="banner-metrics-strip">
                           <div class="banner-metric-item">
-                            <span class="banner-metric-val green">₦1k – ₦5k</span>
+                            <span class="banner-metric-val green">₦1k - ₦5k</span>
                             <span class="banner-metric-lbl">Suggested Staking</span>
                           </div>
                           <div class="banner-metric-item">
@@ -6614,7 +6639,7 @@
             <!-- All 33 Endpoints CTA -->
             <div class="all-33-markets-banner" style="margin-top: 2rem;">
               <div class="banner-33-content">
-                <div class="banner-33-icon">⚽</div>
+                <div class="banner-33-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg></div>
                 <div class="banner-33-text">
                   <h3>Browse All 33 Quantitative Betting Markets</h3>
                   <p>Inspect every model endpoint in our mathematical football engine.</p>
@@ -6989,7 +7014,7 @@
     } catch (e) {}
     renderSlip();
     renderCalendarMatchesFeed();
-    toast('Bet slip cleared');
+    toast('Bet slip cleared', 'info');
   }
 
   function setStake(amount) {
@@ -7066,10 +7091,10 @@
         <div class="sporty-slip-leg-card" data-idx="${idx}">
           <div class="sporty-slip-leg-header">
             <div class="sporty-slip-check-market">
-              <span class="sporty-slip-checkbox">✓</span>
+              <span class="sporty-slip-checkbox"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#10b981" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
               <span class="sporty-slip-market-name">${esc(item.market)}</span>
             </div>
-            <button class="btn-remove-leg sporty-slip-remove" data-idx="${idx}" title="Remove pick">✕</button>
+            <button class="btn-remove-leg sporty-slip-remove" data-idx="${idx}" title="Remove pick">&times;</button>
           </div>
           <div class="sporty-slip-match-title">${esc(item.match)}</div>
           <div class="sporty-slip-leg-sub">
@@ -7617,8 +7642,25 @@
     window.appClearClubSearch = clearClubSearch;
 
     if (inputCalSearch) {
+      inputCalSearch.addEventListener('focus', () => {
+        const valLower = (inputCalSearch.value || '').trim().toLowerCase();
+        const knownCredentialNames = ['tip_algo', 'demopro', 'admin', 'tip_partner', (state.user?.username || '').toLowerCase(), (state.user?.email || '').toLowerCase()].filter(Boolean);
+        if (knownCredentialNames.includes(valLower)) {
+          clearClubSearch();
+        }
+      });
+
       inputCalSearch.addEventListener('input', (e) => {
         const val = e.target.value.trim();
+        const valLower = val.toLowerCase();
+        const knownCredentialNames = ['tip_algo', 'demopro', 'admin', 'tip_partner', (state.user?.username || '').toLowerCase(), (state.user?.email || '').toLowerCase()].filter(Boolean);
+
+        // Reject browser autofill of account usernames
+        if (knownCredentialNames.includes(valLower) && (!e.isTrusted || document.activeElement !== inputCalSearch)) {
+          clearClubSearch();
+          return;
+        }
+
         state.calendar.searchQuery = val;
         if (btnClearSearch) btnClearSearch.style.display = val ? 'inline-flex' : 'none';
 
@@ -8023,7 +8065,7 @@
         }
         let totalOdds = 1.0;
         const lines = [
-          `🎯 PREDICTION TICKET (${state.betslip.items.length} PICKS)`,
+          `PREDICTION TICKET (${state.betslip.items.length} PICKS)`,
           `Date: ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
           `---------------------------------`
         ];
@@ -9240,7 +9282,7 @@
     // Loading State Skeleton
     if (statusSlot) {
       statusSlot.className = 'dash-state-msg';
-      statusSlot.innerHTML = `<span style="color:#bef264;">⚡ Simulating Poisson match outcomes & calculating ML edge...</span>`;
+      statusSlot.innerHTML = `<span style="color:#bef264;">Simulating Poisson match outcomes & calculating ML edge...</span>`;
     }
 
     // Check Pro Subscription status
@@ -9372,7 +9414,7 @@
     } else if (status === 429 || msg.includes('Rate limit') || msg.includes('Slow down')) {
       let secondsLeft = 15;
       statusSlot.className = 'dash-state-msg warning-429';
-      statusSlot.textContent = `⚠️ Rate limit exceeded. Slow down, try again in ${secondsLeft}s.`;
+      statusSlot.textContent = `Rate limit exceeded. Slow down, try again in ${secondsLeft}s.`;
       const timer = setInterval(() => {
         secondsLeft--;
         if (secondsLeft <= 0) {
@@ -9380,7 +9422,7 @@
           statusSlot.className = 'dash-state-msg';
           statusSlot.textContent = 'Rate limit cleared. Ready for next query.';
         } else {
-          statusSlot.textContent = `⚠️ Rate limit exceeded. Slow down, try again in ${secondsLeft}s.`;
+          statusSlot.textContent = `Rate limit exceeded. Slow down, try again in ${secondsLeft}s.`;
         }
       }, 1000);
     } else {
@@ -9739,7 +9781,7 @@
     if (statusEl) {
       statusEl.style.display = 'block';
       statusEl.className = 'dash-state-msg';
-      statusEl.innerHTML = '<span style="color:#bef264;">⚡ Synthesizing parlay candidate legs and checking correlations...</span>';
+      statusEl.innerHTML = '<span style="color:#bef264;">Synthesizing parlay candidate legs and checking correlations...</span>';
     }
 
     try {
@@ -9864,7 +9906,7 @@
               <div>
                 <strong style="color:#fff; font-size:0.9rem;">${escapeHtml(item.match)}</strong>
                 <div style="font-size:0.75rem; color:#94a3b8; margin-top:0.2rem;">
-                  ${hasTip ? `<span style="color:#bef264; font-weight:700;">★ Tip: ${escapeHtml(tip.selection || 'Pick')}</span> · Prob: ${(tip.probability || 0).toFixed(1)}% · Edge: +${(tip.edge || 0).toFixed(1)}%` : 'No qualifying +EV edge at current odds.'}
+                  ${hasTip ? `<span style="color:#bef264; font-weight:700;"> Tip: ${escapeHtml(tip.selection || 'Pick')}</span> · Prob: ${(tip.probability || 0).toFixed(1)}% · Edge: +${(tip.edge || 0).toFixed(1)}%` : 'No qualifying +EV edge at current odds.'}
                 </div>
               </div>
               <div>
@@ -10301,3 +10343,95 @@
   window.addEventListener('DOMContentLoaded', init);
 
 })();
+
+  // ===================================================================
+  // MOBILE MENU & RESPONSIVE CONTROLLER
+  // ===================================================================
+  function initMobileMenu() {
+    const btnToggle = document.getElementById('btnMobileMenuToggle');
+    const btnClose = document.getElementById('btnCloseMobileMenu');
+    const backdrop = document.getElementById('mobileMenuBackdrop');
+    const mobileLinks = document.querySelectorAll('.mobile-nav-link[data-tab-target]');
+    const mobLogin = document.getElementById('btnMobileLogin');
+
+    function openMobileMenu() {
+      if (backdrop) {
+        backdrop.classList.add('open');
+        backdrop.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    function closeMobileMenu() {
+      if (backdrop) {
+        backdrop.classList.remove('open');
+        backdrop.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+      }
+    }
+
+    if (btnToggle) btnToggle.addEventListener('click', openMobileMenu);
+    if (btnClose) btnClose.addEventListener('click', closeMobileMenu);
+    if (backdrop) {
+      backdrop.addEventListener('click', (e) => {
+        if (e.target === backdrop) closeMobileMenu();
+      });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && backdrop && backdrop.classList.contains('open')) {
+        closeMobileMenu();
+      }
+    });
+
+    mobileLinks.forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const target = link.getAttribute('data-tab-target');
+        if (target) {
+          switchTab(target);
+          mobileLinks.forEach(l => l.classList.remove('active'));
+          link.classList.add('active');
+          closeMobileMenu();
+        }
+      });
+    });
+
+    if (mobLogin) {
+      mobLogin.addEventListener('click', () => {
+        closeMobileMenu();
+        openSecurityGate();
+      });
+    }
+
+    // Dynamic Copyright Year update
+    const copyYear = document.getElementById('footerCopyrightYear');
+    if (copyYear) copyYear.textContent = new Date().getFullYear();
+
+    // Footer Support modal link
+    const footerHelp = document.getElementById('footerBtnHelpModal');
+    const modalSupport = document.getElementById('modalSupportCenter');
+    if (footerHelp && modalSupport) {
+      footerHelp.addEventListener('click', (e) => {
+        e.preventDefault();
+        modalSupport.classList.add('open');
+      });
+    }
+
+    const footerResp = document.getElementById('footerLinkResponsible');
+    if (footerResp) {
+      footerResp.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchTab('view-about');
+        const box = document.querySelector('.about-disclaimer-box');
+        if (box) box.scrollIntoView({ behavior: 'smooth' });
+      });
+    }
+  }
+
+  // Hook into window load or DOMContentLoaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMobileMenu);
+  } else {
+    initMobileMenu();
+  }
