@@ -1988,6 +1988,10 @@ TEAM_ALIAS_MAP = {
     "barca": "barcelona",
     "fc barcelona": "barcelona",
     "real madrid cf": "real madrid",
+    "alianza": "alianza valledupar",
+    "alianza petrolera": "alianza valledupar",
+    "sc heerenveen": "heerenveen",
+    "feyenoord rotterdam": "feyenoord",
 }
 
 def get_team_alias_candidates(team: str) -> List[str]:
@@ -4641,6 +4645,8 @@ async def lifespan(app: FastAPI):
                 try:
                     async with AsyncSessionLocal() as session:
                         await ensure_whitelisted_users(session)
+                    from seed_extended_standings import seed_extended_standings
+                    await asyncio.to_thread(seed_extended_standings)
                 except Exception as e:
                     logger.warning(f"Whitelisted user setup notice: {e}")
                 break

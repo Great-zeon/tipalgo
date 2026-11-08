@@ -3919,12 +3919,30 @@
       renderBankerSlate(state.activeBankerProb || 0.80);
     } else if (viewId === 'view-match-analytics') {
       loadMatchAnalytics(state.activeFixture);
+    } else if (viewId === 'view-screener') {
+      const emptyState = dom.screenerResultDisplay ? dom.screenerResultDisplay.querySelector('.empty-dribbble-state') : null;
+      if (emptyState && !emptyState.textContent.includes('Evaluating')) {
+        runValueScreener();
+      }
+    } else if (viewId === 'view-accumulator') {
+      if (dom.accuTicketDisplay && !dom.accuTicketDisplay.hasChildNodes()) {
+        runAccuForgeTicket();
+      }
+    } else if (viewId === 'view-batch') {
+      const emptyBatch = dom.batchScanResultsTable ? dom.batchScanResultsTable.querySelector('.empty-dribbble-state') : null;
+      if (emptyBatch && !emptyBatch.textContent.includes('Simulating')) {
+        runBatchScanner();
+      }
     } else if (viewId === 'view-profile') {
       updateUserUI();
     } else if (viewId === 'view-dashboard') {
       initDashboardView();
     }
   }
+
+  // Globally expose unified view switching engine
+  window.switchView = switchView;
+  window.switchTab = switchView;
 
   // Open Full Match Analytics View
   function openMatchAnalytics(fixture) {
@@ -8589,6 +8607,21 @@
       btnCloseSupport.addEventListener('click', () => modalSupport.classList.remove('open'));
     }
 
+    // Modal background click and Escape dismissal
+    [modalAbout, modalSupport].forEach(m => {
+      if (m) {
+        m.addEventListener('click', (e) => {
+          if (e.target === m) m.classList.remove('open');
+        });
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (modalAbout) modalAbout.classList.remove('open');
+        if (modalSupport) modalSupport.classList.remove('open');
+      }
+    });
+
     // Interactive +EV & Kelly Calculator on About Page
     const probSlider = document.getElementById('demoProbSlider');
     const oddsSlider = document.getElementById('demoOddsSlider');
@@ -10389,13 +10422,23 @@
         e.preventDefault();
         const target = link.getAttribute('data-tab-target');
         if (target) {
-          switchTab(target);
+          switchView(target);
           mobileLinks.forEach(l => l.classList.remove('active'));
           link.classList.add('active');
           closeMobileMenu();
         }
       });
     });
+
+    const mobNavSupport = document.getElementById('mobNavSupport');
+    const modalSupport = document.getElementById('modalSupportCenter');
+    if (mobNavSupport && modalSupport) {
+      mobNavSupport.addEventListener('click', (e) => {
+        e.preventDefault();
+        closeMobileMenu();
+        modalSupport.classList.add('open');
+      });
+    }
 
     if (mobLogin) {
       mobLogin.addEventListener('click', () => {
@@ -10410,7 +10453,6 @@
 
     // Footer Support modal link
     const footerHelp = document.getElementById('footerBtnHelpModal');
-    const modalSupport = document.getElementById('modalSupportCenter');
     if (footerHelp && modalSupport) {
       footerHelp.addEventListener('click', (e) => {
         e.preventDefault();
@@ -10418,11 +10460,20 @@
       });
     }
 
+    // Footer Navigation Links with data-tab-target
+    document.querySelectorAll('.footer-link[data-tab-target]').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const target = link.getAttribute('data-tab-target');
+        if (target) switchView(target);
+      });
+    });
+
     const footerResp = document.getElementById('footerLinkResponsible');
     if (footerResp) {
       footerResp.addEventListener('click', (e) => {
         e.preventDefault();
-        switchTab('view-about');
+        switchView('view-about');
         const box = document.querySelector('.about-disclaimer-box');
         if (box) box.scrollIntoView({ behavior: 'smooth' });
       });
