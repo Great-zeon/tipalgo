@@ -4739,7 +4739,7 @@ async def add_performance_cache_headers(request: Request, call_next):
         if req_path.endswith((".jpg", ".jpeg", ".png", ".webp", ".svg", ".ico", ".woff", ".woff2")):
             response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
         elif req_path.endswith((".css", ".js")):
-            response.headers["Cache-Control"] = "public, max-age=86400"
+            response.headers["Cache-Control"] = "no-cache, must-revalidate"
     return response
 
 @app.exception_handler(InsufficientDataError)

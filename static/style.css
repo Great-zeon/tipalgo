@@ -8740,11 +8740,11 @@ body.filter-drawer-open {
 
 @media (max-width: 640px) {
   body {
-    overflow-x: hidden;
+    overflow-x: clip;
     padding: 0;
   }
   .app-wrapper {
-    overflow-x: hidden;
+    overflow-x: clip;
     border-radius: 0;
   }
   .top-navbar {
@@ -10896,7 +10896,7 @@ body.banter-mode-active .sb-model-pick-pill .sb-pick-title {
   width: 100%;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 920px) {
   .home-main-split {
     display: grid;
     grid-template-columns: 1fr 340px;
@@ -10907,12 +10907,12 @@ body.banter-mode-active .sb-model-pick-pill .sb-pick-title {
     min-width: 0;
   }
   .home-slip-col {
-    position: sticky;
-    top: 76px;
-    height: fit-content;
-    align-self: start;
+    position: sticky !important;
+    top: 76px !important;
+    height: fit-content !important;
+    align-self: start !important;
     display: block !important;
-    z-index: 90;
+    z-index: 90 !important;
   }
   .home-slip-col .betslip-sidebar {
     position: static !important;
@@ -10974,7 +10974,7 @@ body.banter-mode-active .sb-model-pick-pill .sb-pick-title {
   }
 }
 
-@media (min-width: 1024px) and (max-height: 800px) {
+@media (min-width: 920px) and (max-height: 800px) {
   .home-slip-col .betslip-sidebar {
     height: calc(100vh - 86px) !important;
     max-height: calc(100vh - 86px) !important;
@@ -12908,7 +12908,7 @@ body.banter-mode-active .sb-model-pick-pill .sb-pick-title {
   display: none;
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 919px) {
   .mobile-floating-slip-popup {
     display: none !important;
   }

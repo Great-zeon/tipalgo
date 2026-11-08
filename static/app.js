@@ -10431,7 +10431,108 @@
 
   // Hook into window load or DOMContentLoaded
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initMobileMenu);
+    document.addEventListener('DOMContentLoaded', () => {
+      initMobileMenu();
+      initDesktopStickyBetSlip();
+    });
   } else {
     initMobileMenu();
+    initDesktopStickyBetSlip();
+  }
+
+  // ===================================================================
+  // BULLETPROOF DESKTOP BET SLIP DOCKED & STICKY ENFORCER
+  // ===================================================================
+  function initDesktopStickyBetSlip() {
+    const col = document.getElementById('homeSlipCol');
+    const sidebar = document.getElementById('betslipSidebar');
+    const split = document.querySelector('.home-main-split');
+    if (!col || !sidebar || !split) return;
+
+    let ticking = false;
+
+    function enforceSticky() {
+      // Mobile / Tablet portrait: leave styling to CSS media queries
+      if (window.innerWidth < 920) {
+        if (col.dataset.fixedPinned === 'true') {
+          col.style.position = '';
+          col.style.top = '';
+          col.style.right = '';
+          col.style.width = '';
+          col.style.zIndex = '';
+          delete col.dataset.fixedPinned;
+        }
+        return;
+      }
+
+      // Check if view-calendar matches slate is visible
+      const viewCal = document.getElementById('view-calendar');
+      if (viewCal && !viewCal.classList.contains('active')) {
+        if (col.dataset.fixedPinned === 'true') {
+          col.style.position = '';
+          col.style.top = '';
+          col.style.right = '';
+          col.style.width = '';
+          col.style.zIndex = '';
+          delete col.dataset.fixedPinned;
+        }
+        return;
+      }
+
+      const splitRect = split.getBoundingClientRect();
+      const navTopOffset = 76; // height of pinned top-navbar + clearance
+      const colHeight = col.offsetHeight || 500;
+      const rightMargin = Math.max(16, window.innerWidth - splitRect.right);
+
+      // If the top of the matches feed has scrolled past the sticky threshold
+      if (splitRect.top < navTopOffset) {
+        const bottomEdge = splitRect.bottom - colHeight - 20;
+
+        if (bottomEdge < navTopOffset) {
+          // Reached the bottom of the feed: pin at bottom of split container
+          col.style.position = 'absolute';
+          col.style.top = Math.max(0, split.offsetHeight - colHeight) + 'px';
+          col.style.bottom = 'auto';
+          col.style.right = '0px';
+          col.style.width = '340px';
+          col.style.zIndex = '90';
+          col.dataset.fixedPinned = 'true';
+        } else {
+          // Normal vertical scroll: permanently pin beside feed at top: 76px
+          col.style.position = 'fixed';
+          col.style.top = navTopOffset + 'px';
+          col.style.bottom = 'auto';
+          col.style.right = rightMargin + 'px';
+          col.style.width = '340px';
+          col.style.zIndex = '90';
+          col.dataset.fixedPinned = 'true';
+        }
+      } else {
+        // Scrolled back to top: natural grid flow
+        if (col.dataset.fixedPinned === 'true') {
+          col.style.position = '';
+          col.style.top = '';
+          col.style.right = '';
+          col.style.bottom = '';
+          col.style.width = '';
+          col.style.zIndex = '';
+          delete col.dataset.fixedPinned;
+        }
+      }
+    }
+
+    function onScroll() {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          enforceSticky();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    // Run on initial load
+    setTimeout(enforceSticky, 500);
   }
