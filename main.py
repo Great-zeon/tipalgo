@@ -3693,9 +3693,11 @@ async def generate_team_to_score_tip(db, predictor, home_team, away_team, league
         personality_mode=personality_mode, locale=locale,
         scenario="high_edge"
     )
+    raw_stake_str = str(candidates[0].get('stake_suggestion', '')).replace('₦','').replace(',','').strip()
+    parsed_stake = float(raw_stake_str) if raw_stake_str and raw_stake_str != 'N/A' else 0.0
     return ResponseBuilder.success("team_to_score", f"{home_team} vs {away_team}",
         candidates[0]['selection'], candidates[0]['confidence_percent'], 0, candidates[0]['odds'],
-        float(candidates[0]['stake_suggestion'].replace('₦','').replace(',','') or 0),
+        parsed_stake,
         candidates[0]['confidence_level'], explanation, "team-to-score-v1",
         confidence_percent=candidates[0]['confidence_percent'],
         criteria_breakdown=candidates[0]['criteria_breakdown'],
