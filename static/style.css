@@ -160,6 +160,21 @@ body, body.light-platform, body.dark-theme-mode {
   cursor: pointer;
 }
 
+.brand-logo-img {
+  height: 38px;
+  width: auto;
+  max-width: 175px;
+  object-fit: contain;
+  display: block;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.top-navbar .platform-logo:hover .brand-logo-img,
+.footer-logo-row:hover .brand-logo-img {
+  transform: translateY(-1px) scale(1.02);
+  filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.4));
+}
+
 .top-navbar .logo-mark {
   background: linear-gradient(135deg, #090e1a 0%, #131c2e 100%);
   border: 1px solid rgba(16, 185, 129, 0.4);

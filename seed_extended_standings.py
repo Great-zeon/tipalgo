@@ -230,3 +230,4 @@ def seed_extended_standings():
 
 if __name__ == "__main__":
     seed_extended_standings()
+
