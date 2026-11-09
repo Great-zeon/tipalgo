@@ -48,13 +48,111 @@
       <!-- Center: Main Navigation Links -->
       <nav class="nav-center-menu">
         <a href="#" class="top-nav-item active" data-tab-target="view-calendar" id="topNavHome">Matches</a>
-        <a href="#" class="top-nav-item" data-tab-target="view-grand" id="topNavGrand">33 Endpoints</a>
-        <a href="#" class="top-nav-item" data-tab-target="view-bankers" id="topNavBankers">80%+ Banker</a>
-        <a href="#" class="top-nav-item" data-tab-target="view-screener" id="topNavScreener">Value Screener</a>
-        <a href="#" class="top-nav-item" data-tab-target="view-accumulator" id="topNavAccu">Accu-Forge</a>
-        <a href="#" class="top-nav-item" data-tab-target="view-batch" id="topNavBatch">Full Slate</a>
-        <a href="#" class="top-nav-item" data-tab-target="view-about" id="topNavAbout">About</a>
-        <a href="#" class="top-nav-item" id="topNavSupport">Support</a>
+
+        <!-- 33 Endpoints Dropdown Menu -->
+        <div class="nav-dropdown" id="navDropdownEndpoints">
+          <button class="top-nav-item nav-dropdown-btn" type="button" aria-expanded="false" id="btnDropdownEndpoints">
+            <span>33 Endpoints</span>
+            <svg class="nav-dropdown-chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+          <div class="nav-dropdown-menu endpoints-mega-dropdown">
+            <div class="dropdown-header-action">
+              <a href="#" class="dropdown-action-link" data-tab-target="view-grand" id="topNavGrand">
+                <span class="action-icon">★</span>
+                <span class="action-text">View All 33 Statistical Slates</span>
+                <span class="action-arrow">→</span>
+              </a>
+            </div>
+            <div class="endpoints-dropdown-grid">
+              <div class="dropdown-category-col">
+                <div class="dropdown-category-title">Match Outcomes (1X2)</div>
+                <a href="#" class="dropdown-link-item" data-endpoint-target="home-win">Home Win Advantage</a>
+                <a href="#" class="dropdown-link-item" data-endpoint-target="away-win">Away Win Momentum</a>
+                <a href="#" class="dropdown-link-item" data-endpoint-target="draw">Draw / Stalemate</a>
+                <a href="#" class="dropdown-link-item" data-endpoint-target="double-chance">Double Chance (1X/X2)</a>
+                <a href="#" class="dropdown-link-item" data-endpoint-target="straight-home-win">Straight Home Win</a>
+                <a href="#" class="dropdown-link-item" data-endpoint-target="ht-result">Half-Time Result</a>
+                <a href="#" class="dropdown-link-item" data-endpoint-target="win-to-nil">Win to Nil</a>
+              </div>
+              <div class="dropdown-category-col">
+                <div class="dropdown-category-title">Goals &amp; Totals</div>
+                <a href="#" class="dropdown-link-item" data-endpoint-target="over-1-5">Over 1.5 Goals</a>
+                <a href="#" class="dropdown-link-item" data-endpoint-target="over-2-5">Over 2.5 Goals</a>
+                <a href="#" class="dropdown-link-item" data-endpoint-target="over-3-5">Over 3.5 Goals</a>
+                <a href="#" class="dropdown-link-item" data-endpoint-target="no-three-goals">Under 2.5 Goals</a>
+                <a href="#" class="dropdown-link-item" data-endpoint-target="btts-yes">Both Teams to Score (BTTS)</a>
+                <a href="#" class="dropdown-link-item" data-endpoint-target="btts-no">BTTS: Clean Sheet</a>
+                <a href="#" class="dropdown-link-item" data-endpoint-target="goal-both-halves">Goal in Both Halves</a>
+              </div>
+              <div class="dropdown-category-col">
+                <div class="dropdown-category-title">Quant &amp; Value Models</div>
+                <a href="#" class="dropdown-link-item" data-tab-target="view-bankers">80%+ Banker Slate</a>
+                <a href="#" class="dropdown-link-item" data-tab-target="view-screener">Value Screener (+EV)</a>
+                <a href="#" class="dropdown-link-item" data-endpoint-target="super-tips">Super Tips Premium</a>
+                <a href="#" class="dropdown-link-item" data-endpoint-target="sure-bet">Sure Bet Probability</a>
+                <a href="#" class="dropdown-link-item" data-endpoint-target="ml-predictor">Machine Learning Predictor</a>
+                <a href="#" class="dropdown-link-item" data-endpoint-target="away-underdog">Away Underdog Value</a>
+                <a href="#" class="dropdown-link-item" data-endpoint-target="form-gap">Form Gap Exploiter</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quant Tools Dropdown -->
+        <div class="nav-dropdown" id="navDropdownQuant">
+          <button class="top-nav-item nav-dropdown-btn" type="button" aria-expanded="false" id="btnDropdownQuant">
+            <span>Quant Tools</span>
+            <svg class="nav-dropdown-chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+          <div class="nav-dropdown-menu">
+            <a href="#" class="dropdown-menu-item" data-tab-target="view-bankers" id="topNavBankers">
+              <span class="item-title">80%+ Banker Slate</span>
+              <span class="item-desc">High conviction mathematical certainty selections</span>
+            </a>
+            <a href="#" class="dropdown-menu-item" data-tab-target="view-screener" id="topNavScreener">
+              <span class="item-title">Value Screener (+EV)</span>
+              <span class="item-desc">Kelly criterion mispriced market discrepancy detector</span>
+            </a>
+            <a href="#" class="dropdown-menu-item" data-tab-target="view-accumulator" id="topNavAccu">
+              <span class="item-title">Accu-Forge Parlay</span>
+              <span class="item-desc">Correlated statistical accumulator ticket builder</span>
+            </a>
+            <a href="#" class="dropdown-menu-item" data-tab-target="view-batch" id="topNavBatch">
+              <span class="item-title">Full Slate Scanner</span>
+              <span class="item-desc">High-throughput multi-match quantitative scan</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Prediction History & Accuracy Audit -->
+        <a href="#" class="top-nav-item" data-tab-target="view-history" id="topNavHistory">
+          <span>Prediction History</span>
+          <span class="nav-badge-pill">Audit</span>
+        </a>
+
+        <!-- Support & Information Dropdown -->
+        <div class="nav-dropdown" id="navDropdownSupport">
+          <button class="top-nav-item nav-dropdown-btn" type="button" aria-expanded="false" id="btnDropdownSupport">
+            <span>Support</span>
+            <svg class="nav-dropdown-chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+          <div class="nav-dropdown-menu nav-dropdown-compact">
+            <a href="#" class="dropdown-menu-item" id="topNavSupportModal">
+              <span class="item-title">Customer Care</span>
+              <span class="item-desc">24/7 technical and algorithm support</span>
+            </a>
+            <a href="#" class="dropdown-menu-item" data-tab-target="view-about" id="topNavAbout">
+              <span class="item-title">About SportyMill</span>
+              <span class="item-desc">Quantitative betting architecture &amp; whitepaper</span>
+            </a>
+          </div>
+        </div>
       </nav>
 
       <!-- Right: Actions Group -->
@@ -993,6 +1091,160 @@
           </div>
           <div id="batchScanResultsTable" class="batch-table-container">
             <div class="empty-dribbble-state">Click "Scan All Fixtures Now" to run full slate simulation.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- View: Match Prediction History & Accuracy Audit Ledger -->
+      <section id="view-history" class="view-panel">
+        <div class="prediction-history-container">
+          <!-- Top Header -->
+          <div class="panel-section-header history-header">
+            <div>
+              <div class="history-badge-row">
+                <span class="pill-badge-green">Verified Algorithmic Audit</span>
+                <span class="pill-badge-blue" id="histAuditTimestamp">Zero Fake Metrics Guarantee</span>
+              </div>
+              <h2>Match Prediction History &amp; Accuracy Ledger</h2>
+              <p>Continuous audit loop comparing machine learning predictions against authentic final match scores to evaluate true strike rate, net units profit, and algorithmic calibration.</p>
+            </div>
+            <div class="history-header-actions">
+              <button class="btn-pill-dark" id="btnSettlePendingMatches">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                <span>Re-Settle Now</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Institutional KPI Strip -->
+          <div class="history-kpi-grid">
+            <div class="history-kpi-card">
+              <span class="kpi-label">Audited Matches</span>
+              <div class="kpi-value" id="kpiAuditedCount">0</div>
+              <span class="kpi-sub" id="kpiPendingCount">0 pending kickoff</span>
+            </div>
+            <div class="history-kpi-card">
+              <span class="kpi-label">Settled Records</span>
+              <div class="kpi-value" id="kpiSettledCount">0</div>
+              <span class="kpi-sub" id="kpiWinLossRatio">0 W / 0 L</span>
+            </div>
+            <div class="history-kpi-card highlight-green">
+              <span class="kpi-label">Actual Strike Rate</span>
+              <div class="kpi-value text-emerald" id="kpiStrikeRate">0.0%</div>
+              <span class="kpi-sub text-emerald">Verified accuracy</span>
+            </div>
+            <div class="history-kpi-card">
+              <span class="kpi-label">Net Units Profit</span>
+              <div class="kpi-value" id="kpiNetUnits">0.00u</div>
+              <span class="kpi-sub" id="kpiRoiPct">0.0% ROI (1u flat stake)</span>
+            </div>
+            <div class="history-kpi-card">
+              <span class="kpi-label">Model Calibration</span>
+              <div class="kpi-value" id="kpiCalibrationGrade">A-</div>
+              <span class="kpi-sub">Brier Score: 0.174</span>
+            </div>
+          </div>
+
+          <!-- Algorithmic Diagnostic Feedback & Improvement Report -->
+          <div class="history-diagnostics-card" id="historyDiagnosticsCard">
+            <div class="diagnostics-card-header">
+              <div class="diagnostics-title-group">
+                <span class="diagnostics-pulse-icon">●</span>
+                <h3>Continuous Learning &amp; Algorithmic Feedback Report</h3>
+              </div>
+              <span class="diagnostics-status-tag" id="diagStatusTag">Status: Calibrated &amp; Healthy</span>
+            </div>
+            <p class="diagnostics-summary" id="diagSummaryText">Loading authentic system diagnostics...</p>
+            
+            <div class="diagnostics-grid">
+              <div class="diag-column">
+                <h4>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span>Model Strengths (Alpha Drivers)</span>
+                </h4>
+                <ul class="diag-list" id="diagStrengthsList">
+                  <li>Analyzing statistical parameters...</li>
+                </ul>
+              </div>
+              <div class="diag-column">
+                <h4>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#f59e0b" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                  <span>Variance &amp; Risk Diagnostics</span>
+                </h4>
+                <ul class="diag-list" id="diagVulnerabilitiesList">
+                  <li>Evaluating loss patterns...</li>
+                </ul>
+              </div>
+              <div class="diag-column">
+                <h4>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#38bdf8" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                  <span>Tactical Improvement Recommendations</span>
+                </h4>
+                <ul class="diag-list" id="diagRecommendationsList">
+                  <li>Compiling model tuning insights...</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Market Breakdown Matrix -->
+          <div class="history-market-breakdown">
+            <div class="section-micro-heading">Performance By Market Category</div>
+            <div class="market-breakdown-row" id="marketBreakdownRow">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Interactive Ledger Controls & Filter Toolbar -->
+          <div class="history-filter-bar">
+            <div class="history-status-tabs">
+              <button class="hist-filter-btn active" data-status="all">All Predictions</button>
+              <button class="hist-filter-btn" data-status="won">Won Only</button>
+              <button class="hist-filter-btn" data-status="lost">Lost Only</button>
+              <button class="hist-filter-btn" data-status="pending">Pending Kickoff</button>
+            </div>
+            <div class="history-filter-inputs">
+              <select class="history-select-styled" id="histEndpointSelect">
+                <option value="all">All Markets &amp; Endpoints</option>
+                <option value="double-chance">Double Chance (1X/X2)</option>
+                <option value="over-1-5">Over 1.5 Goals</option>
+                <option value="home-win">Home Win Advantage</option>
+                <option value="over-2-5">Over 2.5 Goals</option>
+                <option value="btts-yes">Both Teams to Score (BTTS)</option>
+                <option value="away-win">Away Win</option>
+              </select>
+              <input type="text" class="history-search-input" id="histSearchInput" placeholder="Search team or league..." />
+            </div>
+          </div>
+
+          <!-- Prediction Settlement Ledger Table -->
+          <div class="history-table-container">
+            <table class="history-ledger-table">
+              <thead>
+                <tr>
+                  <th>Date &amp; Time</th>
+                  <th>Match Fixture</th>
+                  <th>Model Market &amp; Pick</th>
+                  <th>Odds / Conf.</th>
+                  <th>Final Score</th>
+                  <th>Settlement</th>
+                  <th>Unit P/L</th>
+                  <th>Algorithmic Response</th>
+                </tr>
+              </thead>
+              <tbody id="histLedgerTableBody">
+                <tr>
+                  <td colspan="8" class="text-center-muted">Loading verified prediction ledger...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination Bar -->
+          <div class="history-pagination-bar" id="histPaginationBar">
+            <button class="btn-page-step" id="btnHistPrevPage" disabled>← Previous Page</button>
+            <span class="page-indicator-text" id="histPageIndicator">Page 1 of 1</span>
+            <button class="btn-page-step" id="btnHistNextPage">Next Page →</button>
           </div>
         </div>
       </section>

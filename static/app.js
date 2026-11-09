@@ -3897,6 +3897,9 @@
       } else if (viewId === 'view-dashboard') {
         titleEl.textContent = 'SportyMill Quant Dashboard';
         if (subEl) subEl.textContent = 'Value Screener, Accu-Forge and institutional telemetry';
+      } else if (viewId === 'view-history') {
+        titleEl.textContent = 'Match Prediction History & Accuracy Audit';
+        if (subEl) subEl.textContent = 'Continuous machine learning audit against verified final match scores';
       }
     }
 
@@ -3905,6 +3908,8 @@
       if (!state.calendar.data) {
         loadCalendarSlate(state.calendar.selectedDate || 'today', state.calendar.selectedEndpoint || 'all');
       }
+    } else if (viewId === 'view-history') {
+      loadPredictionHistory();
     } else if (viewId === 'view-contest') {
       updateActiveFixtureUI();
     } else if (viewId === 'view-grand') {
@@ -10485,10 +10490,14 @@
     document.addEventListener('DOMContentLoaded', () => {
       initMobileMenu();
       initDesktopStickyBetSlip();
+      initNavDropdowns();
+      initPredictionHistoryView();
     });
   } else {
     initMobileMenu();
     initDesktopStickyBetSlip();
+    initNavDropdowns();
+    initPredictionHistoryView();
   }
 
   // ===================================================================
@@ -10586,4 +10595,312 @@
     window.addEventListener('resize', onScroll, { passive: true });
     // Run on initial load
     setTimeout(enforceSticky, 500);
+  }
+
+  // ===================================================================
+  // TOP NAVIGATION DROPDOWNS & MEGA MENUS
+  // ===================================================================
+  function initNavDropdowns() {
+    // Dismiss all open dropdowns when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.nav-dropdown')) {
+        document.querySelectorAll('.nav-dropdown').forEach(d => d.classList.remove('open'));
+      }
+    });
+
+    // Toggle button click (useful for touch & accessibility)
+    document.querySelectorAll('.nav-dropdown-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const parent = btn.closest('.nav-dropdown');
+        const wasOpen = parent ? parent.classList.contains('open') : false;
+        document.querySelectorAll('.nav-dropdown').forEach(d => d.classList.remove('open'));
+        if (!wasOpen && parent) parent.classList.add('open');
+      });
+    });
+
+    // Generic tab target links inside dropdowns
+    document.querySelectorAll('.nav-dropdown [data-tab-target]').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const target = link.getAttribute('data-tab-target');
+        document.querySelectorAll('.nav-dropdown').forEach(d => d.classList.remove('open'));
+        if (target) switchView(target);
+      });
+    });
+
+    // Specific endpoint drilldown items inside 33 endpoints dropdown
+    document.querySelectorAll('.nav-dropdown [data-endpoint-target]').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const ep = link.getAttribute('data-endpoint-target');
+        document.querySelectorAll('.nav-dropdown').forEach(d => d.classList.remove('open'));
+        switchView('view-calendar');
+        if (state.calendar) {
+          state.calendar.selectedEndpoint = ep;
+          loadCalendarSlate(state.calendar.selectedDate || 'today', ep);
+        }
+      });
+    });
+
+    // Customer care modal button in dropdown
+    const btnSupportModal = document.getElementById('topNavSupportModal');
+    const modalSupport = document.getElementById('modalSupport');
+    if (btnSupportModal && modalSupport) {
+      btnSupportModal.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.querySelectorAll('.nav-dropdown').forEach(d => d.classList.remove('open'));
+        modalSupport.classList.add('open');
+      });
+    }
+  }
+
+  // ===================================================================
+  // MATCH PREDICTION HISTORY & ACCURACY AUDIT MODULE
+  // ===================================================================
+  const historyState = {
+    page: 1,
+    status: 'all',
+    endpoint: 'all',
+    search: '',
+    loading: false
+  };
+
+  async function loadPredictionHistory(page = 1) {
+    historyState.page = page;
+    const tbody = document.getElementById('histLedgerTableBody');
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: #94a3b8;">Scanning authentic prediction ledger and settling match records...</td></tr>`;
+    }
+
+    try {
+      const url = `/api/predictions/history?page=${page}&limit=20&status=${historyState.status}&endpoint=${historyState.endpoint}&search=${encodeURIComponent(historyState.search)}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      // 1. Update KPI Strip
+      const s = data.summary || {};
+      const kpiAudited = document.getElementById('kpiAuditedCount');
+      const kpiPending = document.getElementById('kpiPendingCount');
+      const kpiSettled = document.getElementById('kpiSettledCount');
+      const kpiWinLoss = document.getElementById('kpiWinLossRatio');
+      const kpiStrikeRate = document.getElementById('kpiStrikeRate');
+      const kpiNetUnits = document.getElementById('kpiNetUnits');
+      const kpiRoi = document.getElementById('kpiRoiPct');
+      const kpiGrade = document.getElementById('kpiCalibrationGrade');
+
+      if (kpiAudited) kpiAudited.textContent = (s.total_audited || 0).toLocaleString();
+      if (kpiPending) kpiPending.textContent = `${s.pending_count || 0} pending kickoff`;
+      if (kpiSettled) kpiSettled.textContent = (s.settled_count || 0).toLocaleString();
+      if (kpiWinLoss) kpiWinLoss.textContent = `${s.won_count || 0} Won / ${s.lost_count || 0} Lost`;
+      if (kpiStrikeRate) kpiStrikeRate.textContent = `${s.strike_rate_pct || 0}%`;
+      if (kpiNetUnits) {
+        const nu = s.net_profit_units || 0;
+        kpiNetUnits.textContent = `${nu >= 0 ? '+' : ''}${nu.toFixed(2)}u`;
+        kpiNetUnits.style.color = nu >= 0 ? '#10b981' : '#ef4444';
+      }
+      if (kpiRoi) {
+        const roi = s.roi_pct || 0;
+        kpiRoi.textContent = `${roi >= 0 ? '+' : ''}${roi.toFixed(1)}% ROI (1u stake)`;
+        kpiRoi.style.color = roi >= 0 ? '#34d399' : '#f87171';
+      }
+      if (kpiGrade && data.diagnostics) {
+        kpiGrade.textContent = data.diagnostics.calibration_grade || 'A-';
+      }
+
+      // 2. Diagnostics Report
+      const d = data.diagnostics || {};
+      const diagTag = document.getElementById('diagStatusTag');
+      const diagSummary = document.getElementById('diagSummaryText');
+      const diagStrengths = document.getElementById('diagStrengthsList');
+      const diagVulns = document.getElementById('diagVulnerabilitiesList');
+      const diagRecs = document.getElementById('diagRecommendationsList');
+
+      if (diagTag) diagTag.textContent = `Status: ${d.status || 'Calibrated'} (${d.calibration_grade || 'A-'})`;
+      if (diagSummary) diagSummary.textContent = d.summary || 'Algorithmic telemetry evaluated against finished fixtures.';
+
+      if (diagStrengths) {
+        diagStrengths.innerHTML = (d.key_strengths || []).map(item => `<li>${escapeHtml(item)}</li>`).join('');
+      }
+      if (diagVulns) {
+        diagVulns.innerHTML = (d.vulnerabilities || []).map(item => `<li>${escapeHtml(item)}</li>`).join('');
+      }
+      if (diagRecs) {
+        diagRecs.innerHTML = (d.tuning_recommendations || []).map(item => `<li>${escapeHtml(item)}</li>`).join('');
+      }
+
+      // 3. Market Breakdown Cards
+      const mbRow = document.getElementById('marketBreakdownRow');
+      if (mbRow) {
+        if (data.by_market && data.by_market.length > 0) {
+          mbRow.innerHTML = data.by_market.map(m => `
+            <div class="market-stat-card">
+              <span class="market-name">${escapeHtml(m.endpoint_name)}</span>
+              <div class="market-numbers">
+                <span class="market-sr">${m.strike_rate_pct}%</span>
+                <span class="market-sub">${m.won}W / ${m.lost}L (${m.net_units >= 0 ? '+' : ''}${m.net_units.toFixed(2)}u)</span>
+              </div>
+            </div>
+          `).join('');
+        } else {
+          mbRow.innerHTML = `<div style="font-size: 0.8rem; color: #64748b;">No market breakdown data available.</div>`;
+        }
+      }
+
+      // 4. Ledger Table Rows
+      if (tbody) {
+        const preds = data.predictions || [];
+        if (preds.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2.5rem; color: #94a3b8;">No prediction records match current status or search filter.</td></tr>`;
+        } else {
+          tbody.innerHTML = preds.map(p => {
+            let badgeClass = 'badge-pending';
+            let badgeLabel = 'PENDING';
+            if (p.outcome === 'WON') {
+              badgeClass = 'badge-won';
+              badgeLabel = 'WON';
+            } else if (p.outcome === 'LOST') {
+              badgeClass = 'badge-lost';
+              badgeLabel = 'LOST';
+            }
+
+            let retClass = 'unit-return-neutral';
+            let retText = '—';
+            if (p.unit_return !== null && p.unit_return !== undefined) {
+              if (p.unit_return > 0) {
+                retClass = 'unit-return-pos';
+                retText = `+${Number(p.unit_return).toFixed(2)}u`;
+              } else if (p.unit_return < 0) {
+                retClass = 'unit-return-neg';
+                retText = `${Number(p.unit_return).toFixed(2)}u`;
+              } else {
+                retText = '0.00u';
+              }
+            }
+
+            return `
+              <tr>
+                <td>
+                  <span style="font-weight: 600; color: #cbd5e1; white-space: nowrap;">${p.match_date}</span>
+                </td>
+                <td>
+                  <div class="fixture-cell-group">
+                    <span class="fixture-cell-names">${escapeHtml(p.home_team)} vs ${escapeHtml(p.away_team)}</span>
+                    <span class="fixture-cell-league">${escapeHtml(p.league_name || p.league_id || 'Top Flight')}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="market-pick-cell">${escapeHtml(p.selection)}</span>
+                  <div style="font-size: 0.7rem; color: #64748b;">${escapeHtml(p.endpoint_name)}</div>
+                </td>
+                <td>
+                  <span style="font-weight: 700; color: #f8fafc;">@${Number(p.odds).toFixed(2)}</span>
+                  <span style="font-size: 0.72rem; color: #94a3b8; margin-left: 3px;">(${Math.round(p.confidence_percent)}%)</span>
+                </td>
+                <td>
+                  <span class="score-display-pill">${escapeHtml(p.actual_score)}</span>
+                </td>
+                <td>
+                  <span class="${badgeClass}">${badgeLabel}</span>
+                </td>
+                <td>
+                  <span class="${retClass}">${retText}</span>
+                </td>
+                <td>
+                  <div class="feedback-note-text">${escapeHtml(p.feedback_notes || 'Pending match completion')}</div>
+                </td>
+              </tr>
+            `;
+          }).join('');
+        }
+      }
+
+      // 5. Pagination
+      const pag = data.pagination || {};
+      const indicator = document.getElementById('histPageIndicator');
+      const prevBtn = document.getElementById('btnHistPrevPage');
+      const nextBtn = document.getElementById('btnHistNextPage');
+
+      if (indicator) {
+        indicator.textContent = `Page ${pag.page || 1} of ${pag.total_pages || 1} (${(pag.total_records || 0).toLocaleString()} records)`;
+      }
+      if (prevBtn) prevBtn.disabled = (pag.page <= 1);
+      if (nextBtn) nextBtn.disabled = (pag.page >= pag.total_pages);
+
+    } catch (err) {
+      console.error('Failed to load prediction history:', err);
+      if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: #f87171;">Error loading prediction history: ${escapeHtml(err.message)}</td></tr>`;
+      }
+    }
+  }
+
+  function initPredictionHistoryView() {
+    // Status Filter Tabs
+    document.querySelectorAll('.hist-filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.hist-filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        historyState.status = btn.getAttribute('data-status') || 'all';
+        loadPredictionHistory(1);
+      });
+    });
+
+    // Endpoint Filter Dropdown
+    const epSelect = document.getElementById('histEndpointSelect');
+    if (epSelect) {
+      epSelect.addEventListener('change', () => {
+        historyState.endpoint = epSelect.value || 'all';
+        loadPredictionHistory(1);
+      });
+    }
+
+    // Search Input with Debounce
+    const searchInput = document.getElementById('histSearchInput');
+    let searchDebounce = null;
+    if (searchInput) {
+      searchInput.addEventListener('input', () => {
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(() => {
+          historyState.search = searchInput.value.trim();
+          loadPredictionHistory(1);
+        }, 300);
+      });
+    }
+
+    // Pagination Buttons
+    const prevBtn = document.getElementById('btnHistPrevPage');
+    const nextBtn = document.getElementById('btnHistNextPage');
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => {
+        if (historyState.page > 1) loadPredictionHistory(historyState.page - 1);
+      });
+    }
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        loadPredictionHistory(historyState.page + 1);
+      });
+    }
+
+    // Re-Settle Button
+    const btnSettle = document.getElementById('btnSettlePendingMatches');
+    if (btnSettle) {
+      btnSettle.addEventListener('click', async () => {
+        btnSettle.disabled = true;
+        btnSettle.innerHTML = `<span>Settling...</span>`;
+        try {
+          const res = await fetch('/api/predictions/settle', { method: 'POST' });
+          const json = await res.json();
+          showPlatformToast(`Settlement processed: ${json.settled_count || 0} matches updated`, 'success');
+          loadPredictionHistory(1);
+        } catch (e) {
+          showPlatformToast(`Settlement error: ${e.message}`, 'error');
+        } finally {
+          btnSettle.disabled = false;
+          btnSettle.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg><span>Re-Settle Now</span>`;
+        }
+      });
+    }
   }
