@@ -255,8 +255,8 @@ def compute_match_odds(home_team: str, away_team: str, league_id: str) -> Dict[s
 
 
 KNOWN_SUSPENDED_KEYS = {"0e675581454210763d7ef79017265356"}
-DEFAULT_ACTIVE_KEY = "9c939656325deeb68d2f7677b05d3b1416828ff0ecf076dc"
-DEFAULT_ACTIVE_BASE = "https://live-football-api.com/api/v1"
+DEFAULT_ACTIVE_KEY = os.getenv("FOOTBALL_API_KEY", "").strip()
+DEFAULT_ACTIVE_BASE = os.getenv("FOOTBALL_API_BASE", "https://live-football-api.com/api/v1").strip()
 
 
 class FootballDataService:
@@ -265,7 +265,7 @@ class FootballDataService:
             raw_key = os.getenv("FOOTBALL_API_KEY", "").strip()
             if raw_key in KNOWN_SUSPENDED_KEYS or not raw_key:
                 if raw_key in KNOWN_SUSPENDED_KEYS:
-                    logger.warning("Configured FOOTBALL_API_KEY is suspended; automatically falling back to active Live-Football-API key.")
+                    logger.warning("Configured FOOTBALL_API_KEY is suspended; please configure active FOOTBALL_API_KEY in environment.")
                 raw_key = DEFAULT_ACTIVE_KEY
                 base_url = DEFAULT_ACTIVE_BASE
         else:

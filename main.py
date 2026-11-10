@@ -103,10 +103,8 @@ class Config:
     ADMIN_DEVICE_KEY = os.getenv("ADMIN_DEVICE_KEY", "9821")
     MAX_SYSTEM_DEVICES = int(os.getenv("MAX_SYSTEM_DEVICES", "5"))
     REGISTRATION_ENABLED = os.getenv("REGISTRATION_ENABLED", "false").lower() == "true"
-    FOOTBALL_API_KEY = os.getenv("FOOTBALL_API_KEY", "9c939656325deeb68d2f7677b05d3b1416828ff0ecf076dc")
-    if FOOTBALL_API_KEY == "0e675581454210763d7ef79017265356" or not FOOTBALL_API_KEY:
-        FOOTBALL_API_KEY = "9c939656325deeb68d2f7677b05d3b1416828ff0ecf076dc"
-    FOOTBALL_API_BASE = os.getenv("FOOTBALL_API_BASE", "https://live-football-api.com/api/v1")
+    FOOTBALL_API_KEY = os.getenv("FOOTBALL_API_KEY", "").strip()
+    FOOTBALL_API_BASE = os.getenv("FOOTBALL_API_BASE", "https://live-football-api.com/api/v1").strip()
     if "api-sports.io" in FOOTBALL_API_BASE and (len(FOOTBALL_API_KEY) in (48, 64) or FOOTBALL_API_KEY.startswith(("9c93", "494e"))):
         FOOTBALL_API_BASE = "https://live-football-api.com/api/v1"
     PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY", "")
@@ -793,13 +791,44 @@ async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         if "sqlite" in config.DATABASE_URL:
+            # Safely ensure provenance columns exist on historical_matches
+            hist_cols = [
+                ("source_classification", "VARCHAR(30) DEFAULT 'unverified'"),
+                ("provider", "VARCHAR(50)"),
+                ("provider_fixture_id", "VARCHAR(100)"),
+                ("provider_competition_id", "VARCHAR(100)"),
+                ("home_team_id", "VARCHAR(100)"),
+                ("away_team_id", "VARCHAR(100)"),
+                ("provider_status", "VARCHAR(50)"),
+                ("provider_updated_at", "DATETIME"),
+                ("synced_at", "DATETIME"),
+                ("raw_payload", "TEXT")
+            ]
+            for col_name, col_type in hist_cols:
+                try:
+                    await conn.execute(text(f"ALTER TABLE historical_matches ADD COLUMN {col_name} {col_type}"))
+                except Exception:
+                    pass
+
+            # Safely ensure provenance columns exist on prediction_logs
+            pred_cols = [
+                ("source_classification", "VARCHAR(30) DEFAULT 'unverified'"),
+                ("provider_fixture_id", "VARCHAR(100)"),
+                ("model_version", "VARCHAR(50) DEFAULT 'v21.0'")
+            ]
+            for col_name, col_type in pred_cols:
+                try:
+                    await conn.execute(text(f"ALTER TABLE prediction_logs ADD COLUMN {col_name} {col_type}"))
+                except Exception:
+                    pass
+
             await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_hist_match_date ON historical_matches(match_date)"))
             await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_hist_status ON historical_matches(status)"))
             await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_hist_league_date ON historical_matches(league_id, match_date)"))
             await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_league_tables_lid_pos ON league_tables(league_id, position)"))
             await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_auth_dev_id ON authorized_devices(device_id)"))
             await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_auth_dev_active ON authorized_devices(is_active)"))
-    logger.info("Database initialized successfully with performance indexes")
+    logger.info("Database initialized successfully with performance indexes and provenance schema")
 
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
@@ -5713,23 +5742,33 @@ async def get_predictions_history(
 
 @app.post("/api/predictions/settle")
 async def settle_all_pending_predictions(db: AsyncSession = Depends(get_db)):
+    # Strictly settle authentic provider-verified predictions; synthetic and orphan records are quarantined
     unsettled = (await db.execute(
         select(PredictionLog).where(
-            or_(PredictionLog.outcome.is_(None), PredictionLog.outcome.in_(["PENDING", "pending"]))
+            and_(
+                PredictionLog.source_classification.in_(["provider_verified", "provider_cached"]),
+                PredictionLog.home_team != "Home",
+                PredictionLog.away_team != "Away",
+                or_(PredictionLog.outcome.is_(None), PredictionLog.outcome.in_(["PENDING", "pending"]))
+            )
         )
     )).scalars().all()
 
     settled_count = 0
     for p in unsettled:
-        m_res = await db.execute(
-            select(HistoricalMatch).where(
-                HistoricalMatch.home_team == p.home_team,
-                HistoricalMatch.away_team == p.away_team,
-                HistoricalMatch.status == "finished",
-                HistoricalMatch.home_score.isnot(None),
-                HistoricalMatch.away_score.isnot(None)
-            )
-        )
+        p_date_str = str(p.match_date)[:10] if p.match_date else None
+        filters = [
+            HistoricalMatch.home_team == p.home_team,
+            HistoricalMatch.away_team == p.away_team,
+            HistoricalMatch.status == "finished",
+            HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"]),
+            HistoricalMatch.home_score.isnot(None),
+            HistoricalMatch.away_score.isnot(None)
+        ]
+        if p_date_str:
+            filters.append(func.substr(func.cast(HistoricalMatch.match_date, String), 1, 10) == p_date_str)
+
+        m_res = await db.execute(select(HistoricalMatch).where(and_(*filters)))
         match = m_res.scalars().first()
         if match:
             hs = match.home_score

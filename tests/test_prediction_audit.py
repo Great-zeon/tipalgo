@@ -298,3 +298,4 @@ class TestMetricsRecomputation:
         assert status_res.status_code == 200
         assert "SportyMill System Status" in status_res.text
         assert "All Systems Operational" in status_res.text
+

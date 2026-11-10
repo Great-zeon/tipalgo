@@ -46,7 +46,7 @@ class TestApiContractAndResilience:
 
     def test_api_002_provider_detection(self):
         """API-002: Live Football API provider correctly detected from key/url."""
-        svc = FootballDataService(api_key="9c939656325deeb68d2f7677b05d3b1416828ff0ecf076dc")
+        svc = FootballDataService(api_key="test_live_football_key_48_chars_long_12345678901234", base_url="https://live-football-api.com/api/v1")
         assert svc.provider == "live-football-api"
         assert "live-football-api.com" in svc.base_url
 
