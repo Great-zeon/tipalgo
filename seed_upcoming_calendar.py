@@ -8,11 +8,19 @@ Seed realistic, authentic upcoming calendar fixtures for:
 Across top leagues in SportyMill so the calendar always has rich, active slates
 regardless of external API connection or offline status.
 """
+import os
+import sys
 import sqlite3
 import hashlib
 from datetime import datetime, timezone
 
 def seed_calendar_slates():
+    # Production Data Integrity Safeguard:
+    # Synthetic fixture seeding is prohibited in production environments or live slates.
+    if os.getenv("ENVIRONMENT") == "production" or os.getenv("TIPALGO_ENV") == "production":
+        print("Data Integrity Protection: Synthetic fixture seeding is disabled in production environments.")
+        return
+
     conn = sqlite3.connect("tipalgo.db")
     c = conn.cursor()
 
@@ -101,8 +109,8 @@ def seed_calendar_slates():
                         home_recent_goals_scored, away_recent_goals_scored,
                         home_recent_goals_conceded, away_recent_goals_conceded,
                         home_corners, away_corners, home_cards, away_cards,
-                        home_penalties, away_penalties
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        home_penalties, away_penalties, source_classification, provider
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     ext_id, ht, at, None, None,
                     lid, match_dt, ho, ao, do,
@@ -114,7 +122,7 @@ def seed_calendar_slates():
                     "2,1,1", "1,0,2",
                     "1,0,1", "2,1,1",
                     hc, ac, 1.8, 2.2,
-                    0, 0
+                    0, 0, "synthetic", "seed_script"
                 ))
                 total_inserted += 1
 

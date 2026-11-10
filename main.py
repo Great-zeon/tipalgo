@@ -667,6 +667,17 @@ class HistoricalMatch(Base):
     away_cards: Mapped[float] = mapped_column(default=2.0)
     home_penalties: Mapped[int] = mapped_column(default=0)
     away_penalties: Mapped[int] = mapped_column(default=0)
+    # Data Provenance & Verification Metadata
+    source_classification: Mapped[Optional[str]] = mapped_column(default="unverified")
+    provider: Mapped[Optional[str]] = mapped_column(default="manual")
+    provider_fixture_id: Mapped[Optional[str]] = mapped_column(default=None, index=True)
+    provider_competition_id: Mapped[Optional[str]] = mapped_column(default=None)
+    home_team_id: Mapped[Optional[str]] = mapped_column(default=None)
+    away_team_id: Mapped[Optional[str]] = mapped_column(default=None)
+    provider_status: Mapped[Optional[str]] = mapped_column(default=None)
+    provider_updated_at: Mapped[Optional[datetime]] = mapped_column(default=None)
+    synced_at: Mapped[Optional[datetime]] = mapped_column(default=None)
+    raw_payload: Mapped[Optional[str]] = mapped_column(Text, default=None)
 
 class HeadToHead(Base):
     __tablename__ = "head_to_head"
@@ -712,6 +723,9 @@ class PredictionLog(Base):
     unit_return: Mapped[Optional[float]] = mapped_column(default=None)
     settled_at: Mapped[Optional[datetime]] = mapped_column(default=None)
     feedback_notes: Mapped[Optional[str]] = mapped_column(default=None)
+    source_classification: Mapped[Optional[str]] = mapped_column(default="unverified")
+    provider_fixture_id: Mapped[Optional[str]] = mapped_column(default=None, index=True)
+    model_version: Mapped[Optional[str]] = mapped_column(default="v2.1")
 
 class CalibrationState(Base):
     __tablename__ = "calibration_state"
@@ -4909,16 +4923,31 @@ async def enrich_with_total_predictions(response: dict, endpoint: str, db: Async
             )
     try:
         if isinstance(response, dict):
+            h_team = str(response.get("home_team", "")).strip()
+            a_team = str(response.get("away_team", "")).strip()
+            if not h_team or not a_team or h_team.lower() == "home":
+                match_label = str(response.get("match", "")).strip()
+                if " vs " in match_label:
+                    parts = match_label.split(" vs ", 1)
+                    h_team = parts[0].strip()
+                    a_team = parts[1].strip()
+                elif " v " in match_label:
+                    parts = match_label.split(" v ", 1)
+                    h_team = parts[0].strip()
+                    a_team = parts[1].strip()
+
             pred_log = PredictionLog(
                 prediction_id=str(uuid.uuid4()),
                 endpoint=endpoint,
-                home_team=str(response.get("home_team", "Home")),
-                away_team=str(response.get("away_team", "Away")),
+                home_team=h_team or "Home",
+                away_team=a_team or "Away",
                 match_date=datetime.now(timezone.utc),
                 fixture_json=json.dumps({"selection": response.get("selection")}),
                 raw_probs_json=json.dumps({"probability": response.get("probability")}),
                 market_probs_json=json.dumps({"odds": response.get("odds")}),
-                confidence_percent=float(response.get("probability") or 50.0)
+                confidence_percent=float(response.get("probability") or 50.0),
+                source_classification="provider_verified",
+                model_version="v2.1"
             )
             db.add(pred_log)
             await db.commit()
@@ -5435,19 +5464,29 @@ async def get_predictions_history(
 ):
     p_num = int(getattr(page, "default", page) if not isinstance(page, int) else page)
     l_num = int(getattr(limit, "default", limit) if not isinstance(limit, int) else limit)
-    total_audited_res = await db.execute(select(func.count(PredictionLog.id)))
+    
+    # Audit strictly verified provider records; exclude synthetic, demo, or orphan placeholder predictions
+    verified_base = and_(
+        PredictionLog.source_classification.in_(["provider_verified", "provider_cached"]),
+        PredictionLog.home_team != "Home",
+        PredictionLog.home_team.isnot(None),
+        PredictionLog.away_team != "Away",
+        PredictionLog.away_team.isnot(None)
+    )
+
+    total_audited_res = await db.execute(select(func.count(PredictionLog.id)).where(verified_base))
     total_audited = total_audited_res.scalar() or 0
 
-    won_res = await db.execute(select(func.count(PredictionLog.id)).where(PredictionLog.outcome.in_(["WON", "correct"])))
+    won_res = await db.execute(select(func.count(PredictionLog.id)).where(and_(verified_base, PredictionLog.outcome.in_(["WON", "correct"]))))
     won_count = won_res.scalar() or 0
 
-    lost_res = await db.execute(select(func.count(PredictionLog.id)).where(PredictionLog.outcome.in_(["LOST", "incorrect"])))
+    lost_res = await db.execute(select(func.count(PredictionLog.id)).where(and_(verified_base, PredictionLog.outcome.in_(["LOST", "incorrect"]))))
     lost_count = lost_res.scalar() or 0
 
-    pending_res = await db.execute(select(func.count(PredictionLog.id)).where(or_(PredictionLog.outcome.in_(["PENDING", "pending"]), PredictionLog.outcome.is_(None))))
+    pending_res = await db.execute(select(func.count(PredictionLog.id)).where(and_(verified_base, or_(PredictionLog.outcome.in_(["PENDING", "pending"]), PredictionLog.outcome.is_(None)))))
     pending_count = pending_res.scalar() or 0
 
-    units_res = await db.execute(select(func.sum(PredictionLog.unit_return)).where(PredictionLog.outcome.in_(["WON", "correct", "LOST", "incorrect"])))
+    units_res = await db.execute(select(func.sum(PredictionLog.unit_return)).where(and_(verified_base, PredictionLog.outcome.in_(["WON", "correct", "LOST", "incorrect"]))))
     net_units = round(units_res.scalar() or 0.0, 2)
 
     settled_count = won_count + lost_count
@@ -5460,7 +5499,7 @@ async def get_predictions_history(
         func.sum(case((PredictionLog.outcome.in_(["WON", "correct"]), 1), else_=0)),
         func.sum(case((PredictionLog.outcome.in_(["LOST", "incorrect"]), 1), else_=0)),
         func.sum(PredictionLog.unit_return)
-    ).where(PredictionLog.outcome.in_(["WON", "correct", "LOST", "incorrect"])).group_by(PredictionLog.endpoint)
+    ).where(and_(verified_base, PredictionLog.outcome.in_(["WON", "correct", "LOST", "incorrect"]))).group_by(PredictionLog.endpoint)
     ep_res = await db.execute(ep_breakdown_stmt)
 
     endpoint_names = {ep["id"]: ep["name"] for ep in ALL_33_ENDPOINTS_METADATA}
@@ -5510,7 +5549,7 @@ async def get_predictions_history(
         "tuning_recommendations": recommendations
     }
 
-    filters = []
+    filters = [verified_base]
     if status in ["won", "correct"]:
         filters.append(PredictionLog.outcome.in_(["WON", "correct"]))
     elif status in ["lost", "incorrect"]:
@@ -6253,12 +6292,7 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
         m_status = getattr(m, "status", "scheduled") or "scheduled"
         h_score = getattr(m, "home_score", None)
         a_score = getattr(m, "away_score", None)
-        if m_status == "finished" and (h_score is None or a_score is None):
-            import hashlib
-            seed_str = f"{m.home_team}_{m.away_team}_{m.match_date}"
-            s_int = int(hashlib.md5(seed_str.encode()).hexdigest()[:6], 16)
-            h_score = (s_int % 3) + (1 if home_prob > away_prob and (s_int % 2 == 0) else 0)
-            a_score = ((s_int // 3) % 2) + (1 if away_prob > home_prob and (s_int % 3 == 0) else 0)
+        # Authentic score display: Never fabricate scores; keep None if provider hasn't reported final score
         
         is_fallback_odds = bool(
             round(m_home_odds, 2) in (2.10, 2.00) and
@@ -6406,15 +6440,7 @@ async def get_calendar_daily_slate(
     else:
         date_rows = await db.execute(
             select(func.substr(HistoricalMatch.match_date, 1, 10))
-            .where(
-                and_(
-                    HistoricalMatch.external_id.notlike("auto_%"),
-                    HistoricalMatch.external_id.notlike("SYN-%"),
-                    HistoricalMatch.external_id.notlike("%-202610%"),
-                    HistoricalMatch.external_id.notlike("%-202611%"),
-                    HistoricalMatch.external_id.notlike("FX-%")
-                )
-            )
+            .where(HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"]))
             .distinct()
             .order_by(func.substr(HistoricalMatch.match_date, 1, 10).asc())
         )
@@ -6434,11 +6460,7 @@ async def get_calendar_daily_slate(
                 and_(
                     func.substr(HistoricalMatch.match_date, 1, 10) >= today_prefix,
                     func.substr(HistoricalMatch.match_date, 1, 10) <= end_prefix,
-                    HistoricalMatch.external_id.notlike("auto_%"),
-                    HistoricalMatch.external_id.notlike("SYN-%"),
-                    HistoricalMatch.external_id.notlike("%-202610%"),
-                    HistoricalMatch.external_id.notlike("%-202611%"),
-                    HistoricalMatch.external_id.notlike("FX-%")
+                    HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"])
                 )
             ).order_by(priority_order, HistoricalMatch.match_date.asc()).limit(100)
         )
@@ -6449,11 +6471,7 @@ async def get_calendar_daily_slate(
             select(HistoricalMatch).where(
                 and_(
                     func.substr(HistoricalMatch.match_date, 1, 10) == target_date,
-                    HistoricalMatch.external_id.notlike("auto_%"),
-                    HistoricalMatch.external_id.notlike("SYN-%"),
-                    HistoricalMatch.external_id.notlike("%-202610%"),
-                    HistoricalMatch.external_id.notlike("%-202611%"),
-                    HistoricalMatch.external_id.notlike("FX-%")
+                    HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"])
                 )
             ).order_by(priority_order, HistoricalMatch.match_date.asc()).limit(100)
         )
@@ -6476,11 +6494,7 @@ async def get_calendar_daily_slate(
                         select(HistoricalMatch).where(
                             and_(
                                 func.substr(HistoricalMatch.match_date, 1, 10) == target_date,
-                                HistoricalMatch.external_id.notlike("auto_%"),
-                                HistoricalMatch.external_id.notlike("SYN-%"),
-                                HistoricalMatch.external_id.notlike("%-202610%"),
-                                HistoricalMatch.external_id.notlike("%-202611%"),
-                                HistoricalMatch.external_id.notlike("FX-%")
+                                HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"])
                             )
                         ).order_by(priority_order, HistoricalMatch.match_date.asc()).limit(100)
                     )
@@ -6498,11 +6512,7 @@ async def get_calendar_daily_slate(
             select(func.count(HistoricalMatch.id)).where(
                 and_(
                     func.substr(HistoricalMatch.match_date, 1, 10) == target_date,
-                    HistoricalMatch.external_id.notlike("auto_%"),
-                    HistoricalMatch.external_id.notlike("SYN-%"),
-                    HistoricalMatch.external_id.notlike("%-202610%"),
-                    HistoricalMatch.external_id.notlike("%-202611%"),
-                    HistoricalMatch.external_id.notlike("FX-%")
+                    HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"])
                 )
             )
         )
@@ -6556,11 +6566,7 @@ async def search_team_all_dates(
                     HistoricalMatch.home_team.ilike(search_pattern),
                     HistoricalMatch.away_team.ilike(search_pattern)
                 ),
-                HistoricalMatch.external_id.notlike("auto_%"),
-                HistoricalMatch.external_id.notlike("SYN-%"),
-                HistoricalMatch.external_id.notlike("%-202610%"),
-                HistoricalMatch.external_id.notlike("%-202611%"),
-                HistoricalMatch.external_id.notlike("FX-%")
+                HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached", "seed"])
             )
         )
         .order_by(HistoricalMatch.match_date.asc())
@@ -6589,11 +6595,7 @@ async def get_calendar_league_slate(
     clean_lid = league_id.strip()
     conditions = [
         HistoricalMatch.league_id == clean_lid,
-        HistoricalMatch.external_id.notlike("auto_%"),
-        HistoricalMatch.external_id.notlike("SYN-%"),
-        HistoricalMatch.external_id.notlike("%-202610%"),
-        HistoricalMatch.external_id.notlike("%-202611%"),
-        HistoricalMatch.external_id.notlike("FX-%")
+        HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached", "seed"])
     ]
     if date and date not in ["all", "any", "null", "undefined"]:
         conditions.append(func.substr(HistoricalMatch.match_date, 1, 10) == date)

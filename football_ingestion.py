@@ -10,6 +10,7 @@ Handles:
 3. Live match result settlement & feedback loop
 """
 import os
+import json
 import math
 import hashlib
 import logging
@@ -543,16 +544,24 @@ class FootballDataService:
 
             for f in raw_matches:
                 # 1. Parse fields according to provider payload format
+                lg_id = None
+                home_id = None
+                away_id = None
+                raw_status = None
+
                 if "home" in f and "away" in f and "league" in f:
                     # Live-Football-API structure
                     f_id = str(f.get("id"))
                     lg_obj = f.get("league", {})
+                    lg_id = str(lg_obj.get("id") or "")
                     cname = lg_obj.get("country", "")
                     lname = lg_obj.get("name", "")
                     lcode = map_league_to_code(cname, lname)
 
                     home_obj = f.get("home", {})
                     away_obj = f.get("away", {})
+                    home_id = str(home_obj.get("id") or "")
+                    away_id = str(away_obj.get("id") or "")
                     home_name = home_obj.get("name")
                     away_name = away_obj.get("name")
                     home_logo = home_obj.get("logo")
@@ -575,6 +584,7 @@ class FootballDataService:
                     st_obj = f.get("status", {})
                     st_val = (st_obj.get("status") or "").lower()
                     disp = (st_obj.get("display") or "").upper()
+                    raw_status = st_val or disp
                     is_live = bool(st_obj.get("is_live", False))
 
                     if st_val == "finished" or disp in ("FT", "AET", "PEN"):
@@ -590,10 +600,13 @@ class FootballDataService:
                     # API-Sports structure
                     f_id = str(f.get("fixture", {}).get("id"))
                     lid_raw = f.get("league", {}).get("id")
+                    lg_id = str(lid_raw or "")
                     lcode = REVERSE_LEAGUE_MAP.get(lid_raw, f"L_{lid_raw}")
 
                     home_obj = f.get("teams", {}).get("home", {})
                     away_obj = f.get("teams", {}).get("away", {})
+                    home_id = str(home_obj.get("id") or "")
+                    away_id = str(away_obj.get("id") or "")
                     home_name = home_obj.get("name")
                     away_name = away_obj.get("name")
                     home_logo = home_obj.get("logo")
@@ -612,6 +625,7 @@ class FootballDataService:
                         continue
 
                     f_status = f.get("fixture", {}).get("status", {}).get("short", "NS")
+                    raw_status = f_status
                     if f_status in ["FT", "AET", "PEN"]:
                         match_status = "finished"
                     elif f_status in ["1H", "2H", "HT", "ET", "P", "LIVE"]:
@@ -638,9 +652,12 @@ class FootballDataService:
                     d_odd = d_odd or calc_odds["draw_odds"]
                     a_odd = a_odd or calc_odds["away_odds"]
 
-                # 3. Insert or update HistoricalMatch in DB
+                # 3. Insert or update HistoricalMatch in DB with full provenance
                 res_match = await db.execute(select(HistoricalMatch).where(HistoricalMatch.external_id == f_id))
                 match_rec = res_match.scalar_one_or_none()
+                now_utc = datetime.now(timezone.utc)
+                raw_payload_str = json.dumps(f)
+
                 if not match_rec:
                     match_rec = HistoricalMatch(
                         external_id=f_id,
@@ -655,7 +672,17 @@ class FootballDataService:
                         home_odds=h_odd,
                         draw_odds=d_odd,
                         away_odds=a_odd,
-                        status=match_status
+                        status=match_status,
+                        source_classification="provider_verified",
+                        provider=self.provider,
+                        provider_fixture_id=f_id,
+                        provider_competition_id=lg_id,
+                        home_team_id=home_id,
+                        away_team_id=away_id,
+                        provider_status=raw_status,
+                        provider_updated_at=now_utc,
+                        synced_at=now_utc,
+                        raw_payload=raw_payload_str
                     )
                     db.add(match_rec)
                     synced_fixtures += 1
@@ -677,6 +704,16 @@ class FootballDataService:
                     if a_odd:
                         match_rec.away_odds = a_odd
                     match_rec.status = match_status
+                    match_rec.source_classification = "provider_verified"
+                    match_rec.provider = self.provider
+                    match_rec.provider_fixture_id = f_id
+                    match_rec.provider_competition_id = lg_id
+                    match_rec.home_team_id = home_id
+                    match_rec.away_team_id = away_id
+                    match_rec.provider_status = raw_status
+                    match_rec.provider_updated_at = now_utc
+                    match_rec.synced_at = now_utc
+                    match_rec.raw_payload = raw_payload_str
 
 
         await db.commit()
