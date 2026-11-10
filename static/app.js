@@ -2653,6 +2653,7 @@
       .replace(/"/g, '&quot;');
   }
   const escapeHtml = escapeHtmlUtil;
+  window.escapeHtml = escapeHtmlUtil;
 
   function hashString(s) {
     let h = 0;
@@ -8678,8 +8679,9 @@
     if (oddsSlider) oddsSlider.addEventListener('input', updateDemoCalculator);
     updateDemoCalculator();
 
-    // Profile Dropdown Items (Dashboard, Settings, Sign Out)
+    // Profile Dropdown Items (Dashboard, Prediction History, Settings, Sign Out)
     const dropdownItemDashboard = document.getElementById('dropdownItemDashboard');
+    const dropdownItemPredictionHistory = document.getElementById('dropdownItemPredictionHistory');
     const dropdownItemSettings = document.getElementById('dropdownItemSettings');
     const dropdownItemSignout = document.getElementById('dropdownItemSignout');
 
@@ -8688,6 +8690,13 @@
         e.preventDefault();
         if (profileDropdown) profileDropdown.classList.remove('open');
         switchView('view-dashboard');
+      });
+    }
+    if (dropdownItemPredictionHistory) {
+      dropdownItemPredictionHistory.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (profileDropdown) profileDropdown.classList.remove('open');
+        switchView('view-history');
       });
     }
     if (dropdownItemSettings) {
@@ -10659,6 +10668,16 @@
   // ===================================================================
   // MATCH PREDICTION HISTORY & ACCURACY AUDIT MODULE
   // ===================================================================
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   const historyState = {
     page: 1,
     status: 'all',
@@ -10671,7 +10690,7 @@
     historyState.page = page;
     const tbody = document.getElementById('histLedgerTableBody');
     if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: #94a3b8;">Scanning authentic prediction ledger and settling match records...</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2.5rem; color: #94a3b8;">Scanning authentic prediction ledger and settling match records...</td></tr>`;
     }
 
     try {
@@ -10680,105 +10699,88 @@
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
 
-      // 1. Update KPI Strip
+      // 1. Simple Bold KPI Strip
       const s = data.summary || {};
       const kpiAudited = document.getElementById('kpiAuditedCount');
+      const kpiCorrect = document.getElementById('kpiCorrectCount');
+      const kpiIncorrect = document.getElementById('kpiIncorrectCount');
       const kpiPending = document.getElementById('kpiPendingCount');
-      const kpiSettled = document.getElementById('kpiSettledCount');
-      const kpiWinLoss = document.getElementById('kpiWinLossRatio');
       const kpiStrikeRate = document.getElementById('kpiStrikeRate');
-      const kpiNetUnits = document.getElementById('kpiNetUnits');
-      const kpiRoi = document.getElementById('kpiRoiPct');
-      const kpiGrade = document.getElementById('kpiCalibrationGrade');
 
-      if (kpiAudited) kpiAudited.textContent = (s.total_audited || 0).toLocaleString();
-      if (kpiPending) kpiPending.textContent = `${s.pending_count || 0} pending kickoff`;
-      if (kpiSettled) kpiSettled.textContent = (s.settled_count || 0).toLocaleString();
-      if (kpiWinLoss) kpiWinLoss.textContent = `${s.won_count || 0} Won / ${s.lost_count || 0} Lost`;
-      if (kpiStrikeRate) kpiStrikeRate.textContent = `${s.strike_rate_pct || 0}%`;
-      if (kpiNetUnits) {
-        const nu = s.net_profit_units || 0;
-        kpiNetUnits.textContent = `${nu >= 0 ? '+' : ''}${nu.toFixed(2)}u`;
-        kpiNetUnits.style.color = nu >= 0 ? '#10b981' : '#ef4444';
-      }
-      if (kpiRoi) {
-        const roi = s.roi_pct || 0;
-        kpiRoi.textContent = `${roi >= 0 ? '+' : ''}${roi.toFixed(1)}% ROI (1u stake)`;
-        kpiRoi.style.color = roi >= 0 ? '#34d399' : '#f87171';
-      }
-      if (kpiGrade && data.diagnostics) {
-        kpiGrade.textContent = data.diagnostics.calibration_grade || 'A-';
-      }
+      const totalAudited = s.total_audited || 0;
+      const correctCount = s.correct_count !== undefined ? s.correct_count : (s.won_count || 0);
+      const incorrectCount = s.incorrect_count !== undefined ? s.incorrect_count : (s.lost_count || 0);
+      const pendingCount = s.pending_count || 0;
+      const settledCount = correctCount + incorrectCount;
+      const accuracyPct = s.accuracy_pct !== undefined ? s.accuracy_pct : (s.strike_rate_pct || 0);
 
-      // 2. Diagnostics Report
-      const d = data.diagnostics || {};
-      const diagTag = document.getElementById('diagStatusTag');
-      const diagSummary = document.getElementById('diagSummaryText');
-      const diagStrengths = document.getElementById('diagStrengthsList');
-      const diagVulns = document.getElementById('diagVulnerabilitiesList');
-      const diagRecs = document.getElementById('diagRecommendationsList');
+      if (kpiAudited) kpiAudited.textContent = totalAudited.toLocaleString();
+      if (kpiCorrect) kpiCorrect.textContent = correctCount.toLocaleString();
+      if (kpiIncorrect) kpiIncorrect.textContent = incorrectCount.toLocaleString();
+      if (kpiPending) kpiPending.textContent = pendingCount.toLocaleString();
+      if (kpiStrikeRate) kpiStrikeRate.textContent = `${accuracyPct}%`;
 
-      if (diagTag) diagTag.textContent = `Status: ${d.status || 'Calibrated'} (${d.calibration_grade || 'A-'})`;
-      if (diagSummary) diagSummary.textContent = d.summary || 'Algorithmic telemetry evaluated against finished fixtures.';
+      // 2. Simple Graphical Charts & Bars
+      const correctRatio = settledCount > 0 ? ((correctCount / settledCount) * 100).toFixed(1) : 0;
+      const incorrectRatio = settledCount > 0 ? (100 - correctRatio).toFixed(1) : 0;
 
-      if (diagStrengths) {
-        diagStrengths.innerHTML = (d.key_strengths || []).map(item => `<li>${escapeHtml(item)}</li>`).join('');
-      }
-      if (diagVulns) {
-        diagVulns.innerHTML = (d.vulnerabilities || []).map(item => `<li>${escapeHtml(item)}</li>`).join('');
-      }
-      if (diagRecs) {
-        diagRecs.innerHTML = (d.tuning_recommendations || []).map(item => `<li>${escapeHtml(item)}</li>`).join('');
-      }
+      const barCorrect = document.getElementById('barSegCorrect');
+      const barIncorrect = document.getElementById('barSegIncorrect');
+      const legCorrect = document.getElementById('legCorrectText');
+      const legIncorrect = document.getElementById('legIncorrectText');
+      const legPending = document.getElementById('legPendingText');
+      const chartBadge = document.getElementById('chartAccuracyBadge');
 
-      // 3. Market Breakdown Cards
-      const mbRow = document.getElementById('marketBreakdownRow');
-      if (mbRow) {
+      if (barCorrect) barCorrect.style.width = `${correctRatio}%`;
+      if (barIncorrect) barIncorrect.style.width = `${incorrectRatio}%`;
+      if (legCorrect) legCorrect.textContent = `${correctCount} (${correctRatio}%)`;
+      if (legIncorrect) legIncorrect.textContent = `${incorrectCount} (${incorrectRatio}%)`;
+      if (legPending) legPending.textContent = `${pendingCount} Matches`;
+      if (chartBadge) chartBadge.textContent = `${accuracyPct}% Real Accuracy`;
+
+      // Graphical Market Accuracy Comparison Bars
+      const marketBarsList = document.getElementById('marketBarsList');
+      if (marketBarsList) {
         if (data.by_market && data.by_market.length > 0) {
-          mbRow.innerHTML = data.by_market.map(m => `
-            <div class="market-stat-card">
-              <span class="market-name">${escapeHtml(m.endpoint_name)}</span>
-              <div class="market-numbers">
-                <span class="market-sr">${m.strike_rate_pct}%</span>
-                <span class="market-sub">${m.won}W / ${m.lost}L (${m.net_units >= 0 ? '+' : ''}${m.net_units.toFixed(2)}u)</span>
+          marketBarsList.innerHTML = data.by_market.map(m => {
+            const mCorrect = m.correct !== undefined ? m.correct : (m.won || 0);
+            const mIncorrect = m.incorrect !== undefined ? m.incorrect : (m.lost || 0);
+            const mAcc = m.accuracy_pct !== undefined ? m.accuracy_pct : (m.strike_rate_pct || 0);
+            return `
+              <div class="market-bar-item">
+                <div class="market-bar-labels">
+                  <span class="market-bar-name">${escapeHtml(m.endpoint_name)}</span>
+                  <span class="market-bar-val">${mAcc}% (${mCorrect} Correct / ${mIncorrect} Incorrect)</span>
+                </div>
+                <div class="bar-track">
+                  <div class="bar-fill" style="width: ${Math.min(100, Math.max(0, mAcc))}%;"></div>
+                </div>
               </div>
-            </div>
-          `).join('');
+            `;
+          }).join('');
         } else {
-          mbRow.innerHTML = `<div style="font-size: 0.8rem; color: #64748b;">No market breakdown data available.</div>`;
+          marketBarsList.innerHTML = `<div style="font-size: 0.8rem; color: #64748b;">No market breakdown data available.</div>`;
         }
       }
 
-      // 4. Ledger Table Rows
+      // 3. Simple History Matches List Table (Correct, Incorrect, Pending)
       if (tbody) {
         const preds = data.predictions || [];
         if (preds.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2.5rem; color: #94a3b8;">No prediction records match current status or search filter.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2.5rem; color: #94a3b8;">No matches found matching the selected status or search filter.</td></tr>`;
         } else {
           tbody.innerHTML = preds.map(p => {
-            let badgeClass = 'badge-pending';
-            let badgeLabel = 'PENDING';
-            if (p.outcome === 'WON') {
-              badgeClass = 'badge-won';
-              badgeLabel = 'WON';
-            } else if (p.outcome === 'LOST') {
-              badgeClass = 'badge-lost';
-              badgeLabel = 'LOST';
+            const rawStatus = (p.status || p.outcome || 'pending').toLowerCase();
+            let statusPill = `<span class="status-pill status-pending">⏱ Pending</span>`;
+            if (rawStatus === 'correct' || rawStatus === 'won') {
+              statusPill = `<span class="status-pill status-correct">✓ Correct</span>`;
+            } else if (rawStatus === 'incorrect' || rawStatus === 'lost') {
+              statusPill = `<span class="status-pill status-incorrect">✗ Incorrect</span>`;
             }
 
-            let retClass = 'unit-return-neutral';
-            let retText = '—';
-            if (p.unit_return !== null && p.unit_return !== undefined) {
-              if (p.unit_return > 0) {
-                retClass = 'unit-return-pos';
-                retText = `+${Number(p.unit_return).toFixed(2)}u`;
-              } else if (p.unit_return < 0) {
-                retClass = 'unit-return-neg';
-                retText = `${Number(p.unit_return).toFixed(2)}u`;
-              } else {
-                retText = '0.00u';
-              }
-            }
+            const scoreText = (p.actual_home_score !== null && p.actual_away_score !== null && p.actual_home_score !== undefined)
+              ? `<span class="score-display-pill">${p.actual_home_score} - ${p.actual_away_score}</span>`
+              : `<span style="color: #94a3b8; font-size: 0.78rem;">Pending Kickoff</span>`;
 
             return `
               <tr>
@@ -10800,16 +10802,10 @@
                   <span style="font-size: 0.72rem; color: #94a3b8; margin-left: 3px;">(${Math.round(p.confidence_percent)}%)</span>
                 </td>
                 <td>
-                  <span class="score-display-pill">${escapeHtml(p.actual_score)}</span>
+                  ${scoreText}
                 </td>
                 <td>
-                  <span class="${badgeClass}">${badgeLabel}</span>
-                </td>
-                <td>
-                  <span class="${retClass}">${retText}</span>
-                </td>
-                <td>
-                  <div class="feedback-note-text">${escapeHtml(p.feedback_notes || 'Pending match completion')}</div>
+                  ${statusPill}
                 </td>
               </tr>
             `;
@@ -10817,14 +10813,14 @@
         }
       }
 
-      // 5. Pagination
+      // 4. Pagination
       const pag = data.pagination || {};
       const indicator = document.getElementById('histPageIndicator');
       const prevBtn = document.getElementById('btnHistPrevPage');
       const nextBtn = document.getElementById('btnHistNextPage');
 
       if (indicator) {
-        indicator.textContent = `Page ${pag.page || 1} of ${pag.total_pages || 1} (${(pag.total_records || 0).toLocaleString()} records)`;
+        indicator.textContent = `Page ${pag.page || 1} of ${pag.total_pages || 1} (${(pag.total_records || 0).toLocaleString()} matches)`;
       }
       if (prevBtn) prevBtn.disabled = (pag.page <= 1);
       if (nextBtn) nextBtn.disabled = (pag.page >= pag.total_pages);
@@ -10832,13 +10828,13 @@
     } catch (err) {
       console.error('Failed to load prediction history:', err);
       if (tbody) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: #f87171;">Error loading prediction history: ${escapeHtml(err.message)}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: #f87171;">Error loading prediction history: ${escapeHtml(err.message)}</td></tr>`;
       }
     }
   }
 
   function initPredictionHistoryView() {
-    // Status Filter Tabs
+    // Status Filter Tabs (All, Correct, Incorrect, Pending)
     document.querySelectorAll('.hist-filter-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.hist-filter-btn').forEach(b => b.classList.remove('active'));
@@ -10893,13 +10889,13 @@
         try {
           const res = await fetch('/api/predictions/settle', { method: 'POST' });
           const json = await res.json();
-          showPlatformToast(`Settlement processed: ${json.settled_count || 0} matches updated`, 'success');
+          showPlatformToast(`Settlement audit processed: ${json.settled_count || 0} matches updated`, 'success');
           loadPredictionHistory(1);
         } catch (e) {
-          showPlatformToast(`Settlement error: ${e.message}`, 'error');
+          showPlatformToast(`Settlement notice: ${e.message}`, 'error');
         } finally {
           btnSettle.disabled = false;
-          btnSettle.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg><span>Re-Settle Now</span>`;
+          btnSettle.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg><span>Sync &amp; Settle Now</span>`;
         }
       });
     }

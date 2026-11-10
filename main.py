@@ -5438,16 +5438,16 @@ async def get_predictions_history(
     total_audited_res = await db.execute(select(func.count(PredictionLog.id)))
     total_audited = total_audited_res.scalar() or 0
 
-    won_res = await db.execute(select(func.count(PredictionLog.id)).where(PredictionLog.outcome == "WON"))
+    won_res = await db.execute(select(func.count(PredictionLog.id)).where(PredictionLog.outcome.in_(["WON", "correct"])))
     won_count = won_res.scalar() or 0
 
-    lost_res = await db.execute(select(func.count(PredictionLog.id)).where(PredictionLog.outcome == "LOST"))
+    lost_res = await db.execute(select(func.count(PredictionLog.id)).where(PredictionLog.outcome.in_(["LOST", "incorrect"])))
     lost_count = lost_res.scalar() or 0
 
-    pending_res = await db.execute(select(func.count(PredictionLog.id)).where(or_(PredictionLog.outcome == "PENDING", PredictionLog.outcome.is_(None))))
+    pending_res = await db.execute(select(func.count(PredictionLog.id)).where(or_(PredictionLog.outcome.in_(["PENDING", "pending"]), PredictionLog.outcome.is_(None))))
     pending_count = pending_res.scalar() or 0
 
-    units_res = await db.execute(select(func.sum(PredictionLog.unit_return)).where(PredictionLog.outcome.in_(["WON", "LOST"])))
+    units_res = await db.execute(select(func.sum(PredictionLog.unit_return)).where(PredictionLog.outcome.in_(["WON", "correct", "LOST", "incorrect"])))
     net_units = round(units_res.scalar() or 0.0, 2)
 
     settled_count = won_count + lost_count
@@ -5457,10 +5457,10 @@ async def get_predictions_history(
     ep_breakdown_stmt = select(
         PredictionLog.endpoint,
         func.count(PredictionLog.id),
-        func.sum(case((PredictionLog.outcome == "WON", 1), else_=0)),
-        func.sum(case((PredictionLog.outcome == "LOST", 1), else_=0)),
+        func.sum(case((PredictionLog.outcome.in_(["WON", "correct"]), 1), else_=0)),
+        func.sum(case((PredictionLog.outcome.in_(["LOST", "incorrect"]), 1), else_=0)),
         func.sum(PredictionLog.unit_return)
-    ).where(PredictionLog.outcome.in_(["WON", "LOST"])).group_by(PredictionLog.endpoint)
+    ).where(PredictionLog.outcome.in_(["WON", "correct", "LOST", "incorrect"])).group_by(PredictionLog.endpoint)
     ep_res = await db.execute(ep_breakdown_stmt)
 
     endpoint_names = {ep["id"]: ep["name"] for ep in ALL_33_ENDPOINTS_METADATA}
@@ -5474,8 +5474,11 @@ async def get_predictions_history(
             "endpoint_name": endpoint_names.get(ep_id, ep_id.replace("-", " ").title()),
             "total_settled": tot,
             "won": w,
+            "correct": w,
             "lost": l,
+            "incorrect": l,
             "strike_rate_pct": ep_sr,
+            "accuracy_pct": ep_sr,
             "net_units": round(prof or 0.0, 2),
             "roi_pct": ep_roi
         })
@@ -5508,12 +5511,12 @@ async def get_predictions_history(
     }
 
     filters = []
-    if status == "won":
-        filters.append(PredictionLog.outcome == "WON")
-    elif status == "lost":
-        filters.append(PredictionLog.outcome == "LOST")
+    if status in ["won", "correct"]:
+        filters.append(PredictionLog.outcome.in_(["WON", "correct"]))
+    elif status in ["lost", "incorrect"]:
+        filters.append(PredictionLog.outcome.in_(["LOST", "incorrect"]))
     elif status == "pending":
-        filters.append(or_(PredictionLog.outcome == "PENDING", PredictionLog.outcome.is_(None)))
+        filters.append(or_(PredictionLog.outcome.in_(["PENDING", "pending"]), PredictionLog.outcome.is_(None)))
 
     if endpoint and endpoint != "all":
         filters.append(PredictionLog.endpoint == endpoint)
@@ -5561,6 +5564,9 @@ async def get_predictions_history(
         selection_text = fixture_meta.get("selection") or f"{row.endpoint.replace('-', ' ').title()} Pick"
         league_id = fixture_meta.get("league_id") or "INT"
 
+        raw_out = row.outcome or "pending"
+        normalized_status = "correct" if raw_out in ["WON", "correct"] else ("incorrect" if raw_out in ["LOST", "incorrect"] else "pending")
+
         predictions_list.append({
             "id": row.id,
             "prediction_id": row.prediction_id,
@@ -5577,7 +5583,8 @@ async def get_predictions_history(
             "actual_home_score": row.actual_home_score,
             "actual_away_score": row.actual_away_score,
             "actual_score": score_display,
-            "outcome": row.outcome or "PENDING",
+            "outcome": normalized_status,
+            "status": normalized_status,
             "unit_return": row.unit_return,
             "feedback_notes": row.feedback_notes or ("Match pending kickoff / result confirmation." if not row.outcome else "Settled against verified final score.")
         })
@@ -5589,7 +5596,10 @@ async def get_predictions_history(
             "pending_count": pending_count,
             "won_count": won_count,
             "lost_count": lost_count,
+            "correct_count": won_count,
+            "incorrect_count": lost_count,
             "strike_rate_pct": strike_rate,
+            "accuracy_pct": strike_rate,
             "net_profit_units": net_units,
             "roi_pct": roi_pct,
             "brier_score": 0.174,
@@ -5611,7 +5621,7 @@ async def get_predictions_history(
 async def settle_all_pending_predictions(db: AsyncSession = Depends(get_db)):
     unsettled = (await db.execute(
         select(PredictionLog).where(
-            or_(PredictionLog.outcome.is_(None), PredictionLog.outcome == "PENDING")
+            or_(PredictionLog.outcome.is_(None), PredictionLog.outcome.in_(["PENDING", "pending"]))
         )
     )).scalars().all()
 
@@ -5673,9 +5683,9 @@ async def settle_all_pending_predictions(db: AsyncSession = Depends(get_db)):
             else:
                 won = (hs >= as_)
 
-            p.outcome = "WON" if won else "LOST"
+            p.outcome = "correct" if won else "incorrect"
             p.unit_return = round(odds - 1.0, 2) if won else -1.0
-            p.feedback_notes = f"Settled: Match finished {hs}-{as_} ({total_goals} goals). Result: {p.outcome}."
+            p.feedback_notes = f"Settled: Match finished {hs}-{as_} ({total_goals} goals). Status: {'Correct' if won else 'Incorrect'}."
             settled_count += 1
 
     if settled_count > 0:
