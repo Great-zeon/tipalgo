@@ -7272,7 +7272,27 @@
   }
 
   function addToSlip(pick) {
+    if (!pick || !pick.match || !pick.market) return false;
+
+    const oddsVal = parseFloat(pick.odds);
+    if (isNaN(oddsVal) || oddsVal <= 1.0) {
+      toast('Cannot add selection: odds must be greater than 1.00.', 'warning');
+      return false;
+    }
+
+    if (pick.market === 'Match Information Only' || pick.ineligible) {
+      toast('Cannot add selection: fixture is ineligible for betting.', 'warning');
+      return false;
+    }
+
+    if (pick.status === 'finished' || pick.status === 'live') {
+      toast(`Cannot add selection: match is already ${pick.status}.`, 'warning');
+      return false;
+    }
+
+    const sameMatchIdx = state.betslip.items.findIndex(i => i.match === pick.match);
     const existingIdx = state.betslip.items.findIndex(i => i.match === pick.match && i.market === pick.market);
+
     if (existingIdx >= 0) {
       // Toggle OFF: remove from slip and revert color
       const removed = state.betslip.items.splice(existingIdx, 1)[0];
@@ -7283,6 +7303,19 @@
       renderCalendarMatchesFeed();
       toast(`Removed from Bet Slip: ${removed.market}`);
       return false;
+    }
+
+    if (sameMatchIdx >= 0) {
+      // Replace existing market for the same match (accumulator integrity: 1 market per match)
+      const oldMarket = state.betslip.items[sameMatchIdx].market;
+      state.betslip.items[sameMatchIdx] = pick;
+      try {
+        localStorage.setItem('sportymill_betslip', JSON.stringify(state.betslip.items));
+      } catch (e) {}
+      renderSlip();
+      renderCalendarMatchesFeed();
+      toast(`Updated selection for ${pick.match}: ${pick.market} @${Number(pick.odds).toFixed(2)} (replaced ${oldMarket})`);
+      return true;
     }
 
     // Toggle ON: add to slip and turn green
@@ -7475,7 +7508,7 @@
       });
 
       if (!res || !res.valid) {
-        toast('Unable to validate slip.');
+        toast((res && res.error) ? res.error : 'Unable to validate slip.', 'warning');
         return;
       }
 

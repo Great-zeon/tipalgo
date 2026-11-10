@@ -469,6 +469,63 @@ def is_excluded_competition(
             return True
     return False
 
+def classify_competition_category(
+    lid: str,
+    league_name: Optional[str] = None,
+    country: Optional[str] = None,
+    home_team: Optional[str] = None,
+    away_team: Optional[str] = None
+) -> Tuple[str, str, str]:
+    """
+    Forensic classification of non-eligible / excluded football competitions.
+    Returns: (category, user_facing_label, policy_reason)
+    Categories:
+    - 'senior_cup': Senior knockout cup competitions (e.g. Copa del Rey, FA Cup, Uruguay Cup)
+    - 'women': Women's football leagues and tournaments
+    - 'youth': Age-grade development leagues (U17, U18, U19, U21, U23, Primavera, PL2)
+    - 'friendly': Club or international exhibition friendlies
+    - 'reserve': Reserve/B-team squads in secondary non-senior tiers
+    - 'unverified': Non-standard lower tiers lacking baseline liquidity
+    """
+    check_str = f"{lid or ''} {league_name or ''} {country or ''}".lower()
+    t_str = f"{home_team or ''} {away_team or ''}".lower()
+
+    if any(w in check_str or w in t_str for w in ("women", "femenil", "femenin", "female", "frauen", "femminil", "wsl")):
+        return (
+            "women",
+            "Predictions Ineligible (Women's Football)",
+            "Algorithmic predictive models are calibrated strictly on senior professional men's football."
+        )
+    if any(w in check_str or w in t_str for w in ("youth", "u21", "u23", "u19", "u18", "u17", "u20", "primavera", "revelação", "revelacao", "pl2", "premier league 2")):
+        return (
+            "youth",
+            "Predictions Ineligible (Youth / U-League)",
+            "Age-grade development fixtures lack historical statistical baselines for Dixon-Coles modeling."
+        )
+    if any(w in check_str or w in t_str for w in ("friendly", "friendlies", "club friendly", "amateur", "exhibition")):
+        return (
+            "friendly",
+            "Predictions Ineligible (Friendly / Exhibition)",
+            "Friendly matches have unpredictable squad rotation and lack competitive incentives required for quantitative modeling."
+        )
+    if any(w in check_str for w in ("cup", "copa", "beker", "pokal", "trophy", "coupe", "coppa", "knvb", "fa cup", "efl", "supercup", "super cup", "shield")):
+        return (
+            "senior_cup",
+            "Predictions Ineligible (Cup Competition)",
+            "Single-elimination knockout cup fixtures have distinct tactical dynamics and are governed by platform tournament exclusion policy."
+        )
+    if any(w in t_str for w in (" ii", " b ", "reserves", "reserve")):
+        return (
+            "reserve",
+            "Predictions Ineligible (Reserve Squad)",
+            "Reserve and development squads in lower tiers are excluded from senior first-team predictive algorithms."
+        )
+    return (
+        "unverified",
+        "Predictions Ineligible (Unverified Competition)",
+        "Competition tier lacks sufficient verified historical liquidity and provider depth for algorithmic projection."
+    )
+
 def format_league_display_name(lid: str) -> str:
     if not lid:
         return "International Football"
@@ -5447,13 +5504,91 @@ async def validate_slip(req: ValidateSlipRequest, db: AsyncSession = Depends(get
     total_odds = 1.0
     joint_prob = 1.0
     all_positive_edge = True
+    seen_matches = set()
     
     for item in req.items:
-        home = item.get("home_team", "")
-        away = item.get("away_team", "")
-        league_id = item.get("league_id", "PL")
-        odds = float(item.get("odds", 1.85))
-        market = item.get("market", item.get("tip", "Home Win"))
+        home = str(item.get("home_team", "")).strip()
+        away = str(item.get("away_team", "")).strip()
+        league_id = str(item.get("league_id", "PL")).strip()
+        raw_odds = item.get("odds", 1.85)
+        market = str(item.get("market", item.get("tip", "Home Win"))).strip()
+
+        # 1. Odds Validation: strictly > 1.00
+        try:
+            odds = float(raw_odds)
+        except (ValueError, TypeError):
+            return {
+                "valid": False,
+                "error": f"Invalid odds format for selection '{home} vs {away}'. Odds must be a valid number.",
+                "legs_count": 0, "total_odds": 0.0, "stake": float(req.stake or 1000.0),
+                "potential_payout": 0.0, "joint_prob_pct": 0.0, "all_positive_edge": False, "legs": []
+            }
+
+        if odds <= 1.0:
+            return {
+                "valid": False,
+                "error": f"Invalid odds ({odds:.2f}) for selection '{home} vs {away}'. All accumulator selections must have odds strictly greater than 1.00.",
+                "legs_count": 0, "total_odds": 0.0, "stake": float(req.stake or 1000.0),
+                "potential_payout": 0.0, "joint_prob_pct": 0.0, "all_positive_edge": False, "legs": []
+            }
+
+        # 2. Market & Ineligibility Validation
+        if not market or market == "Match Information Only" or "ineligible" in market.lower():
+            return {
+                "valid": False,
+                "error": f"Selection '{home} vs {away}' is classified as prediction-ineligible and cannot be wagered upon.",
+                "legs_count": 0, "total_odds": 0.0, "stake": float(req.stake or 1000.0),
+                "potential_payout": 0.0, "joint_prob_pct": 0.0, "all_positive_edge": False, "legs": []
+            }
+
+        if is_excluded_competition(league_id, item.get("league"), item.get("country"), home, away):
+            return {
+                "valid": False,
+                "error": f"Fixture '{home} vs {away}' ({league_id}) is excluded from algorithmic betting under competition integrity rules.",
+                "legs_count": 0, "total_odds": 0.0, "stake": float(req.stake or 1000.0),
+                "potential_payout": 0.0, "joint_prob_pct": 0.0, "all_positive_edge": False, "legs": []
+            }
+
+        # 3. Duplicate Match Prevention
+        match_key = f"{normalize_team_name(home)}_vs_{normalize_team_name(away)}"
+        if match_key in seen_matches:
+            return {
+                "valid": False,
+                "error": f"Duplicate selection detected for match '{home} vs {away}'. Each match may only appear once in an accumulator ticket.",
+                "legs_count": 0, "total_odds": 0.0, "stake": float(req.stake or 1000.0),
+                "potential_payout": 0.0, "joint_prob_pct": 0.0, "all_positive_edge": False, "legs": []
+            }
+        seen_matches.add(match_key)
+
+        # 4. Independent Database Status Verification (Reject finished or live matches)
+        candidates = get_team_alias_candidates(home)
+        home_clauses = [HistoricalMatch.home_team.ilike(f"%{c}%") for c in candidates]
+        hist_stmt = select(HistoricalMatch).where(
+            or_(*home_clauses),
+            HistoricalMatch.home_score.isnot(None),
+            HistoricalMatch.away_score.isnot(None)
+        ).order_by(HistoricalMatch.match_date.desc()).limit(1)
+        hist_res = await db.execute(hist_stmt)
+        hist_match = hist_res.scalar_one_or_none()
+
+        if hist_match:
+            away_cands = get_team_alias_candidates(away)
+            m_away_norm = normalize_team_name(hist_match.away_team)
+            if any(c in m_away_norm or m_away_norm in c for c in away_cands):
+                if hist_match.status in ("finished", "FT", "AET", "PEN") or (hist_match.home_score is not None and hist_match.away_score is not None):
+                    return {
+                        "valid": False,
+                        "error": f"Fixture '{home} vs {away}' has already finished (Final score: {hist_match.home_score}-{hist_match.away_score}). Bets cannot be accepted on completed events.",
+                        "legs_count": 0, "total_odds": 0.0, "stake": float(req.stake or 1000.0),
+                        "potential_payout": 0.0, "joint_prob_pct": 0.0, "all_positive_edge": False, "legs": []
+                    }
+                if hist_match.status in ("live", "IN_PLAY", "HT", "1H", "2H"):
+                    return {
+                        "valid": False,
+                        "error": f"Fixture '{home} vs {away}' is currently live. Pre-match bet slip does not accept live in-play events.",
+                        "legs_count": 0, "total_odds": 0.0, "stake": float(req.stake or 1000.0),
+                        "potential_payout": 0.0, "joint_prob_pct": 0.0, "all_positive_edge": False, "legs": []
+                    }
         
         try:
             probs_data = await predictor.get_probabilities(db, home, away, league_id)
@@ -6001,6 +6136,9 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
                 wat_dt = (match_dt + timedelta(hours=1)) if hasattr(match_dt, "__add__") else None
                 match_time_wat = wat_dt.strftime("%H:%M") if wat_dt else match_time_utc
 
+            comp_cat, comp_label, comp_reason = classify_competition_category(
+                m.league_id, league_name, country, m.home_team, raw_away_name or m.away_team
+            )
             match_cards.append({
                 "id": m.id,
                 "external_id": m.external_id,
@@ -6037,16 +6175,16 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
                     "market": "Match Information Only",
                     "odds": 0.0,
                     "prob_pct": 0,
-                    "label": "Predictions Ineligible (Women/Youth/Friendly)",
+                    "label": comp_label,
                     "endpoint_id": "info"
                 },
                 "top_prob": 0,
                 "is_banker_80": False,
                 "consensus_score": 0,
                 "qualified_endpoints": [],
-                "banter": f"Official fixture in {league_name}. Algorithmic betting models are disabled for exhibition, youth, or women's football.",
+                "banter": f"Official fixture in {league_name}. {comp_reason}",
                 "prediction_eligible": False,
-                "competition_category": "youth" if any(w in league_name.lower() for w in ("youth", "u21", "u19", "u18")) else ("women" if any(w in league_name.lower() for w in ("women", "femenil", "female", "femminil")) else "friendly")
+                "competition_category": comp_cat
             })
             continue
 
