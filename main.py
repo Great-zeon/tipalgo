@@ -433,7 +433,7 @@ COUNTRY_CODE_MAP = {
 }
 
 EXCLUDED_COMPETITION_KEYWORDS = [
-    "cup", "friendly", "friendlies", "amateur", "women", "femenin", "female", "frauen",
+    "cup", "friendly", "friendlies", "amateur", "women", "femenil", "femenin", "female", "frauen",
     "femminil", "wsl", "u17", "u18", "u19", "u20", "u21", "u23", "youth",
     "yth", "primavera", "revelação", "revelacao", "pl2", "premier league 2",
     "beker", "pokal", "trophy", "fa cup", "efl cup", "carabao", "copa del rey",
@@ -5930,6 +5930,22 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
         country = get_league_country(league_id)
         league_name = format_league_display_name(league_id)
 
+        # Extract authentic provider details from raw_payload when present
+        raw_away_name = None
+        if getattr(m, "raw_payload", None):
+            try:
+                rp_data = json.loads(m.raw_payload) if isinstance(m.raw_payload, str) else m.raw_payload
+                if isinstance(rp_data, dict):
+                    raw_lg = rp_data.get("league", {})
+                    if raw_lg.get("name"):
+                        league_name = raw_lg["name"]
+                    if raw_lg.get("country"):
+                        country = raw_lg["country"]
+                    if rp_data.get("away", {}).get("name") == "CAF" and "women" in str(raw_lg.get("name", "")).lower():
+                        raw_away_name = "Central African Rep."
+            except Exception:
+                pass
+
         # Exclude cups, friendlies, amateur, youth, and women competitions
         if is_excluded_competition(league_id, league_name, country):
             continue
@@ -6485,7 +6501,7 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
             "is_synthetic": is_syn,
             "odds_status": "unverified_fallback" if is_fallback_odds else "live_provider",
             "home_team": m.home_team,
-            "away_team": m.away_team,
+            "away_team": raw_away_name or m.away_team,
             "home_prob_pct": round(home_prob * 100),
             "away_prob_pct": round(away_prob * 100),
             "home_logo": getattr(m, "home_logo", None),
