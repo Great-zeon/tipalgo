@@ -2664,6 +2664,118 @@
     return h;
   }
 
+  // Helper: Accurate settlement outcome evaluation across all betting markets
+  function checkPredictionSettlement(marketStr, hScore, aScore, homeTeam, awayTeam) {
+    const mkt = (marketStr || '').toLowerCase();
+    const home = (homeTeam || '').toLowerCase();
+    const away = (awayTeam || '').toLowerCase();
+    const totalGoals = hScore + aScore;
+
+    // 1. Double Chance (MUST evaluate BEFORE straight draw or 1X2 because double chance contains 'draw' and team names)
+    if (
+      mkt.includes('1x') ||
+      mkt.includes('home or draw') ||
+      mkt.includes('home/draw') ||
+      (home && mkt.includes(home) && mkt.includes('draw'))
+    ) {
+      return hScore >= aScore;
+    }
+    if (
+      mkt.includes('x2') ||
+      mkt.includes('draw or away') ||
+      mkt.includes('away or draw') ||
+      mkt.includes('away/draw') ||
+      (away && mkt.includes(away) && mkt.includes('draw'))
+    ) {
+      return aScore >= hScore;
+    }
+    if (
+      mkt.includes('12') ||
+      mkt.includes('home or away') ||
+      mkt.includes('home/away') ||
+      (home && away && mkt.includes(home) && mkt.includes(away) && !mkt.includes('draw'))
+    ) {
+      return hScore !== aScore;
+    }
+
+    // 2. Straight 1X2 Outright Winners & Draws
+    if (mkt.includes('home win') || (home && mkt.includes(home) && mkt.includes('win') && !mkt.includes('away'))) {
+      return hScore > aScore;
+    }
+    if (mkt.includes('away win') || (away && mkt.includes(away) && mkt.includes('win') && !mkt.includes('home'))) {
+      return aScore > hScore;
+    }
+    if (mkt === 'draw' || mkt === 'match draw' || mkt.startsWith('draw ') || mkt === 'x' || mkt.includes('stalemate') || mkt.includes('draw (x)')) {
+      return hScore === aScore;
+    }
+
+    // 3. Goal totals & Over/Under
+    if (mkt.includes('over 0.5')) return totalGoals >= 1;
+    if (mkt.includes('over 1.5')) return totalGoals >= 2;
+    if (mkt.includes('over 2.5')) return totalGoals >= 3;
+    if (mkt.includes('over 3.5')) return totalGoals >= 4;
+    if (mkt.includes('under 1.5')) return totalGoals < 2;
+    if (mkt.includes('under 2.5')) return totalGoals < 3;
+    if (mkt.includes('under 3.5')) return totalGoals < 4;
+
+    // 4. BTTS
+    if (mkt.includes('btts: yes') || mkt.includes('both teams to score (btts)') || mkt.includes('both teams to score')) {
+      return hScore > 0 && aScore > 0;
+    }
+    if (mkt.includes('btts: no') || mkt.includes('clean sheet')) {
+      return hScore === 0 || aScore === 0;
+    }
+
+    // Default fallback: home win
+    return hScore > aScore;
+  }
+
+  // Helper: Open Settled Prediction Result Analysis Mini Modal
+  function openSettledAnalysisModal(data) {
+    const modal = document.getElementById('modalSettledAnalysis');
+    if (!modal) return;
+
+    const iconWrap = document.getElementById('settledModalIconWrap');
+    const badge = document.getElementById('settledModalBadge');
+    const title = document.getElementById('settledModalMatchTitle');
+    const pick = document.getElementById('settledModalPick');
+    const odds = document.getElementById('settledModalOdds');
+    const score = document.getElementById('settledModalScore');
+    const analysisCard = document.getElementById('settledModalAnalysisCard');
+    const analysisText = document.getElementById('settledModalAnalysis');
+    const algoCard = document.getElementById('settledModalAlgoCard');
+    const algoText = document.getElementById('settledModalAlgo');
+
+    const isWon = data.isWon;
+    const isBanter = state.personalityMode === 'BANTER';
+
+    if (iconWrap) {
+      iconWrap.className = `settled-modal-icon-wrap ${isWon ? 'won' : 'lost'}`;
+      iconWrap.innerHTML = isWon
+        ? `<svg viewBox="0 0 20 20" width="18" height="18" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>`
+        : `<svg viewBox="0 0 20 20" width="18" height="18" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg>`;
+    }
+    if (badge) {
+      badge.className = `settled-modal-badge ${isWon ? 'won' : 'lost'}`;
+      badge.textContent = isWon ? (isBanter ? 'PREDICTION WON (CHOP CONFIRM)' : 'PREDICTION WON') : (isBanter ? 'PREDICTION LOST (STUBBORN DEFENSE)' : 'PREDICTION LOST');
+    }
+    if (title) title.textContent = `${data.home} vs ${data.away}`;
+    if (pick) pick.textContent = data.pick;
+    if (odds) odds.textContent = data.odds ? `@${data.odds}` : '@1.85';
+    if (score) score.textContent = data.score;
+    if (analysisCard) analysisCard.className = `settled-modal-narrative-card ${isWon ? 'won' : 'lost'}`;
+    if (analysisText) analysisText.textContent = data.analysis;
+    if (algoCard) algoCard.className = `settled-modal-narrative-card algo`;
+    if (algoText) algoText.textContent = data.algo;
+
+    modal.classList.add('open');
+  }
+
+  function closeSettledAnalysisModal() {
+    const modal = document.getElementById('modalSettledAnalysis');
+    if (modal) modal.classList.remove('open');
+  }
+
   // Helper: Dynamic Result Analysis & Algorithm Response for Settled Matches
   function getDynamicSettledNarrative(m, topTip, hScore, aScore, isWon, isBanter) {
     const home = m.home_team || 'Home';
@@ -2829,8 +2941,9 @@
     const isBanker = (topTip.prob_pct >= 80) || m.is_banker_80;
     const isFinished = m.status === 'finished';
     const isLive = m.status === 'live';
+    const isPostponed = m.status === 'postponed';
     let timeColText = m.time || '15:00';
-    if (m.match_date && !isFinished && !isLive) {
+    if (m.match_date && !isFinished && !isLive && !isPostponed) {
       try {
         const rawIso = String(m.match_date || '');
         const isoWithZ = rawIso.endsWith('Z') || rawIso.includes('+') ? rawIso : (rawIso.includes('T') ? rawIso + 'Z' : rawIso.replace(' ', 'T') + 'Z');
@@ -2847,6 +2960,9 @@
     } else if (isLive) {
       timeColText = 'LIVE';
       statusColText = 'IN-PLAY';
+    } else if (isPostponed) {
+      timeColText = 'POSTP';
+      statusColText = 'POSTPONED';
     }
 
     const country = m.country || (lg && lg.country) || 'International';
@@ -2879,30 +2995,7 @@
     );
     let isPredictionWon = false;
     if (isFinished && !isPredictionIneligible) {
-      const mkt = (topTip.market || topTip.label || '').toLowerCase();
-      if (mkt.includes('home win') || (mkt.includes(m.home_team.toLowerCase()) && mkt.includes('win') && !mkt.includes('away'))) {
-        isPredictionWon = hScore > aScore;
-      } else if (mkt.includes('away win') || (mkt.includes(m.away_team.toLowerCase()) && mkt.includes('win') && !mkt.includes('home'))) {
-        isPredictionWon = aScore > hScore;
-      } else if (mkt.includes('draw')) {
-        isPredictionWon = hScore === aScore;
-      } else if (mkt.includes('1x') || (mkt.includes(m.home_team.toLowerCase()) && mkt.includes('draw'))) {
-        isPredictionWon = hScore >= aScore;
-      } else if (mkt.includes('x2') || (mkt.includes(m.away_team.toLowerCase()) && mkt.includes('draw'))) {
-        isPredictionWon = aScore >= hScore;
-      } else if (mkt.includes('over 1.5')) {
-        isPredictionWon = (hScore + aScore) >= 2;
-      } else if (mkt.includes('over 2.5')) {
-        isPredictionWon = (hScore + aScore) >= 3;
-      } else if (mkt.includes('under 2.5')) {
-        isPredictionWon = (hScore + aScore) < 3;
-      } else if (mkt.includes('btts: yes') || mkt.includes('both teams to score')) {
-        isPredictionWon = hScore > 0 && aScore > 0;
-      } else if (mkt.includes('btts: no')) {
-        isPredictionWon = hScore === 0 || aScore === 0;
-      } else {
-        isPredictionWon = hScore > aScore;
-      }
+      isPredictionWon = checkPredictionSettlement(topTip.market || topTip.label, hScore, aScore, m.home_team, m.away_team);
     }
     const settledNarrative = isFinished ? (
       isPredictionIneligible
@@ -2990,7 +3083,7 @@
           <!-- Right Column: ONE SURE PREDICTION or SETTLED OUTCOME -->
           <div class="em-main-right ${isFinished ? 'settled-view' : ''}">
             ${isFinished ? `
-              <!-- Finished Match: Bet Slip Disabled, Match Result, Win/Loss Analysis & Self-Correction Feedback -->
+              <!-- Finished Match: Clean Settled Status with Circular Check/Cross Button (Click for Analysis Modal) -->
               <div class="em-settled-card-right">
                 <div class="em-settled-header-row">
                   <div class="em-settled-pick-group">
@@ -3005,9 +3098,24 @@
                         NO PREDICTION (INELIGIBLE)
                       </span>
                     ` : `
-                      <span class="em-settled-outcome-pill ${isPredictionWon ? 'won' : 'lost'}">
-                        ${isPredictionWon ? 'PREDICTION WON' : 'PREDICTION LOST'}
-                      </span>
+                      <button type="button" class="em-settled-icon-btn ${isPredictionWon ? 'won' : 'lost'} btn-open-settled-modal"
+                        data-home="${esc(m.home_team)}" data-away="${esc(m.away_team)}" data-score="${hScore} - ${aScore}"
+                        data-pick="${esc(topTip.label)}" data-odds="${Number(topTip.odds).toFixed(2)}"
+                        data-won="${isPredictionWon ? 'true' : 'false'}"
+                        data-analysis="${esc(settledNarrative ? settledNarrative.analysis : '')}"
+                        data-algo="${esc(settledNarrative ? settledNarrative.algoResponse : '')}"
+                        title="${isPredictionWon ? 'Prediction Won' : 'Prediction Lost'} • Click to view Result Analysis &amp; Algorithm Response"
+                        aria-label="${isPredictionWon ? 'Prediction Won' : 'Prediction Lost'}">
+                        ${isPredictionWon ? `
+                          <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                          </svg>
+                        ` : `
+                          <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                          </svg>
+                        `}
+                      </button>
                     `}
                     <button type="button" class="em-info-circle-btn btn-grid-details"
                       data-home="${esc(m.home_team)}" data-away="${esc(m.away_team)}" data-league="${m.league_id || ''}" data-idx="${rowIdx}"
@@ -3015,12 +3123,6 @@
                       <span class="info-letter">i</span>
                     </button>
                   </div>
-                </div>
-                <div class="em-settled-analysis ${isPredictionIneligible ? 'ineligible' : (isPredictionWon ? 'won' : 'lost')}">
-                  <strong>Result Analysis:</strong> ${settledNarrative ? settledNarrative.analysis : (isPredictionIneligible ? `Official match result recorded (${hScore}-${aScore}). Algorithmic betting models inactive.` : (isPredictionWon ? `Model prediction verified by final scoreline (${hScore}-${aScore}). High statistical conviction confirmed.` : `Prediction unfulfilled in final scoreline (${hScore}-${aScore}). Defensive/tempo variance observed.`))}
-                </div>
-                <div class="em-settled-algorithm-response">
-                  <strong>Algorithm Response:</strong> ${settledNarrative ? settledNarrative.algoResponse : (isPredictionIneligible ? 'No prediction settlement executed. Ineligible fixture is excluded from Brier scoring, Kelly bankroll calculation, and model calibration.' : (isPredictionWon ? 'Outcome verified. Result logged to validation ledger; Brier calibration score updated.' : 'Outcome recorded in validation ledger. Quadratic Brier penalty logged; model parameters remain governed by validated batch protocols rather than single-fixture adjustments.'))}
                 </div>
               </div>
             ` : `
@@ -3073,9 +3175,10 @@
     const isBanker = (topTip.prob_pct >= 80) || m.is_banker_80;
     const isFinished = m.status === 'finished';
     const isLive = m.status === 'live';
+    const isPostponed = m.status === 'postponed';
 
     let localTimeStr = m.time || '15:00';
-    if (m.match_date) {
+    if (m.match_date && !isFinished && !isLive && !isPostponed) {
       try {
         const rawIso = String(m.match_date || '');
         const isoWithZ = rawIso.endsWith('Z') || rawIso.includes('+') ? rawIso : (rawIso.includes('T') ? rawIso + 'Z' : rawIso.replace(' ', 'T') + 'Z');
@@ -3090,6 +3193,8 @@
       timeTagHtml = `<span class="grid-time-tag settled" style="background: rgba(100, 116, 139, 0.2); color: #94a3b8; font-weight: 700; border: 1px solid rgba(148, 163, 184, 0.3); font-size: 0.72rem;">${localTimeStr}</span>`;
     } else if (isLive) {
       timeTagHtml = `<span class="grid-time-tag live" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; font-weight: 800; border: 1px solid rgba(239, 68, 68, 0.4);"><span class="today-pulse-dot" style="display:inline-block; width:6px; height:6px; background:#ef4444; border-radius:50%; margin-right:4px;"></span>LIVE</span>`;
+    } else if (isPostponed) {
+      timeTagHtml = `<span class="grid-time-tag postponed" style="background: rgba(234, 179, 8, 0.2); color: #eab308; font-weight: 700; border: 1px solid rgba(234, 179, 8, 0.4); font-size: 0.72rem;">POSTPONED</span>`;
     }
 
     const hScore = Number(m.home_score != null ? m.home_score : 0);
@@ -3105,30 +3210,7 @@
     );
     let isPredictionWon = false;
     if (isFinished && !isPredictionIneligible) {
-      const mkt = (topTip.market || topTip.label || '').toLowerCase();
-      if (mkt.includes('home win') || (mkt.includes(m.home_team.toLowerCase()) && mkt.includes('win') && !mkt.includes('away'))) {
-        isPredictionWon = hScore > aScore;
-      } else if (mkt.includes('away win') || (mkt.includes(m.away_team.toLowerCase()) && mkt.includes('win') && !mkt.includes('home'))) {
-        isPredictionWon = aScore > hScore;
-      } else if (mkt.includes('draw')) {
-        isPredictionWon = hScore === aScore;
-      } else if (mkt.includes('1x') || (mkt.includes(m.home_team.toLowerCase()) && mkt.includes('draw'))) {
-        isPredictionWon = hScore >= aScore;
-      } else if (mkt.includes('x2') || (mkt.includes(m.away_team.toLowerCase()) && mkt.includes('draw'))) {
-        isPredictionWon = aScore >= hScore;
-      } else if (mkt.includes('over 1.5')) {
-        isPredictionWon = (hScore + aScore) >= 2;
-      } else if (mkt.includes('over 2.5')) {
-        isPredictionWon = (hScore + aScore) >= 3;
-      } else if (mkt.includes('under 2.5')) {
-        isPredictionWon = (hScore + aScore) < 3;
-      } else if (mkt.includes('btts: yes') || mkt.includes('both teams to score')) {
-        isPredictionWon = hScore > 0 && aScore > 0;
-      } else if (mkt.includes('btts: no')) {
-        isPredictionWon = hScore === 0 || aScore === 0;
-      } else {
-        isPredictionWon = hScore > aScore;
-      }
+      isPredictionWon = checkPredictionSettlement(topTip.market || topTip.label, hScore, aScore, m.home_team, m.away_team);
     }
     const settledNarrative = isFinished ? (
       isPredictionIneligible
@@ -3206,30 +3288,39 @@
         </div>
 
         ${isFinished ? `
-          <!-- Settled Outcome Result Analysis & Algorithm Response -->
+          <!-- Settled Outcome Clean Bar with Circular Check/Cross Button (Click for Analysis Modal) -->
           <div class="grid-settled-box">
             <div class="grid-settled-top">
               <span class="grid-pick-name">${escapeHtmlUtil(topTip.label)}.</span>
               <span class="grid-prob-badge">${topTip.prob_pct}%</span>
               <span class="grid-settled-odds">@${Number(topTip.odds).toFixed(2)}</span>
             </div>
-            <div class="grid-settled-status-row">
+            <div class="grid-settled-status-row" style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: 0.35rem;">
               <span class="grid-settled-score">Score: ${hScore} - ${aScore}</span>
               ${isPredictionIneligible ? `
                 <span class="grid-settled-outcome ineligible" style="background: rgba(148, 163, 184, 0.2); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.4); font-weight: 700; font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 9999px;">
                   NO PREDICTION (INELIGIBLE)
                 </span>
               ` : `
-                <span class="grid-settled-outcome ${isPredictionWon ? 'won' : 'lost'}">
-                  ${isPredictionWon ? 'PREDICTION WON' : 'PREDICTION LOST'}
-                </span>
+                <button type="button" class="em-settled-icon-btn ${isPredictionWon ? 'won' : 'lost'} btn-open-settled-modal"
+                  data-home="${escapeHtmlUtil(m.home_team)}" data-away="${escapeHtmlUtil(m.away_team)}" data-score="${hScore} - ${aScore}"
+                  data-pick="${escapeHtmlUtil(topTip.label)}" data-odds="${Number(topTip.odds).toFixed(2)}"
+                  data-won="${isPredictionWon ? 'true' : 'false'}"
+                  data-analysis="${escapeHtmlUtil(settledNarrative ? settledNarrative.analysis : '')}"
+                  data-algo="${escapeHtmlUtil(settledNarrative ? settledNarrative.algoResponse : '')}"
+                  title="${isPredictionWon ? 'Prediction Won' : 'Prediction Lost'} • Click to view Result Analysis &amp; Algorithm Response"
+                  aria-label="${isPredictionWon ? 'Prediction Won' : 'Prediction Lost'}">
+                  ${isPredictionWon ? `
+                    <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                  ` : `
+                    <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                    </svg>
+                  `}
+                </button>
               `}
-            </div>
-            <div class="grid-settled-analysis ${isPredictionIneligible ? 'ineligible' : (isPredictionWon ? 'won' : 'lost')}">
-              <strong>Result Analysis:</strong> ${settledNarrative ? settledNarrative.analysis : (isPredictionIneligible ? `Official match result recorded (${hScore}-${aScore}). Algorithmic betting models inactive.` : (isPredictionWon ? `Model prediction verified by final scoreline (${hScore}-${aScore}). High statistical conviction confirmed.` : `Prediction unfulfilled in final scoreline (${hScore}-${aScore}). Defensive/tempo variance observed.`))}
-            </div>
-            <div class="grid-settled-response">
-              <strong>Algorithm Response:</strong> ${settledNarrative ? settledNarrative.algoResponse : (isPredictionIneligible ? 'No prediction settlement executed. Ineligible fixture is excluded from Brier scoring, Kelly bankroll calculation, and model calibration.' : (isPredictionWon ? 'Outcome verified. Result logged to validation ledger; Brier calibration score updated.' : 'Outcome recorded in validation ledger. Quadratic Brier penalty logged; model parameters remain governed by validated batch protocols rather than single-fixture adjustments.'))}
             </div>
           </div>
         ` : `
@@ -4084,6 +4175,11 @@
     }
 
     // 1. FootyStats Top Breadcrumb & Hero Banner
+    const activeF = state.activeFixture || {};
+    const isFinished = (data.match_info?.status === 'finished') || (activeF.status === 'finished');
+    const hScore = data.match_info?.home_score != null ? Number(data.match_info.home_score) : (activeF.home_score != null ? Number(activeF.home_score) : null);
+    const aScore = data.match_info?.away_score != null ? Number(data.match_info.away_score) : (activeF.away_score != null ? Number(activeF.away_score) : null);
+
     const breadcrumb = document.getElementById('footyBreadcrumbLeague');
     if (breadcrumb) {
       breadcrumb.textContent = `${data.match_info.country || 'International'} / ${data.match_info.league_name || 'League'}`;
@@ -4098,6 +4194,29 @@
     const footyVenue = document.getElementById('footyVenue');
     if (footyVenue) {
       footyVenue.textContent = `Stats, H2H & xG • Stadium - ${data.match_info.venue || 'Municipal Stadium'}`;
+    }
+
+    // Update center VS or Score chip
+    const vsBadge = document.querySelector('.footy-hero-vs-badge');
+    if (vsBadge) {
+      if (isFinished && hScore != null && aScore != null) {
+        vsBadge.textContent = `${hScore} - ${aScore}`;
+        vsBadge.style.fontFamily = 'var(--font-mono)';
+        vsBadge.style.fontWeight = '800';
+        vsBadge.style.fontSize = '1.15rem';
+        vsBadge.style.background = 'rgba(0,0,0,0.6)';
+        vsBadge.style.padding = '0.3rem 0.85rem';
+        vsBadge.style.borderRadius = '8px';
+        vsBadge.style.border = '1px solid rgba(255,255,255,0.25)';
+      } else {
+        vsBadge.textContent = 'VS';
+        vsBadge.style.fontFamily = '';
+        vsBadge.style.fontSize = '';
+        vsBadge.style.background = '';
+        vsBadge.style.padding = '';
+        vsBadge.style.borderRadius = '';
+        vsBadge.style.border = '';
+      }
     }
 
     // Home Hero Unit (Badge, Rating, Form Squares, Name)
@@ -4159,19 +4278,30 @@
       { btn: document.getElementById('btnShowcaseAwayOdds'), mkt: `${data.match_info.away_team} Win`, odds: data.match_info.away_odds || 4.20 }
     ].forEach(item => {
       if (item.btn) {
-        const inSlip = state.betslip.items.some(i => i.match === `${data.match_info.home_team} vs ${data.match_info.away_team}` && i.market === item.mkt);
-        item.btn.classList.toggle('in-slip', inSlip);
-        item.btn.onclick = () => {
-          addToSlip({
-            match: `${data.match_info.home_team} vs ${data.match_info.away_team}`,
-            home_team: data.match_info.home_team,
-            away_team: data.match_info.away_team,
-            league_id: data.match_info.league_id || 'PL',
-            market: item.mkt,
-            odds: parseFloat(item.odds),
-            date: 'Today'
-          });
-        };
+        if (isFinished) {
+          item.btn.disabled = true;
+          item.btn.classList.remove('in-slip');
+          item.btn.style.opacity = '0.5';
+          item.btn.style.cursor = 'default';
+          item.btn.onclick = null;
+        } else {
+          item.btn.disabled = false;
+          item.btn.style.opacity = '';
+          item.btn.style.cursor = 'pointer';
+          const inSlip = state.betslip.items.some(i => i.match === `${data.match_info.home_team} vs ${data.match_info.away_team}` && i.market === item.mkt);
+          item.btn.classList.toggle('in-slip', inSlip);
+          item.btn.onclick = () => {
+            addToSlip({
+              match: `${data.match_info.home_team} vs ${data.match_info.away_team}`,
+              home_team: data.match_info.home_team,
+              away_team: data.match_info.away_team,
+              league_id: data.match_info.league_id || 'PL',
+              market: item.mkt,
+              odds: parseFloat(item.odds),
+              date: 'Today'
+            });
+          };
+        }
       }
     });
 
@@ -4369,6 +4499,23 @@
 
       const inSlip = state.betslip.items.some(i => i.match === `${data.match_info.home_team} vs ${data.match_info.away_team}` && i.market === topTicket.selection);
 
+      const isPredictionIneligible = (
+        activeF.prediction_eligible === false ||
+        topTicket.market === 'Match Information Only' ||
+        (topTicket.selection && topTicket.selection.toLowerCase().includes('ineligible'))
+      );
+      const isWon = !isPredictionIneligible && isFinished && hScore != null && aScore != null && checkPredictionSettlement(topTicket.selection || topTicket.title, hScore, aScore, data.match_info.home_team, data.match_info.away_team);
+      const settledNarrative = (isFinished && hScore != null && aScore != null) ? (
+        isPredictionIneligible ? {
+          analysis: isBanter
+            ? `Result logged: ${hScore}-${aScore} (${data.match_info.home_team} vs ${data.match_info.away_team}). Algorithmic betting models were not active for this fixture.`
+            : `Official match result recorded (${hScore}-${aScore}). Algorithmic betting models were inactive for this non-senior or friendly fixture.`,
+          algoResponse: isBanter
+            ? `No prediction settled: fixture classified as INELIGIBLE. No Brier score calculated; model weights unchanged.`
+            : `No prediction settlement executed. Ineligible fixture is excluded from Brier scoring, Kelly bankroll calculation, and model calibration.`
+        } : getDynamicSettledNarrative(data.match_info, { market: topTicket.selection || topTicket.title, label: topTicket.title, prob_pct: parseInt(topTicket.probability) || 60, odds: topTicket.odds }, hScore, aScore, isWon, isBanter)
+      ) : null;
+
       surePickContainer.innerHTML = `
         <div class="sure-prediction-hero-card">
           <div class="sure-pred-main-row">
@@ -4385,12 +4532,42 @@
               </div>
               <p class="sure-pred-rationale">${esc(topTicket.rationale)}</p>
             </div>
-            <div class="sure-pred-cta-box">
-              <button type="button" class="btn-sure-add-slip pick-trigger ${inSlip ? 'in-slip' : ''}"
-                data-home="${esc(data.match_info.home_team)}" data-away="${esc(data.match_info.away_team)}" data-league="${data.match_info.league_id || 'PL'}" data-market="${esc(topTicket.selection)}" data-odds="${topTicket.odds}">
-                <span>${inSlip ? (isBanter ? 'Don Enter Slip' : 'Added to Bet Slip') : (isBanter ? '+ Chop Am For Slip' : '+ Add to Bet Slip')}</span>
-              </button>
-            </div>
+            ${(isFinished && hScore != null && aScore != null) ? `
+              <div class="sure-pred-cta-box settled" style="display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 0.45rem;">
+                <span style="font-family: var(--font-mono); font-weight: 800; font-size: 0.95rem; color: #fff; background: rgba(0,0,0,0.5); padding: 0.25rem 0.65rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.18);">Score: ${hScore} - ${aScore}</span>
+                ${isPredictionIneligible ? `
+                  <span class="em-settled-outcome-pill ineligible" style="background: rgba(148, 163, 184, 0.2); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.4); font-weight: 700; font-size: 0.72rem; padding: 0.25rem 0.6rem; border-radius: 9999px;">
+                    NO PREDICTION (INELIGIBLE)
+                  </span>
+                ` : `
+                  <button type="button" class="em-settled-icon-btn ${isWon ? 'won' : 'lost'} btn-open-settled-modal"
+                    data-home="${esc(data.match_info.home_team)}" data-away="${esc(data.match_info.away_team)}" data-score="${hScore} - ${aScore}"
+                    data-pick="${esc(topTicket.title)}" data-odds="${Number(topTicket.odds).toFixed(2)}"
+                    data-won="${isWon ? 'true' : 'false'}"
+                    data-analysis="${esc(settledNarrative ? settledNarrative.analysis : '')}"
+                    data-algo="${esc(settledNarrative ? settledNarrative.algoResponse : '')}"
+                    title="${isWon ? 'Prediction Won' : 'Prediction Lost'} • Click to view Result Analysis &amp; Algorithm Response"
+                    aria-label="${isWon ? 'Prediction Won' : 'Prediction Lost'}">
+                    ${isWon ? `
+                      <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                      </svg>
+                    ` : `
+                      <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                      </svg>
+                    `}
+                  </button>
+                `}
+              </div>
+            ` : `
+              <div class="sure-pred-cta-box">
+                <button type="button" class="btn-sure-add-slip pick-trigger ${inSlip ? 'in-slip' : ''}"
+                  data-home="${esc(data.match_info.home_team)}" data-away="${esc(data.match_info.away_team)}" data-league="${data.match_info.league_id || 'PL'}" data-market="${esc(topTicket.selection)}" data-odds="${topTicket.odds}">
+                  <span>${inSlip ? (isBanter ? 'Don Enter Slip' : 'Added to Bet Slip') : (isBanter ? '+ Chop Am For Slip' : '+ Add to Bet Slip')}</span>
+                </button>
+              </div>
+            `}
           </div>
         </div>
       `;
@@ -8669,8 +8846,38 @@
       btnCloseSupport.addEventListener('click', () => modalSupport.classList.remove('open'));
     }
 
+    // Settled Prediction Result Analysis Modal Handlers
+    const modalSettled = document.getElementById('modalSettledAnalysis');
+    const btnCloseSettled = document.getElementById('btnCloseSettledModal');
+    const btnDismissSettled = document.getElementById('btnDismissSettledModal');
+    if (btnCloseSettled && modalSettled) {
+      btnCloseSettled.addEventListener('click', () => modalSettled.classList.remove('open'));
+    }
+    if (btnDismissSettled && modalSettled) {
+      btnDismissSettled.addEventListener('click', () => modalSettled.classList.remove('open'));
+    }
+
+    // Global click delegation for Settled Prediction icon buttons (Check / Cross)
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn-open-settled-modal');
+      if (btn) {
+        e.preventDefault();
+        e.stopPropagation();
+        openSettledAnalysisModal({
+          home: btn.getAttribute('data-home') || 'Home',
+          away: btn.getAttribute('data-away') || 'Away',
+          score: btn.getAttribute('data-score') || '0 - 0',
+          pick: btn.getAttribute('data-pick') || 'Prediction',
+          odds: btn.getAttribute('data-odds') || '1.85',
+          isWon: btn.getAttribute('data-won') === 'true',
+          analysis: btn.getAttribute('data-analysis') || '',
+          algo: btn.getAttribute('data-algo') || ''
+        });
+      }
+    });
+
     // Modal background click and Escape dismissal
-    [modalAbout, modalSupport].forEach(m => {
+    [modalAbout, modalSupport, modalSettled].forEach(m => {
       if (m) {
         m.addEventListener('click', (e) => {
           if (e.target === m) m.classList.remove('open');
@@ -8681,6 +8888,7 @@
       if (e.key === 'Escape') {
         if (modalAbout) modalAbout.classList.remove('open');
         if (modalSupport) modalSupport.classList.remove('open');
+        if (modalSettled) modalSettled.classList.remove('open');
       }
     });
 

@@ -281,3 +281,110 @@ class TestAlgorithmResponseMessagingIntegrity:
 
         # Disallow settlement of ineligible matches as loss
         assert "NO PREDICTION (INELIGIBLE)" in content, "Missing INELIGIBLE settled outcome pill in app.js"
+
+
+# ==============================================================================
+# 7. JUNIOR VS CÚCUTA, PARADOU POSTPONEMENT & UI OPTIMIZATION TESTS
+# ==============================================================================
+
+class TestSettlementIntegrityAndUIOptimization:
+
+    def test_junior_vs_cucuta_fixture_and_double_chance_settlement(self):
+        """Junior vs Cúcuta (2-0, selection: Junior or Draw 1X) must settle as WON, not LOST."""
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute("SELECT id, provider_fixture_id, home_team, away_team, status, home_score, away_score FROM historical_matches WHERE provider_fixture_id = '77efr3scruoksnr732sis4r2s'")
+        row = c.fetchone()
+        conn.close()
+
+        assert row is not None
+        assert row[2] == "Junior"
+        assert row[3] == "Cúcuta"
+        assert row[4] == "finished"
+        assert row[5] == 2
+        assert row[6] == 0
+
+        # Verify daily slate serves correct 1X top_tip and odds when double-chance endpoint is selected
+        calendar_slate_cache.clear()
+        res_dc = client.get("/api/calendar/daily-slate?date=2026-11-10&endpoint=double-chance")
+        matches_dc = {m["external_id"]: m for m in res_dc.json().get("matches", [])}
+        junior_dc = matches_dc.get("77efr3scruoksnr732sis4r2s")
+        assert junior_dc is not None
+        assert "Junior or Draw (1X)" in junior_dc["top_tip"]["label"]
+        assert junior_dc["status"] == "finished"
+        assert junior_dc["home_score"] == 2
+        assert junior_dc["away_score"] == 0
+
+        # Also verify endpoint_tips on endpoint=all
+        res_all = client.get("/api/calendar/daily-slate?date=2026-11-10&endpoint=all")
+        matches_all = {m["external_id"]: m for m in res_all.json().get("matches", [])}
+        junior_all = matches_all.get("77efr3scruoksnr732sis4r2s")
+        assert junior_all is not None
+        assert "double-chance" in junior_all.get("endpoint_tips", {})
+        assert "Junior or Draw (1X)" in junior_all["endpoint_tips"]["double-chance"]["label"]
+
+        # Verify app.js settlement logic checks double chance 1X before straight draw
+        app_js_path = os.path.join(ROOT_DIR, "static", "app.js")
+        with open(app_js_path, "r", encoding="utf-8") as f:
+            js = f.read()
+
+        assert "checkPredictionSettlement" in js
+        # Double chance 1X must be checked before straight draw
+        dc_idx = js.find("mkt.includes('1x')")
+        draw_idx = js.find("mkt === 'draw'")
+        assert dc_idx != -1 and draw_idx != -1
+        assert dc_idx < draw_idx, "Double chance 1X must be evaluated BEFORE straight draw in app.js"
+
+    def test_paradou_vs_jsm_skikda_marked_postponed_without_settlement(self):
+        """Paradou vs JSM Skikda must have status: postponed, scores: None, and zero prediction settlement records."""
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute("SELECT id, provider_fixture_id, home_team, away_team, status, provider_status, home_score, away_score, raw_payload FROM historical_matches WHERE provider_fixture_id = 'dvi1xihi93r8i9l3tw5yv1nv8'")
+        row = c.fetchone()
+
+        assert row is not None
+        assert row[2] == "Paradou"
+        assert row[3] == "JSM Skikda"
+        assert row[4] == "postponed", f"Expected status 'postponed', got {row[4]}"
+        assert row[5] == "postponed", f"Expected provider_status 'postponed', got {row[5]}"
+        assert row[6] is None, f"Expected home_score None, got {row[6]}"
+        assert row[7] is None, f"Expected away_score None, got {row[7]}"
+
+        payload = json.loads(row[8])
+        assert payload["status"]["status"] == "postponed"
+        assert payload["status"]["display"] == "POSTP"
+
+        # Excluded from prediction_logs settlement
+        c.execute("SELECT COUNT(*) FROM prediction_logs WHERE provider_fixture_id = 'dvi1xihi93r8i9l3tw5yv1nv8'")
+        p_cnt = c.fetchone()[0]
+        assert p_cnt == 0, f"Expected 0 prediction logs for postponed Paradou match, found {p_cnt}"
+        conn.close()
+
+    def test_ui_clean_up_circular_badges_and_analysis_modal(self):
+        """Settled badges are rendered as circular check/X buttons with Result Analysis modal in DOM."""
+        app_js_path = os.path.join(ROOT_DIR, "static", "app.js")
+        with open(app_js_path, "r", encoding="utf-8") as f:
+            js = f.read()
+
+        index_html_path = os.path.join(ROOT_DIR, "static", "index.html")
+        with open(index_html_path, "r", encoding="utf-8") as f:
+            html = f.read()
+
+        style_css_path = os.path.join(ROOT_DIR, "static", "style.css")
+        with open(style_css_path, "r", encoding="utf-8") as f:
+            css = f.read()
+
+        # Circular check and X badge classes
+        assert "em-settled-icon-btn" in js
+        assert "btn-open-settled-modal" in js
+        assert "modalSettledAnalysis" in html
+        assert "settledModalAnalysis" in html
+        assert "settledModalAlgo" in html
+        assert ".em-settled-icon-btn" in css
+        assert ".em-settled-icon-btn.won" in css
+        assert ".em-settled-icon-btn.lost" in css
+
+        # Desktop Bet Slip vertical overflow fix
+        assert "max-height: calc(100vh - 96px)" in css or "max-height: calc(100vh - 100px)" in css
+        assert "height: auto" in css
+
