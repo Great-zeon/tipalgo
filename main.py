@@ -48,7 +48,7 @@ import uvicorn, bcrypt, jwt
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base, Mapped, mapped_column
 from sqlalchemy import select, and_, or_, func, case, event, text, Text, Float, Boolean, Integer, String, JSON, DateTime, ForeignKey
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, DBAPIError
 from contextlib import asynccontextmanager
 import concurrent.futures
 import pandas as pd
@@ -4932,12 +4932,16 @@ async def health(request: Request):
     else:
         commit_sha = commit_sha[:7]
 
+    db_engine = "postgresql" if "postgres" in config.DATABASE_URL else "sqlite"
+
     return {
-        "status": "ok",
+        "status": "ok" if db_status == "connected" else "degraded",
         "version": "21.0",
         "commit": commit_sha,
         "provider": f_service.provider,
         "database": db_status,
+        "database_engine": db_engine,
+        "database_status": db_status,
         "screener_model": {
             "loaded": screener_loaded,
             "active_method": active_method
@@ -6675,6 +6679,17 @@ async def get_calendar_daily_slate(
             for ep in ALL_33_ENDPOINTS_METADATA
         ]
         
+        if provider_err:
+            if len(match_cards) > 0:
+                p_status = "degraded"
+                p_msg = f"Data Provider Notice: Live sync unavailable. Displaying {len(match_cards)} verified local records."
+            else:
+                p_status = "error"
+                p_msg = f"Data Provider Notice: External live sync service unavailable ({provider_err}). No verified records available for {target_date}."
+        else:
+            p_status = "ok"
+            p_msg = None if len(match_cards) > 0 else f"No matches scheduled or recorded for {target_date}."
+
         response_payload = {
             "selected_date": target_date,
             "available_dates": all_dates,
@@ -6683,32 +6698,32 @@ async def get_calendar_daily_slate(
             "total_fixtures": total_fixtures_count,
             "matches_count": len(match_cards),
             "matches": match_cards,
-            "provider_status": "error" if provider_err else "ok",
-            "provider_message": provider_err
+            "provider_status": p_status,
+            "provider_message": p_msg
         }
         if not provider_err:
             calendar_slate_cache.set(cache_key, response_payload)
             if ep_filter == "all":
                 calendar_slate_cache.set(f"slate:{target_date}:all", response_payload)
         return Response(content=json.dumps(response_payload), media_type="application/json")
+    except (SQLAlchemyError, DBAPIError) as e:
+        logger.error(f"Database operational error in get_calendar_daily_slate: {e}")
+        try:
+            await db.rollback()
+        except Exception:
+            pass
+        raise HTTPException(
+            status_code=503,
+            detail="Database Service Unavailable: Database connectivity error while compiling match slate. Please retry shortly."
+        )
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Unexpected error in get_calendar_daily_slate: {e}")
-        endpoints_fallback = [
-            {"id": ep["id"], "name": ep["name"], "category": ep["category"], "icon": ep["icon"], "count": 0}
-            for ep in ALL_33_ENDPOINTS_METADATA
-        ]
-        fallback_payload = {
-            "selected_date": target_date,
-            "available_dates": [],
-            "active_endpoint": endpoint or "all",
-            "endpoints": endpoints_fallback,
-            "total_fixtures": 0,
-            "matches_count": 0,
-            "matches": [],
-            "provider_status": "error",
-            "provider_message": f"Calendar service diagnostics: {e}"
-        }
-        return Response(content=json.dumps(fallback_payload), media_type="application/json")
+        logger.error(f"Unexpected internal error in get_calendar_daily_slate: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal Server Error: Failed to compile daily calendar slate ({e})."
+        )
 
 @app.get("/api/calendar/search-team")
 async def search_team_all_dates(

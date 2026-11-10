@@ -4,17 +4,29 @@ SportyMill Production Migration Engine
 Transfers all historical football data, user accounts, and prediction records
 from local SQLite (tipalgo.db) to Managed PostgreSQL (asyncpg) with full
 provenance verification, table-by-table reconciliation, and zero data loss.
+
+Usage:
+  python3 scripts/migrate_sqlite_to_postgres.py [source_sqlite_path] [target_postgres_url] [options]
+
+Options:
+  --source PATH        Source SQLite database path (default: tipalgo.db)
+  --target URL         Target PostgreSQL DATABASE_URL (default: from env)
+  --batch-size N       Batch insert chunk size (default: 1000)
+  --verify-only        Verify schema, counts, and provenance without migrating
+  --dry-run            Simulate migration in a transaction without committing
 """
 
 import os
+import ssl
 import sys
 import json
 import sqlite3
 import asyncio
 import logging
+import argparse
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 # Ensure project root is in path
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -23,8 +35,10 @@ sys.path.insert(0, str(BASE_DIR))
 from dotenv import load_dotenv
 load_dotenv()
 
-from sqlalchemy import select, func, text, case
+from sqlalchemy import select, func, text, inspect, case
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 # Import SQLAlchemy models from main
 from main import (
@@ -36,9 +50,85 @@ from main import (
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("migration_engine")
 
+TABLE_MODEL_MAP = {
+    "users": User,
+    "authorized_devices": AuthorizedDevice,
+    "league_tables": LeagueTable,
+    "historical_matches": HistoricalMatch,
+    "head_to_head": HeadToHead,
+    "bet_slips": BetSlip,
+    "calibration_state": CalibrationState,
+    "feature_store": FeatureStore,
+    "prediction_logs": PredictionLog
+}
+
+MIGRATION_ORDER = [
+    "users",
+    "authorized_devices",
+    "league_tables",
+    "historical_matches",
+    "head_to_head",
+    "bet_slips",
+    "calibration_state",
+    "feature_store",
+    "prediction_logs"
+]
+
+TABLES_IN_DEPENDENCY_ORDER = MIGRATION_ORDER
+
+EXPECTED_ROW_COUNTS = {
+    "users": 4,
+    "authorized_devices": 5,
+    "league_tables": 4556,
+    "historical_matches": 22583,
+    "head_to_head": 12,
+    "bet_slips": 2,
+    "feature_store": 0,
+    "calibration_state": 0,
+    "prediction_logs": 438
+}
+
+
+class MigrationDiscrepancyError(Exception):
+    """Raised when post-migration counts or financial metrics do not reconcile 100%."""
+    pass
+
+
+def parse_datetime_safe(val: Any) -> Optional[datetime]:
+    """Parse various SQLite datetime formats into timezone-aware or native UTC datetime."""
+    if val is None or str(val).strip() in ("", "None", "null"):
+        return None
+    if isinstance(val, datetime):
+        return val
+
+    val_str = str(val).strip()
+    # Normalize ISO with 'Z'
+    clean_str = val_str.replace("Z", "+00:00")
+    try:
+        return datetime.fromisoformat(clean_str)
+    except Exception:
+        pass
+
+    for fmt in (
+        "%Y-%m-%d %H:%M:%S.%f%z",
+        "%Y-%m-%d %H:%M:%S%z",
+        "%Y-%m-%d %H:%M:%S.%f",
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%dT%H:%M:%S.%f",
+        "%Y-%m-%dT%H:%M:%S",
+        "%Y-%m-%d"
+    ):
+        try:
+            return datetime.strptime(val_str[:26], fmt)
+        except Exception:
+            continue
+
+    logger.warning(f"Could not parse datetime string: {val_str}. Using current UTC.")
+    return datetime.now(timezone.utc)
+
 
 def get_sqlite_tables_and_counts(sqlite_path: str) -> Dict[str, int]:
-    """Retrieve all table names and row counts from source SQLite database."""
+    """Retrieve all table names and exact row counts from SQLite database."""
     if not os.path.exists(sqlite_path):
         raise FileNotFoundError(f"Source SQLite database not found: {sqlite_path}")
 
@@ -56,331 +146,214 @@ def get_sqlite_tables_and_counts(sqlite_path: str) -> Dict[str, int]:
     return counts
 
 
-async def migrate_data(sqlite_path: str, target_db_url: str) -> Dict[str, Any]:
-    """Execute complete table-by-table migration from SQLite to PostgreSQL."""
-    logger.info("=" * 70)
-    logger.info("SPORTYMILL PRODUCTION SQLITE -> POSTGRESQL MIGRATION")
-    logger.info("=" * 70)
-    logger.info(f"Source SQLite: {sqlite_path}")
+def normalize_target_url(raw_url: str) -> str:
+    """Normalize PostgreSQL URL for asyncpg and enforce secure drivers."""
+    url = raw_url.strip()
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+    elif url.startswith("postgresql://") and not url.startswith("postgresql+asyncpg://"):
+        url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    
+    # Strip libpq query params that asyncpg handles via connect_args
+    if "postgres" in url and "?" in url:
+        base_url, query_str = url.split("?", 1)
+        params = [p for p in query_str.split("&") if not p.startswith("sslmode=")]
+        url = f"{base_url}?{'&'.join(params)}" if params else base_url
+    return url
 
-    # Normalize PostgreSQL URL for asyncpg
-    norm_url = target_db_url.strip()
-    if norm_url.startswith("postgres://"):
-        norm_url = norm_url.replace("postgres://", "postgresql+asyncpg://", 1)
-    elif norm_url.startswith("postgresql://") and not norm_url.startswith("postgresql+asyncpg://"):
-        norm_url = norm_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+normalize_db_url = normalize_target_url
 
-    # Sanitize URL for logging (hide credentials)
-    safe_url = norm_url.split("@")[-1] if "@" in norm_url else norm_url
-    logger.info(f"Target Database Host: ...@{safe_url}")
 
-    # 1. Connect to SQLite
+def build_engine_for_url(norm_url: str, echo: bool = False):
+    """Build async SQLAlchemy engine with proper SSL and connection pooling."""
+    is_pg = "postgres" in norm_url
+
+    if is_pg:
+        connect_args = {}
+        # Render, Supabase, Neon, AWS RDS require SSL
+        if any(h in norm_url for h in ("render.com", "neon.tech", "supabase.co", "rds.amazonaws.com")) or "ssl" in norm_url:
+            ssl_ctx = ssl.create_default_context()
+            ssl_ctx.check_hostname = False
+            ssl_ctx.verify_mode = ssl.CERT_NONE
+            connect_args["ssl"] = ssl_ctx
+
+        return create_async_engine(
+            norm_url,
+            echo=echo,
+            pool_size=10,
+            max_overflow=20,
+            pool_pre_ping=True,
+            pool_recycle=300,
+            connect_args=connect_args
+        )
+    else:
+        # SQLite
+        return create_async_engine(
+            norm_url,
+            echo=echo,
+            connect_args={"check_same_thread": False}
+        )
+
+
+async def execute_migration(
+    sqlite_path: str,
+    target_db_url: str,
+    batch_size: int = 1000,
+    dry_run: bool = False,
+    verify_only: bool = False
+) -> Dict[str, Any]:
+    """Execute complete, idempotent table-by-table migration with forensic reconciliation."""
+    logger.info("=" * 72)
+    logger.info("SPORTYMILL ENTERPRISE SQLITE -> POSTGRESQL MIGRATION ENGINE")
+    logger.info("=" * 72)
+    logger.info(f"Source SQLite Path: {sqlite_path}")
+
+    norm_url = normalize_target_url(target_db_url)
+    is_pg = "postgres" in norm_url
+    safe_host = norm_url.split("@")[-1] if "@" in norm_url else norm_url
+    logger.info(f"Target Database Host: ...@{safe_host} (Engine: {'PostgreSQL' if is_pg else 'SQLite'})")
+
+    # 1. Inspect Source SQLite
+    source_counts = get_sqlite_tables_and_counts(sqlite_path)
+    logger.info("Source Table Row Counts:")
+    for tbl in MIGRATION_ORDER:
+        cnt = source_counts.get(tbl, 0)
+        exp = EXPECTED_ROW_COUNTS.get(tbl, 0)
+        match_str = "MATCH" if cnt == exp else f"DISCREPANCY (expected {exp})"
+        logger.info(f"  - {tbl:<22}: {cnt:>6} rows [{match_str}]")
+
+    total_source_rows = sum(source_counts.get(t, 0) for t in MIGRATION_ORDER)
+    logger.info(f"Total Source Rows: {total_source_rows} records across {len(MIGRATION_ORDER)} tables.")
+
+    # 2. Connect to Target and Initialize Schema
+    target_engine = build_engine_for_url(norm_url)
+
+    if not verify_only:
+        async with target_engine.begin() as conn:
+            logger.info("Synchronizing destination schema with SQLAlchemy metadata...")
+            await conn.run_sync(Base.metadata.create_all)
+
+    TargetSession = async_sessionmaker(target_engine, expire_on_commit=False)
+
+    # 3. Read & Transfer Data
     src_conn = sqlite3.connect(sqlite_path)
     src_conn.row_factory = sqlite3.Row
     src_cur = src_conn.cursor()
 
-    source_counts = get_sqlite_tables_and_counts(sqlite_path)
-    logger.info(f"Source Tables & Row Counts: {source_counts}")
-
-    # 2. Connect to Target Database & Initialize Schema
-    target_engine = create_async_engine(
-        norm_url,
-        echo=False,
-        pool_size=10,
-        max_overflow=20,
-        pool_pre_ping=True
-    )
-
-    async with target_engine.begin() as conn:
-        logger.info("Creating destination schema via SQLAlchemy Base.metadata...")
-        await conn.run_sync(Base.metadata.create_all)
-
-    TargetSession = async_sessionmaker(target_engine, expire_on_commit=False)
-
     migrated_counts: Dict[str, int] = {}
-    migration_order = [
-        "users",
-        "authorized_devices",
-        "league_tables",
-        "historical_matches",
-        "head_to_head",
-        "calibration_state",
-        "bet_slips",
-        "feature_store",
-        "prediction_logs"
-    ]
 
-    async with TargetSession() as session:
-        # Step A: Users
-        if "users" in source_counts:
-            src_cur.execute("SELECT * FROM users ORDER BY id ASC")
-            rows = src_cur.fetchall()
-            for r in rows:
-                existing = await session.execute(select(User).where(User.username == r["username"]))
-                if not existing.scalar_one_or_none():
-                    user_obj = User(
-                        id=r["id"],
-                        username=r["username"],
-                        hashed_password=r["hashed_password"],
-                        is_active=bool(r["is_active"]),
-                        is_admin=bool(r["is_admin"]),
-                        bankroll=float(r["bankroll"]),
-                        created_at=datetime.fromisoformat(str(r["created_at"]).replace("Z", "+00:00")) if r["created_at"] else datetime.now(timezone.utc),
-                        is_pro=bool(r["is_pro"]),
-                        pro_expires_at=datetime.fromisoformat(str(r["pro_expires_at"]).replace("Z", "+00:00")) if r.get("pro_expires_at") and str(r["pro_expires_at"]) != "None" else None,
-                        two_factor_secret=r.get("two_factor_secret")
-                    )
-                    session.add(user_obj)
-            await session.commit()
-            res = await session.execute(select(func.count(User.id)))
-            migrated_counts["users"] = res.scalar() or 0
-            logger.info(f"Users migrated: {migrated_counts['users']} rows")
+    if not verify_only:
+        async with TargetSession() as session:
+            for table_name in MIGRATION_ORDER:
+                model_cls = TABLE_MODEL_MAP[table_name]
+                expected_cnt = source_counts.get(table_name, 0)
+                if expected_cnt == 0:
+                    logger.info(f"Skipping empty table: {table_name}")
+                    migrated_counts[table_name] = 0
+                    continue
 
-        # Step B: Authorized Devices
-        if "authorized_devices" in source_counts:
-            src_cur.execute("SELECT * FROM authorized_devices ORDER BY id ASC")
-            rows = src_cur.fetchall()
-            for r in rows:
-                existing = await session.execute(select(AuthorizedDevice).where(AuthorizedDevice.device_id == r["device_id"]))
-                if not existing.scalar_one_or_none():
-                    dev_obj = AuthorizedDevice(
-                        id=r["id"],
-                        device_id=r["device_id"],
-                        device_name=r["device_name"],
-                        user_agent=r.get("user_agent") or "",
-                        ip_address=r.get("ip_address"),
-                        is_active=bool(r["is_active"]),
-                        last_login=datetime.fromisoformat(str(r["last_login"]).replace("Z", "+00:00")) if r["last_login"] else datetime.now(timezone.utc),
-                        created_at=datetime.fromisoformat(str(r["created_at"]).replace("Z", "+00:00")) if r["created_at"] else datetime.now(timezone.utc)
-                    )
-                    session.add(dev_obj)
-            await session.commit()
-            res = await session.execute(select(func.count(AuthorizedDevice.id)))
-            migrated_counts["authorized_devices"] = res.scalar() or 0
-            logger.info(f"Authorized devices migrated: {migrated_counts['authorized_devices']} rows")
+                logger.info(f"Migrating table: {table_name} ({expected_cnt} rows)...")
 
-        # Step C: League Tables (Batch size: 1000)
-        if "league_tables" in source_counts:
-            src_cur.execute("SELECT * FROM league_tables ORDER BY id ASC")
-            total_lt = source_counts["league_tables"]
-            batch_size = 1000
-            offset = 0
-            while True:
-                src_cur.execute(f"SELECT * FROM league_tables ORDER BY id ASC LIMIT {batch_size} OFFSET {offset}")
-                batch = src_cur.fetchall()
-                if not batch:
-                    break
-                for r in batch:
-                    existing = await session.execute(select(LeagueTable).where(
-                        LeagueTable.league_id == r["league_id"],
-                        LeagueTable.team_name == r["team_name"]
-                    ))
-                    if not existing.scalar_one_or_none():
-                        lt_obj = LeagueTable(
-                            id=r["id"],
-                            league_id=r["league_id"],
-                            team_name=r["team_name"],
-                            position=r["position"],
-                            played=r["played"],
-                            won=r["won"],
-                            drawn=r["drawn"],
-                            lost=r["lost"],
-                            goals_for=r["goals_for"],
-                            goals_against=r["goals_against"],
-                            goal_difference=r["goal_difference"],
-                            points=r["points"],
-                            last_5_form=r["last_5_form"],
-                            home_played=r.get("home_played") or 0,
-                            home_won=r.get("home_won") or 0,
-                            home_drawn=r.get("home_drawn") or 0,
-                            home_lost=r.get("home_lost") or 0,
-                            home_goals_for=r.get("home_goals_for") or 0,
-                            home_goals_against=r.get("home_goals_against") or 0,
-                            away_played=r.get("away_played") or 0,
-                            away_won=r.get("away_won") or 0,
-                            away_drawn=r.get("away_drawn") or 0,
-                            away_lost=r.get("away_lost") or 0,
-                            away_goals_for=r.get("away_goals_for") or 0,
-                            away_goals_against=r.get("away_goals_against") or 0,
-                            xg_for=float(r.get("xg_for") or 0.0),
-                            xg_against=float(r.get("xg_against") or 0.0),
-                            xg_diff=float(r.get("xg_diff") or 0.0),
-                            possession_avg=float(r.get("possession_avg") or 0.0),
-                            shots_on_target_avg=float(r.get("shots_on_target_avg") or 0.0),
-                            shots_against_avg=float(r.get("shots_against_avg") or 0.0),
-                            corners_avg=float(r.get("corners_avg") or 5.0),
-                            cards_avg=float(r.get("cards_avg") or 2.0),
-                            clean_sheets=r.get("clean_sheets") or 0,
-                            failed_to_score=r.get("failed_to_score") or 0,
-                            updated_at=datetime.fromisoformat(str(r["updated_at"]).replace("Z", "+00:00")) if r.get("updated_at") else datetime.now(timezone.utc)
-                        )
-                        session.add(lt_obj)
+                # Inspect column types from model
+                col_types = {}
+                for col in inspect(model_cls).columns:
+                    col_types[col.name] = col.type
+
+                src_cur.execute(f"SELECT * FROM {table_name} ORDER BY id ASC")
+                col_names = [d[0] for d in src_cur.description]
+
+                offset = 0
+                while True:
+                    rows = src_cur.fetchmany(batch_size)
+                    if not rows:
+                        break
+
+                    records_to_insert = []
+                    for row in rows:
+                        rec_dict = {}
+                        for idx, col_name in enumerate(col_names):
+                            if col_name not in col_types:
+                                continue
+
+                            val = row[idx]
+                            col_type = col_types[col_name]
+
+                            if val is None:
+                                rec_dict[col_name] = None
+                            elif hasattr(col_type, "python_type") and col_type.python_type is datetime:
+                                rec_dict[col_name] = parse_datetime_safe(val)
+                            elif hasattr(col_type, "python_type") and col_type.python_type is bool:
+                                rec_dict[col_name] = bool(val)
+                            elif hasattr(col_type, "python_type") and col_type.python_type is float:
+                                rec_dict[col_name] = float(val) if val is not None else None
+                            elif hasattr(col_type, "python_type") and col_type.python_type is int:
+                                rec_dict[col_name] = int(val) if val is not None else None
+                            else:
+                                rec_dict[col_name] = val
+
+                        records_to_insert.append(rec_dict)
+
+                    if records_to_insert:
+                        if is_pg:
+                            stmt = pg_insert(model_cls).values(records_to_insert)
+                            stmt = stmt.on_conflict_do_nothing(index_elements=['id'])
+                        else:
+                            stmt = sqlite_insert(model_cls).values(records_to_insert)
+                            stmt = stmt.on_conflict_do_nothing(index_elements=['id'])
+
+                        await session.execute(stmt)
+                        if not dry_run:
+                            await session.commit()
+
+                    offset += len(rows)
+                    if offset % 5000 == 0 or offset >= expected_cnt:
+                        logger.info(f"  -> {table_name} progress: {offset} / {expected_cnt}")
+
+                # Verify table row count in target
+                cnt_res = await session.execute(select(func.count(model_cls.id)))
+                migrated_counts[table_name] = cnt_res.scalar() or 0
+                logger.info(f"Table {table_name} migration complete: {migrated_counts[table_name]} rows in target.")
+
+            # Update PostgreSQL serial sequences so future inserts don't collide
+            if is_pg and not dry_run:
+                logger.info("Synchronizing PostgreSQL primary key sequences...")
+                for table_name in MIGRATION_ORDER:
+                    try:
+                        await session.execute(text(
+                            f"SELECT setval(pg_get_serial_sequence('{table_name}', 'id'), COALESCE(MAX(id), 1)) FROM {table_name};"
+                        ))
+                    except Exception:
+                        pass
                 await session.commit()
-                offset += batch_size
-                logger.info(f"League tables progress: {min(offset, total_lt)} / {total_lt}")
-            res = await session.execute(select(func.count(LeagueTable.id)))
-            migrated_counts["league_tables"] = res.scalar() or 0
-            logger.info(f"League tables migrated: {migrated_counts['league_tables']} rows")
-
-        # Step D: Historical Matches (Batch size: 1000)
-        if "historical_matches" in source_counts:
-            total_hm = source_counts["historical_matches"]
-            batch_size = 1000
-            offset = 0
-            while True:
-                src_cur.execute(f"SELECT * FROM historical_matches ORDER BY id ASC LIMIT {batch_size} OFFSET {offset}")
-                batch = src_cur.fetchall()
-                if not batch:
-                    break
-                for r in batch:
-                    ext_id = r["external_id"]
-                    existing = await session.execute(select(HistoricalMatch).where(HistoricalMatch.external_id == ext_id))
-                    if not existing.scalar_one_or_none():
-                        m_date_raw = str(r["match_date"]) if r["match_date"] else None
-                        try:
-                            m_date = datetime.fromisoformat(m_date_raw.replace("Z", "+00:00")) if m_date_raw else datetime.now(timezone.utc)
-                        except Exception:
-                            try:
-                                m_date = datetime.strptime(m_date_raw[:19], "%Y-%m-%d %H:%M:%S")
-                            except Exception:
-                                m_date = datetime.now(timezone.utc)
-
-                        hm_obj = HistoricalMatch(
-                            id=r["id"],
-                            external_id=ext_id,
-                            home_team=r["home_team"],
-                            away_team=r["away_team"],
-                            home_logo=r.get("home_logo"),
-                            away_logo=r.get("away_logo"),
-                            home_score=r["home_score"],
-                            away_score=r["away_score"],
-                            league_id=r["league_id"],
-                            match_date=m_date,
-                            home_odds=r["home_odds"],
-                            draw_odds=r["draw_odds"],
-                            away_odds=r["away_odds"],
-                            status=r["status"],
-                            source_classification=r.get("source_classification") or "unverified",
-                            provider=r.get("provider") or "manual",
-                            provider_fixture_id=r.get("provider_fixture_id"),
-                            provider_competition_id=r.get("provider_competition_id"),
-                            home_team_id=r.get("home_team_id"),
-                            away_team_id=r.get("away_team_id"),
-                            provider_status=r.get("provider_status"),
-                            raw_payload=r.get("raw_payload")
-                        )
-                        session.add(hm_obj)
-                await session.commit()
-                offset += batch_size
-                logger.info(f"Historical matches progress: {min(offset, total_hm)} / {total_hm}")
-            res = await session.execute(select(func.count(HistoricalMatch.id)))
-            migrated_counts["historical_matches"] = res.scalar() or 0
-            logger.info(f"Historical matches migrated: {migrated_counts['historical_matches']} rows")
-
-        # Step E: Head to Head
-        if "head_to_head" in source_counts:
-            src_cur.execute("SELECT * FROM head_to_head ORDER BY id ASC")
-            rows = src_cur.fetchall()
-            for r in rows:
-                existing = await session.execute(select(HeadToHead).where(HeadToHead.id == r["id"]))
-                if not existing.scalar_one_or_none():
-                    h2h_obj = HeadToHead(
-                        id=r["id"],
-                        home_team=r["home_team"],
-                        away_team=r["away_team"],
-                        match_date=datetime.fromisoformat(str(r["match_date"]).replace("Z", "+00:00")) if r["match_date"] else datetime.now(timezone.utc),
-                        home_score=r["home_score"],
-                        away_score=r["away_score"],
-                        league=r["league"],
-                        home_scored=bool(r["home_scored"]),
-                        away_scored=bool(r["away_scored"]),
-                        venue=r.get("venue")
-                    )
-                    session.add(h2h_obj)
-            await session.commit()
-            res = await session.execute(select(func.count(HeadToHead.id)))
-            migrated_counts["head_to_head"] = res.scalar() or 0
-            logger.info(f"Head to head records migrated: {migrated_counts['head_to_head']} rows")
-
-        # Step F: Bet Slips
-        if "bet_slips" in source_counts:
-            src_cur.execute("SELECT * FROM bet_slips ORDER BY id ASC")
-            rows = src_cur.fetchall()
-            for r in rows:
-                existing = await session.execute(select(BetSlip).where(BetSlip.slip_code == r["slip_code"]))
-                if not existing.scalar_one_or_none():
-                    bs_obj = BetSlip(
-                        id=r["id"],
-                        user_id=r["user_id"],
-                        slip_code=r["slip_code"],
-                        total_odds=float(r["total_odds"]),
-                        stake=float(r["stake"]),
-                        potential_payout=float(r["potential_payout"]),
-                        items=r["items"],
-                        created_at=datetime.fromisoformat(str(r["created_at"]).replace("Z", "+00:00")) if r["created_at"] else datetime.now(timezone.utc),
-                        status=r["status"]
-                    )
-                    session.add(bs_obj)
-            await session.commit()
-            res = await session.execute(select(func.count(BetSlip.id)))
-            migrated_counts["bet_slips"] = res.scalar() or 0
-            logger.info(f"Bet slips migrated: {migrated_counts['bet_slips']} rows")
-
-        # Step G: Prediction Logs (Preserving all 366 provider-verified records & quarantined records)
-        if "prediction_logs" in source_counts:
-            src_cur.execute("SELECT * FROM prediction_logs ORDER BY id ASC")
-            rows = src_cur.fetchall()
-            for r in rows:
-                p_id = r["prediction_id"]
-                existing = await session.execute(select(PredictionLog).where(PredictionLog.prediction_id == p_id))
-                if not existing.scalar_one_or_none():
-                    pl_obj = PredictionLog(
-                        id=r["id"],
-                        prediction_id=p_id,
-                        endpoint=r["endpoint"],
-                        home_team=r["home_team"],
-                        away_team=r["away_team"],
-                        match_date=datetime.fromisoformat(str(r["match_date"]).replace("Z", "+00:00")) if r["match_date"] else datetime.now(timezone.utc),
-                        fixture_json=r["fixture_json"],
-                        raw_probs_json=r["raw_probs_json"],
-                        market_probs_json=r.get("market_probs_json"),
-                        processed=bool(r["processed"]),
-                        created_at=datetime.fromisoformat(str(r["created_at"]).replace("Z", "+00:00")) if r["created_at"] else datetime.now(timezone.utc),
-                        sub_strategies_json=r.get("sub_strategies_json"),
-                        confidence_percent=float(r["confidence_percent"]) if r.get("confidence_percent") is not None else None,
-                        criteria_breakdown_json=r.get("criteria_breakdown_json"),
-                        playbook_adjustments_applied=bool(r.get("playbook_adjustments_applied", False)),
-                        outcome=r.get("outcome"),
-                        actual_home_score=r.get("actual_home_score"),
-                        actual_away_score=r.get("actual_away_score"),
-                        unit_return=float(r["unit_return"]) if r.get("unit_return") is not None else None,
-                        settled_at=datetime.fromisoformat(str(r["settled_at"]).replace("Z", "+00:00")) if r.get("settled_at") else None,
-                        feedback_notes=r.get("feedback_notes"),
-                        source_classification=r.get("source_classification") or "unverified",
-                        provider_fixture_id=r.get("provider_fixture_id"),
-                        model_version=r.get("model_version") or "v21.0"
-                    )
-                    session.add(pl_obj)
-            await session.commit()
-            res = await session.execute(select(func.count(PredictionLog.id)))
-            migrated_counts["prediction_logs"] = res.scalar() or 0
-            logger.info(f"Prediction logs migrated: {migrated_counts['prediction_logs']} rows")
 
     src_conn.close()
 
-    # Step H: Post-Migration Forensic Reconciliation
-    logger.info("=" * 70)
+    # 4. Forensic Reconciliation & Audit Validation
+    logger.info("=" * 72)
     logger.info("POST-MIGRATION FORENSIC RECONCILIATION")
-    logger.info("=" * 70)
+    logger.info("=" * 72)
 
     async with TargetSession() as session:
-        # Check provider-verified prediction count
+        # Re-query all table counts from destination
+        target_counts = {}
+        for table_name in MIGRATION_ORDER:
+            model_cls = TABLE_MODEL_MAP[table_name]
+            cnt_res = await session.execute(select(func.count(model_cls.id)))
+            target_counts[table_name] = cnt_res.scalar() or 0
+
+        # Verify prediction logs provenance and metrics
         pv_res = await session.execute(
             select(func.count(PredictionLog.id)).where(PredictionLog.source_classification == "provider_verified")
         )
         pv_count = pv_res.scalar() or 0
 
-        # Check unique provider fixture IDs
+        q_res = await session.execute(
+            select(func.count(PredictionLog.id)).where(
+                PredictionLog.source_classification.in_(["invalid", "synthetic", "seed", "unverified"])
+            )
+        )
+        quarantined_count = q_res.scalar() or 0
+
         fid_res = await session.execute(
             select(func.count(func.distinct(PredictionLog.provider_fixture_id)))
             .where(
@@ -390,57 +363,112 @@ async def migrate_data(sqlite_path: str, target_db_url: str) -> Dict[str, Any]:
         )
         distinct_fid_count = fid_res.scalar() or 0
 
-        # Check financial performance & win/loss
+        # Query outcomes & strike rate
         outcomes_res = await session.execute(
             select(
                 func.count(PredictionLog.id).label("total"),
                 func.sum(case((PredictionLog.outcome == "correct", 1), else_=0)).label("won"),
                 func.sum(case((PredictionLog.outcome == "incorrect", 1), else_=0)).label("lost"),
+                func.sum(case((PredictionLog.outcome == "pending", 1), else_=0)).label("pending"),
                 func.sum(PredictionLog.unit_return).label("net_profit")
             ).where(PredictionLog.source_classification == "provider_verified")
         )
         o_row = outcomes_res.fetchone()
         won = int(o_row.won or 0)
         lost = int(o_row.lost or 0)
+        pending = int(o_row.pending or 0)
         net_profit = round(float(o_row.net_profit or 0.0), 2)
         strike_rate = round((won / (won + lost) * 100), 1) if (won + lost) > 0 else 0.0
 
+    # Build reconciliation report
+    discrepancies = []
+    for tbl in MIGRATION_ORDER:
+        src_c = source_counts.get(tbl, 0)
+        tgt_c = target_counts.get(tbl, 0)
+        if src_c != tgt_c:
+            discrepancies.append(f"Table '{tbl}' mismatch: source={src_c}, target={tgt_c}")
+
+    if pv_count != 366:
+        discrepancies.append(f"Provider-verified predictions count mismatch: expected 366, got {pv_count}")
+    if distinct_fid_count != 366:
+        discrepancies.append(f"Distinct provider fixture IDs mismatch: expected 366, got {distinct_fid_count}")
+    if quarantined_count != 72:
+        discrepancies.append(f"Quarantined records mismatch: expected 72, got {quarantined_count}")
+    if won != 203 or lost != 163:
+        discrepancies.append(f"Settled outcomes mismatch: expected 203 won / 163 lost, got {won} won / {lost} lost")
+
     reconciliation = {
+        "status": "SUCCESS" if not discrepancies else "DISCREPANCY_DETECTED",
+        "database_engine": "postgresql" if is_pg else "sqlite",
         "source_sqlite_path": sqlite_path,
-        "source_table_counts": source_counts,
-        "migrated_table_counts": migrated_counts,
-        "table_reconciliation_match": all(
-            migrated_counts.get(t, 0) == source_counts.get(t, 0) for t in source_counts
-        ),
-        "provider_verified_predictions": pv_count,
-        "expected_provider_verified": 366,
+        "total_source_records": total_source_rows,
+        "total_migrated_records": sum(target_counts.values()),
+        "source_counts": source_counts,
+        "target_counts": target_counts,
+        "provider_verified_count": pv_count,
+        "quarantined_count": quarantined_count,
         "distinct_provider_fixture_ids": distinct_fid_count,
         "won_count": won,
         "lost_count": lost,
+        "pending_count": pending,
         "strike_rate_pct": strike_rate,
-        "net_profit_units": net_profit
+        "net_profit_units": net_profit,
+        "discrepancies": discrepancies
     }
 
-    logger.info(f"Reconciliation Result: {json.dumps(reconciliation, indent=2)}")
+    logger.info("Migration Forensic Reconciliation Results:")
+    for k, v in reconciliation.items():
+        if k not in ("source_counts", "target_counts", "discrepancies"):
+            logger.info(f"  - {k:<30}: {v}")
+
+    if discrepancies:
+        for d in discrepancies:
+            logger.error(f"DISCREPANCY: {d}")
+        raise MigrationDiscrepancyError(f"Migration completed with {len(discrepancies)} discrepancy errors!")
+
+    logger.info("=" * 72)
+    logger.info("MIGRATION COMPLETED SUCCESSFULLY WITH 100% RECONCILIATION MATCH")
+    logger.info("=" * 72)
     return reconciliation
 
 
-if __name__ == "__main__":
-    sqlite_file = sys.argv[1] if len(sys.argv) > 1 else str(BASE_DIR / "tipalgo.db")
-    target_url = sys.argv[2] if len(sys.argv) > 2 else os.getenv("DATABASE_URL", "")
+def main():
+    parser = argparse.ArgumentParser(description="SportyMill SQLite -> PostgreSQL Production Migration Engine")
+    parser.add_argument("source", nargs="?", default=str(BASE_DIR / "tipalgo.db"), help="Source SQLite DB path")
+    parser.add_argument("target", nargs="?", default=os.getenv("DATABASE_URL", ""), help="Target PostgreSQL DATABASE_URL")
+    parser.add_argument("--batch-size", type=int, default=1000, help="Batch insertion size")
+    parser.add_argument("--verify-only", action="store_true", help="Verify schema and counts without inserting")
+    parser.add_argument("--dry-run", action="store_true", help="Roll back transaction after migration test")
 
-    if not target_url or "sqlite" in target_url:
-        logger.warning("No PostgreSQL DATABASE_URL supplied. Validating SQLite backup and schema only.")
-        counts = get_sqlite_tables_and_counts(sqlite_file)
-        print(f"SQLite Tables and Counts for {sqlite_file}:")
+    args = parser.parse_args()
+
+    sqlite_path = args.source
+    target_url = args.target
+
+    if not target_url:
+        logger.warning("No target DATABASE_URL provided. Inspecting source SQLite database...")
+        counts = get_sqlite_tables_and_counts(sqlite_path)
+        print("\nSQLite Database Table Inventory:")
         for tbl, c in counts.items():
-            print(f"  - {tbl}: {c} rows")
+            print(f"  {tbl:<22}: {c:>6} rows")
+        print(f"  TOTAL RECORDS         : {sum(counts.values()):>6} rows\n")
         sys.exit(0)
 
-    result = asyncio.run(migrate_data(sqlite_file, target_url))
-    if not result["table_reconciliation_match"]:
-        logger.error("MIGRATION DISCREPANCY DETECTED: Row counts did not match perfectly!")
-        sys.exit(1)
-    else:
-        logger.info("MIGRATION SUCCESSFUL: All tables and authentic prediction records preserved perfectly!")
+    try:
+        res = asyncio.run(execute_migration(
+            sqlite_path=sqlite_path,
+            target_db_url=target_url,
+            batch_size=args.batch_size,
+            dry_run=args.dry_run,
+            verify_only=args.verify_only
+        ))
+        print("\nMigration Execution Summary:")
+        print(json.dumps(res, indent=2))
         sys.exit(0)
+    except Exception as e:
+        logger.error(f"Migration failed: {e}", exc_info=True)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
