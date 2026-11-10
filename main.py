@@ -93,7 +93,12 @@ class Config:
             _fallback = str(BASE_DIR / "tipalgo.db")
             DATABASE_URL = f"sqlite+aiosqlite:///{_fallback}"
     else:
-        DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite+aiosqlite:///{str(BASE_DIR / 'tipalgo.db')}")
+        _raw_db = os.getenv("DATABASE_URL", f"sqlite+aiosqlite:///{str(BASE_DIR / 'tipalgo.db')}").strip()
+        if _raw_db.startswith("postgres://"):
+            _raw_db = _raw_db.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif _raw_db.startswith("postgresql://") and not _raw_db.startswith("postgresql+asyncpg://"):
+            _raw_db = _raw_db.replace("postgresql://", "postgresql+asyncpg://", 1)
+        DATABASE_URL = _raw_db
     DB_POOL_SIZE = int(os.getenv("DB_POOL_SIZE", "10"))
     SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_urlsafe(32))
     ALGORITHM = "HS256"
@@ -759,13 +764,22 @@ class AuthorizedDevice(Base):
     last_login: Mapped[datetime] = mapped_column(default=func.now())
     created_at: Mapped[datetime] = mapped_column(default=func.now())
 
-engine = create_async_engine(
-    config.DATABASE_URL,
-    echo=config.DEBUG,
-    pool_size=config.DB_POOL_SIZE,
-    pool_pre_ping=True,
-    connect_args={"check_same_thread": False} if "sqlite" in config.DATABASE_URL else {}
-)
+if "sqlite" in config.DATABASE_URL:
+    engine = create_async_engine(
+        config.DATABASE_URL,
+        echo=config.DEBUG,
+        connect_args={"check_same_thread": False}
+    )
+else:
+    # Managed PostgreSQL (e.g. Render / Neon / Supabase) via asyncpg
+    engine = create_async_engine(
+        config.DATABASE_URL,
+        echo=config.DEBUG,
+        pool_size=config.DB_POOL_SIZE,
+        max_overflow=20,
+        pool_pre_ping=True,
+        pool_recycle=300
+    )
 
 if "sqlite" in config.DATABASE_URL:
     @event.listens_for(engine.sync_engine, "connect")
@@ -4908,7 +4922,15 @@ async def health(request: Request):
     from football_ingestion import FootballDataService
     f_service = FootballDataService(api_key=config.FOOTBALL_API_KEY, base_url=config.FOOTBALL_API_BASE)
 
-    commit_sha = os.getenv("RENDER_GIT_COMMIT", "45cc036")[:7]
+    commit_sha = os.getenv("RENDER_GIT_COMMIT", "")
+    if not commit_sha:
+        try:
+            import subprocess
+            commit_sha = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()[:7]
+        except Exception:
+            commit_sha = "c7dd606"
+    else:
+        commit_sha = commit_sha[:7]
 
     return {
         "status": "ok",
@@ -4928,7 +4950,16 @@ async def health(request: Request):
 async def system_status_page(request: Request):
     if "application/json" in request.headers.get("accept", ""):
         return await health(request)
-    commit_sha = os.getenv("RENDER_GIT_COMMIT", "45cc036")[:7]
+    commit_sha = os.getenv("RENDER_GIT_COMMIT", "")
+    if not commit_sha:
+        try:
+            import subprocess
+            commit_sha = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()[:7]
+        except Exception:
+            commit_sha = "c7dd606"
+    else:
+        commit_sha = commit_sha[:7]
+    db_engine_label = "PostgreSQL (Managed Connection Pool)" if "postgres" in config.DATABASE_URL else "SQLite (WAL Mode Active)"
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -4956,7 +4987,7 @@ async def system_status_page(request: Request):
     <div class="grid">
       <div class="item"><div class="label">Football API Provider</div><div class="val">Live Football API (Connected)</div></div>
       <div class="item"><div class="label">Prediction Model</div><div class="val">Bivariate Poisson (Active)</div></div>
-      <div class="item"><div class="label">Database Engine</div><div class="val">SQLite (WAL Mode Active)</div></div>
+      <div class="item"><div class="label">Database Engine</div><div class="val">{db_engine_label}</div></div>
       <div class="item"><div class="label">Audited Strike Rate</div><div class="val">55.5% (Verified Authentic)</div></div>
       <div class="item"><div class="label">Deployed Git Commit</div><div class="val">{commit_sha}</div></div>
       <div class="item"><div class="label">System Environment</div><div class="val">{config.ENVIRONMENT}</div></div>
@@ -5014,8 +5045,8 @@ async def enrich_with_total_predictions(response: dict, endpoint: str, db: Async
                     h_team = parts[0].strip()
                     a_team = parts[1].strip()
 
-            prov_fid = response.get("provider_fixture_id") or response.get("fixture_id")
-            s_class = "provider_verified" if (prov_fid and h_team and a_team and h_team.lower() != "home") else "unverified"
+            prov_fid = response.get("provider_fixture_id")
+            s_class = "provider_verified" if (prov_fid and len(str(prov_fid).strip()) >= 10 and h_team and a_team and h_team.lower() != "home") else "unverified"
 
             pred_log = PredictionLog(
                 prediction_id=str(uuid.uuid4()),
@@ -6538,119 +6569,146 @@ async def get_calendar_daily_slate(
         calendar_slate_cache.set(cache_key, filtered_payload)
         return Response(content=json.dumps(filtered_payload), media_type="application/json")
 
-    cached_dates = recent_matches_cache.get("all_available_dates")
-    if cached_dates:
-        all_dates = cached_dates
-    else:
-        date_rows = await db.execute(
-            select(func.substr(HistoricalMatch.match_date, 1, 10))
-            .where(HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"]))
-            .distinct()
-            .order_by(func.substr(HistoricalMatch.match_date, 1, 10).asc())
-        )
-        all_dates = [r[0] for r in date_rows.fetchall() if r[0]]
-        recent_matches_cache.set("all_available_dates", all_dates)
-
-    major_leagues = ["PL", "PD", "SA", "BL1", "FL1", "CL", "UEL", "UECL", "BSA", "ARG", "COL", "UNL", "PPL", "DED", "ELC", "TUR", "BEL", "SC0"]
-    priority_order = case({lid: i for i, lid in enumerate(major_leagues)}, value=HistoricalMatch.league_id, else_=99)
-
-    total_fixtures_count = 0
-    provider_err = None
-    if target_date in ["next-5-days", "upcoming"]:
-        today_prefix = today_str
-        end_prefix = (datetime.now(timezone.utc) + timedelta(days=5)).strftime("%Y-%m-%d")
-        res = await db.execute(
-            select(HistoricalMatch).where(
-                and_(
-                    func.substr(HistoricalMatch.match_date, 1, 10) >= today_prefix,
-                    func.substr(HistoricalMatch.match_date, 1, 10) <= end_prefix,
-                    HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"])
-                )
-            ).order_by(priority_order, HistoricalMatch.match_date.asc()).limit(100)
-        )
-        fixtures = res.scalars().all()
-        total_fixtures_count = len(fixtures)
-    else:
-        res = await db.execute(
-            select(HistoricalMatch).where(
-                and_(
-                    func.substr(HistoricalMatch.match_date, 1, 10) == target_date,
-                    HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"])
-                )
-            ).order_by(priority_order, HistoricalMatch.match_date.asc()).limit(100)
-        )
-        fixtures = res.scalars().all()
-
-        if len(fixtures) == 0 and target_date not in ["next-5-days", "upcoming"]:
-            try:
-                from football_ingestion import FootballDataService
-                service = FootballDataService(api_key=config.FOOTBALL_API_KEY, base_url=config.FOOTBALL_API_BASE)
-                if service.is_configured:
-                    class AppModels: pass
-                    m_models = AppModels()
-                    m_models.LeagueTable = LeagueTable
-                    m_models.HistoricalMatch = HistoricalMatch
-                    m_models.PredictionLog = PredictionLog
-                    sync_res = await service.sync_all_leagues_to_db(db, m_models, target_date=target_date)
-                    if sync_res and sync_res.get("status") == "error":
-                        provider_err = sync_res.get("message")
-                    res = await db.execute(
-                        select(HistoricalMatch).where(
-                            and_(
-                                func.substr(HistoricalMatch.match_date, 1, 10) == target_date,
-                                HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"])
-                            )
-                        ).order_by(priority_order, HistoricalMatch.match_date.asc()).limit(100)
-                    )
-                    fixtures = res.scalars().all()
-                else:
-                    provider_err = "FOOTBALL_API_KEY is not configured on this server."
-            except Exception as e:
-                logger.warning(f"Auto-sync live calendar fixtures failed: {e}")
-                provider_err = "Data Provider Notice: External live sync service unavailable. Operating on verified local database records."
-
-        # Under NO circumstances fabricate fixtures in production!
-        # If len(fixtures) == 0, return an honest empty state with provider diagnostics.
-
-        count_res = await db.execute(
-            select(func.count(HistoricalMatch.id)).where(
-                and_(
-                    func.substr(HistoricalMatch.match_date, 1, 10) == target_date,
-                    HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"])
-                )
+    try:
+        cached_dates = recent_matches_cache.get("all_available_dates")
+        if cached_dates:
+            all_dates = cached_dates
+        else:
+            date_rows = await db.execute(
+                select(func.substr(func.cast(HistoricalMatch.match_date, String), 1, 10))
+                .where(HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"]))
+                .distinct()
+                .order_by(func.substr(func.cast(HistoricalMatch.match_date, String), 1, 10).asc())
             )
-        )
-        total_fixtures_count = count_res.scalar() or len(fixtures)
-    
-    match_cards, endpoint_counts = await format_fixture_cards_helper(fixtures, db, predictor, ep_filter)
+            all_dates = [r[0] for r in date_rows.fetchall() if r[0]]
+            recent_matches_cache.set("all_available_dates", all_dates)
+
+        major_leagues = ["PL", "PD", "SA", "BL1", "FL1", "CL", "UEL", "UECL", "BSA", "ARG", "COL", "UNL", "PPL", "DED", "ELC", "TUR", "BEL", "SC0"]
+        priority_order = case({lid: i for i, lid in enumerate(major_leagues)}, value=HistoricalMatch.league_id, else_=99)
+
+        total_fixtures_count = 0
+        provider_err = None
+        if target_date in ["next-5-days", "upcoming"]:
+            today_prefix = today_str
+            end_prefix = (datetime.now(timezone.utc) + timedelta(days=5)).strftime("%Y-%m-%d")
+            res = await db.execute(
+                select(HistoricalMatch).where(
+                    and_(
+                        func.cast(HistoricalMatch.match_date, String) >= today_prefix,
+                        func.cast(HistoricalMatch.match_date, String) <= end_prefix + "T23:59:59",
+                        HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"])
+                    )
+                ).order_by(priority_order, HistoricalMatch.match_date.asc()).limit(100)
+            )
+            fixtures = res.scalars().all()
+            total_fixtures_count = len(fixtures)
+        else:
+            res = await db.execute(
+                select(HistoricalMatch).where(
+                    and_(
+                        func.cast(HistoricalMatch.match_date, String).like(f"{target_date}%"),
+                        HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"])
+                    )
+                ).order_by(priority_order, HistoricalMatch.match_date.asc()).limit(100)
+            )
+            fixtures = res.scalars().all()
+
+            if len(fixtures) == 0 and target_date not in ["next-5-days", "upcoming"]:
+                try:
+                    from football_ingestion import FootballDataService
+                    service = FootballDataService(api_key=config.FOOTBALL_API_KEY, base_url=config.FOOTBALL_API_BASE)
+                    if service.is_configured:
+                        class AppModels: pass
+                        m_models = AppModels()
+                        m_models.LeagueTable = LeagueTable
+                        m_models.HistoricalMatch = HistoricalMatch
+                        m_models.PredictionLog = PredictionLog
+                        sync_res = await service.sync_all_leagues_to_db(db, m_models, target_date=target_date)
+                        if sync_res and sync_res.get("status") == "error":
+                            provider_err = sync_res.get("message")
+                        res = await db.execute(
+                            select(HistoricalMatch).where(
+                                and_(
+                                    func.cast(HistoricalMatch.match_date, String).like(f"{target_date}%"),
+                                    HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"])
+                                )
+                            ).order_by(priority_order, HistoricalMatch.match_date.asc()).limit(100)
+                        )
+                        fixtures = res.scalars().all()
+                    else:
+                        provider_err = "FOOTBALL_API_KEY is not configured on this server."
+                except Exception as e:
+                    logger.warning(f"Auto-sync live calendar fixtures failed: {e}")
+                    provider_err = f"Data Provider Notice: Live sync unavailable ({e}). Operating on local database records."
+                    try:
+                        await db.rollback()
+                    except Exception:
+                        pass
+
+            # Under NO circumstances fabricate fixtures in production!
+            # If len(fixtures) == 0, return an honest empty state with provider diagnostics.
+
+            try:
+                count_res = await db.execute(
+                    select(func.count(HistoricalMatch.id)).where(
+                        and_(
+                            func.cast(HistoricalMatch.match_date, String).like(f"{target_date}%"),
+                            HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"])
+                        )
+                    )
+                )
+                total_fixtures_count = count_res.scalar() or len(fixtures)
+            except Exception as e:
+                logger.warning(f"Failed to query total fixture count: {e}")
+                total_fixtures_count = len(fixtures)
         
-    endpoints_response = [
-        {
-            "id": ep["id"],
-            "name": ep["name"],
-            "category": ep["category"],
-            "icon": ep["icon"],
-            "count": endpoint_counts.get(ep["id"], 0)
+        match_cards, endpoint_counts = await format_fixture_cards_helper(fixtures, db, predictor, ep_filter)
+            
+        endpoints_response = [
+            {
+                "id": ep["id"],
+                "name": ep["name"],
+                "category": ep["category"],
+                "icon": ep["icon"],
+                "count": endpoint_counts.get(ep["id"], 0)
+            }
+            for ep in ALL_33_ENDPOINTS_METADATA
+        ]
+        
+        response_payload = {
+            "selected_date": target_date,
+            "available_dates": all_dates,
+            "active_endpoint": endpoint or "all",
+            "endpoints": endpoints_response,
+            "total_fixtures": total_fixtures_count,
+            "matches_count": len(match_cards),
+            "matches": match_cards,
+            "provider_status": "error" if provider_err else "ok",
+            "provider_message": provider_err
         }
-        for ep in ALL_33_ENDPOINTS_METADATA
-    ]
-    
-    response_payload = {
-        "selected_date": target_date,
-        "available_dates": all_dates,
-        "active_endpoint": endpoint or "all",
-        "endpoints": endpoints_response,
-        "total_fixtures": total_fixtures_count,
-        "matches_count": len(match_cards),
-        "matches": match_cards,
-        "provider_status": "error" if provider_err else "ok",
-        "provider_message": provider_err
-    }
-    if not provider_err:
-        calendar_slate_cache.set(cache_key, response_payload)
-        if ep_filter == "all":
-            calendar_slate_cache.set(f"slate:{target_date}:all", response_payload)
-    return Response(content=json.dumps(response_payload), media_type="application/json")
+        if not provider_err:
+            calendar_slate_cache.set(cache_key, response_payload)
+            if ep_filter == "all":
+                calendar_slate_cache.set(f"slate:{target_date}:all", response_payload)
+        return Response(content=json.dumps(response_payload), media_type="application/json")
+    except Exception as e:
+        logger.error(f"Unexpected error in get_calendar_daily_slate: {e}")
+        endpoints_fallback = [
+            {"id": ep["id"], "name": ep["name"], "category": ep["category"], "icon": ep["icon"], "count": 0}
+            for ep in ALL_33_ENDPOINTS_METADATA
+        ]
+        fallback_payload = {
+            "selected_date": target_date,
+            "available_dates": [],
+            "active_endpoint": endpoint or "all",
+            "endpoints": endpoints_fallback,
+            "total_fixtures": 0,
+            "matches_count": 0,
+            "matches": [],
+            "provider_status": "error",
+            "provider_message": f"Calendar service diagnostics: {e}"
+        }
+        return Response(content=json.dumps(fallback_payload), media_type="application/json")
 
 @app.get("/api/calendar/search-team")
 async def search_team_all_dates(
@@ -8142,7 +8200,8 @@ async def backup_database(
 ):
     if admin_token != config.ADMIN_TOKEN:
         raise HTTPException(401, "Invalid admin token")
-    await db.execute(text("PRAGMA wal_checkpoint(TRUNCATE);"))
+    if "sqlite" in config.DATABASE_URL:
+        await db.execute(text("PRAGMA wal_checkpoint(TRUNCATE);"))
     target_db_path = config.DATABASE_URL.replace("sqlite+aiosqlite:///", "")
     if not os.path.exists(target_db_path):
         raise HTTPException(404, "Database file not found")
