@@ -4139,6 +4139,24 @@ async def get_all_candidate_bets(db: AsyncSession, predictor: PredictorService,
         away = fixture.away_team
         league = fixture.league_id
         match_date = fixture.match_date.isoformat() if fixture.match_date else None
+
+        # Exclude youth, women, and friendly fixtures from algorithmic candidate bets
+        l_name = format_league_display_name(league)
+        l_country = get_league_country(league)
+        if getattr(fixture, "raw_payload", None):
+            try:
+                rp_data = json.loads(fixture.raw_payload) if isinstance(fixture.raw_payload, str) else fixture.raw_payload
+                if isinstance(rp_data, dict):
+                    raw_lg = rp_data.get("league", {})
+                    if raw_lg.get("name"):
+                        l_name = raw_lg["name"]
+                    if raw_lg.get("country"):
+                        l_country = raw_lg["country"]
+            except Exception:
+                pass
+        if is_excluded_competition(league, l_name, l_country):
+            continue
+
         market_odds = {
             'home_win': fixture.home_odds,
             'draw': fixture.draw_odds,
@@ -5946,8 +5964,60 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
             except Exception:
                 pass
 
-        # Exclude cups, friendlies, amateur, youth, and women competitions
-        if is_excluded_competition(league_id, league_name, country):
+        # Check competition eligibility for algorithmic betting models
+        is_ineligible_comp = is_excluded_competition(league_id, league_name, country)
+        if is_ineligible_comp:
+            if ep_filter != "all":
+                # Skip non-eligible competitions when user filters by specific betting market
+                continue
+            # Display genuine fixture in calendar slate, but with prediction eligibility disabled
+            match_time_str = "15:00"
+            if hasattr(m, "match_date") and m.match_date:
+                match_time_str = m.match_date.strftime("%H:%M") if hasattr(m.match_date, "strftime") else str(m.match_date)[11:16]
+
+            match_cards.append({
+                "id": m.id,
+                "external_id": m.external_id,
+                "is_synthetic": False,
+                "odds_status": "exhibition_no_tips",
+                "home_team": m.home_team,
+                "away_team": raw_away_name or m.away_team,
+                "home_prob_pct": 0,
+                "away_prob_pct": 0,
+                "home_logo": getattr(m, "home_logo", None),
+                "away_logo": getattr(m, "away_logo", None),
+                "home_form": [],
+                "home_venue_form": [],
+                "away_form": [],
+                "away_venue_form": [],
+                "status": getattr(m, "status", "scheduled") or "scheduled",
+                "home_score": getattr(m, "home_score", None),
+                "away_score": getattr(m, "away_score", None),
+                "league_id": m.league_id,
+                "league_name": league_name,
+                "country": country,
+                "match_date": m.match_date.isoformat() if hasattr(m.match_date, "isoformat") else str(m.match_date),
+                "time": match_time_str,
+                "home_odds": round(float(m.home_odds or 0.0), 2),
+                "draw_odds": round(float(m.draw_odds or 0.0), 2),
+                "away_odds": round(float(m.away_odds or 0.0), 2),
+                "tips": [],
+                "endpoint_tips": {},
+                "top_tip": {
+                    "market": "Match Information Only",
+                    "odds": 0.0,
+                    "prob_pct": 0,
+                    "label": "Predictions Ineligible (Women/Youth/Friendly)",
+                    "endpoint_id": "info"
+                },
+                "top_prob": 0,
+                "is_banker_80": False,
+                "consensus_score": 0,
+                "qualified_endpoints": [],
+                "banter": f"Official fixture in {league_name}. Algorithmic betting models are disabled for exhibition, youth, or women's football.",
+                "prediction_eligible": False,
+                "competition_category": "youth" if any(w in league_name.lower() for w in ("youth", "u21", "u19", "u18")) else ("women" if any(w in league_name.lower() for w in ("women", "femenil", "female", "femminil")) else "friendly")
+            })
             continue
 
         m_home_odds = float(m.home_odds or 2.10)
