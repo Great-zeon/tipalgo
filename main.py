@@ -448,14 +448,26 @@ EXCLUDED_LEAGUE_IDS = {
     "L_703", "L_89", "ENG_FAT", "ENG_NL"
 }
 
-def is_excluded_competition(lid: str, league_name: Optional[str] = None, country: Optional[str] = None) -> bool:
+def is_excluded_competition(
+    lid: str,
+    league_name: Optional[str] = None,
+    country: Optional[str] = None,
+    home_team: Optional[str] = None,
+    away_team: Optional[str] = None
+) -> bool:
     if not lid:
         return False
     lid_upper = lid.upper().strip()
     if lid_upper in EXCLUDED_LEAGUE_IDS:
         return True
     check_str = f"{lid_upper} {league_name or ''} {country or ''}".lower()
-    return any(kw in check_str for kw in EXCLUDED_COMPETITION_KEYWORDS)
+    if any(kw in check_str for kw in EXCLUDED_COMPETITION_KEYWORDS):
+        return True
+    if home_team or away_team:
+        t_str = f"{home_team or ''} {away_team or ''}".lower()
+        if any(w in t_str for w in (" ii", " b ", " u21", " u23", " u19", " u18", "reserves", "women", "femenil")):
+            return True
+    return False
 
 def format_league_display_name(lid: str) -> str:
     if not lid:
@@ -4154,7 +4166,7 @@ async def get_all_candidate_bets(db: AsyncSession, predictor: PredictorService,
                         l_country = raw_lg["country"]
             except Exception:
                 pass
-        if is_excluded_competition(league, l_name, l_country):
+        if is_excluded_competition(league, l_name, l_country, home, away):
             continue
 
         market_odds = {
@@ -5965,7 +5977,7 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
                 pass
 
         # Check competition eligibility for algorithmic betting models
-        is_ineligible_comp = is_excluded_competition(league_id, league_name, country)
+        is_ineligible_comp = is_excluded_competition(league_id, league_name, country, m.home_team, m.away_team)
         if is_ineligible_comp:
             if ep_filter != "all":
                 # Skip non-eligible competitions when user filters by specific betting market
@@ -6598,6 +6610,8 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
             "is_banker_80": top_tip["prob_pct"] >= 80,
             "consensus_score": len(q_eps),
             "qualified_endpoints": list(q_eps),
+            "prediction_eligible": True,
+            "competition_category": "senior_professional",
             "banter": banter
         })
         

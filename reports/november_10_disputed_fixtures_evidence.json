@@ -1,0 +1,632 @@
+[
+  {
+    "database_id": 21745,
+    "provider_fixture_id": "8rtddg0mszg8y6zw4y0lazv2s",
+    "provider_home_team": {
+      "name": "Isidro",
+      "id": "e29381coimf4lo8rx156vzhb0",
+      "logo": "https://live-football-api.com/teams/e29381coimf4lo8rx156vzhb0.png",
+      "score": null
+    },
+    "provider_away_team": {
+      "name": "Platense",
+      "id": "erhh6pzf5gb393pa1w3ob5qwa",
+      "logo": "https://live-football-api.com/teams/erhh6pzf5gb393pa1w3ob5qwa.png",
+      "score": null
+    },
+    "provider_competition": {
+      "name": "Primera Division",
+      "id": "ein4fkggto3pdh5msp8huafiq",
+      "country": "El Salvador"
+    },
+    "provider_kickoff": "01:00",
+    "provider_response_timezone": "UTC",
+    "provider_status": {
+      "status": "scheduled",
+      "display": "01:00",
+      "is_live": false,
+      "state": "preGame"
+    },
+    "synced_at_utc": "2026-11-10 10:08:39.869590",
+    "sportymill_displayed_fixture": "Isidro vs Platense",
+    "sportymill_displayed_league": "Primera Division",
+    "final_authenticity_classification": "provider_verified",
+    "raw_payload": {
+      "id": "8rtddg0mszg8y6zw4y0lazv2s",
+      "league": {
+        "id": "ein4fkggto3pdh5msp8huafiq",
+        "name": "Primera Division",
+        "country": "El Salvador"
+      },
+      "week": "20",
+      "kickoff": "01:00",
+      "status": {
+        "status": "scheduled",
+        "display": "01:00",
+        "is_live": false,
+        "state": "preGame"
+      },
+      "home": {
+        "id": "e29381coimf4lo8rx156vzhb0",
+        "name": "Isidro",
+        "logo": "https://live-football-api.com/teams/e29381coimf4lo8rx156vzhb0.png",
+        "score": null
+      },
+      "away": {
+        "id": "erhh6pzf5gb393pa1w3ob5qwa",
+        "name": "Platense",
+        "logo": "https://live-football-api.com/teams/erhh6pzf5gb393pa1w3ob5qwa.png",
+        "score": null
+      },
+      "halftime": {
+        "home": null,
+        "away": null
+      },
+      "tv_broadcast": false,
+      "penalty": {
+        "home": null,
+        "away": null
+      }
+    }
+  },
+  {
+    "database_id": 21749,
+    "provider_fixture_id": "8hkfvg5xeuczhgioo2wxnklqs",
+    "provider_home_team": {
+      "name": "Juárez",
+      "id": "bp4xo190fsmkche3p993xnzvu",
+      "logo": "https://live-football-api.com/teams/bp4xo190fsmkche3p993xnzvu.png",
+      "score": null
+    },
+    "provider_away_team": {
+      "name": "Guadalajara",
+      "id": "1p70h333wlkl4elf5igas1hey",
+      "logo": "https://live-football-api.com/teams/1p70h333wlkl4elf5igas1hey.png",
+      "score": null
+    },
+    "provider_competition": {
+      "name": "Liga MX Femenil",
+      "id": "7ut48s80k421xixh6ev5i6h62",
+      "country": "Mexico"
+    },
+    "provider_kickoff": "03:00",
+    "provider_response_timezone": "UTC",
+    "provider_status": {
+      "status": "scheduled",
+      "display": "03:00",
+      "is_live": false,
+      "state": "preGame"
+    },
+    "synced_at_utc": "2026-11-10 10:08:39.888737",
+    "sportymill_displayed_fixture": "Juárez vs Guadalajara",
+    "sportymill_displayed_league": "Liga MX Femenil",
+    "final_authenticity_classification": "provider_verified",
+    "raw_payload": {
+      "id": "8hkfvg5xeuczhgioo2wxnklqs",
+      "league": {
+        "id": "7ut48s80k421xixh6ev5i6h62",
+        "name": "Liga MX Femenil",
+        "country": "Mexico"
+      },
+      "week": "Apertura - Quarter-finals",
+      "kickoff": "03:00",
+      "status": {
+        "status": "scheduled",
+        "display": "03:00",
+        "is_live": false,
+        "state": "preGame"
+      },
+      "home": {
+        "id": "bp4xo190fsmkche3p993xnzvu",
+        "name": "Juárez",
+        "logo": "https://live-football-api.com/teams/bp4xo190fsmkche3p993xnzvu.png",
+        "score": null
+      },
+      "away": {
+        "id": "1p70h333wlkl4elf5igas1hey",
+        "name": "Guadalajara",
+        "logo": "https://live-football-api.com/teams/1p70h333wlkl4elf5igas1hey.png",
+        "score": null
+      },
+      "halftime": {
+        "home": null,
+        "away": null
+      },
+      "tv_broadcast": false,
+      "penalty": {
+        "home": null,
+        "away": null
+      }
+    }
+  },
+  {
+    "database_id": 21747,
+    "provider_fixture_id": "8gxejyrc7f4tkz5owg5ra41ec",
+    "provider_home_team": {
+      "name": "Pumas",
+      "id": "aav9njbcwyltszy8ia7dwqxyi",
+      "logo": "https://live-football-api.com/teams/aav9njbcwyltszy8ia7dwqxyi.png",
+      "score": null
+    },
+    "provider_away_team": {
+      "name": "Tigres UANL",
+      "id": "6yfdc2frjgibkax4c2uf2hbhm",
+      "logo": "https://live-football-api.com/teams/6yfdc2frjgibkax4c2uf2hbhm.png",
+      "score": null
+    },
+    "provider_competition": {
+      "name": "Liga MX Femenil",
+      "id": "7ut48s80k421xixh6ev5i6h62",
+      "country": "Mexico"
+    },
+    "provider_kickoff": "01:00",
+    "provider_response_timezone": "UTC",
+    "provider_status": {
+      "status": "scheduled",
+      "display": "01:00",
+      "is_live": false,
+      "state": "preGame"
+    },
+    "synced_at_utc": "2026-11-10 10:08:39.875074",
+    "sportymill_displayed_fixture": "Pumas vs Tigres UANL",
+    "sportymill_displayed_league": "Liga MX Femenil",
+    "final_authenticity_classification": "provider_verified",
+    "raw_payload": {
+      "id": "8gxejyrc7f4tkz5owg5ra41ec",
+      "league": {
+        "id": "7ut48s80k421xixh6ev5i6h62",
+        "name": "Liga MX Femenil",
+        "country": "Mexico"
+      },
+      "week": "Apertura - Quarter-finals",
+      "kickoff": "01:00",
+      "status": {
+        "status": "scheduled",
+        "display": "01:00",
+        "is_live": false,
+        "state": "preGame"
+      },
+      "home": {
+        "id": "aav9njbcwyltszy8ia7dwqxyi",
+        "name": "Pumas",
+        "logo": "https://live-football-api.com/teams/aav9njbcwyltszy8ia7dwqxyi.png",
+        "score": null
+      },
+      "away": {
+        "id": "6yfdc2frjgibkax4c2uf2hbhm",
+        "name": "Tigres UANL",
+        "logo": "https://live-football-api.com/teams/6yfdc2frjgibkax4c2uf2hbhm.png",
+        "score": null
+      },
+      "halftime": {
+        "home": null,
+        "away": null
+      },
+      "tv_broadcast": false,
+      "penalty": {
+        "home": null,
+        "away": null
+      }
+    }
+  },
+  {
+    "database_id": 21753,
+    "provider_fixture_id": "10d6say1jwn5dh14d8sytgv10",
+    "provider_home_team": {
+      "name": "Chonburi U21",
+      "id": "2czlvc6u34zm9cwry4sdiisd0",
+      "logo": "https://live-football-api.com/teams/2czlvc6u34zm9cwry4sdiisd0.png",
+      "score": null
+    },
+    "provider_away_team": {
+      "name": "Chainat U21",
+      "id": "cojyjee50pzikpmyry145n6l0",
+      "logo": "https://live-football-api.com/teams/cojyjee50pzikpmyry145n6l0.png",
+      "score": null
+    },
+    "provider_competition": {
+      "name": "Youth League",
+      "id": "9729m7q80fqr4xnwjdwf2neac",
+      "country": "Thailand"
+    },
+    "provider_kickoff": "08:30",
+    "provider_response_timezone": "UTC",
+    "provider_status": {
+      "status": "scheduled",
+      "display": "08:30",
+      "is_live": false,
+      "state": "preGame"
+    },
+    "synced_at_utc": "2026-11-10 08:36:52",
+    "sportymill_displayed_fixture": "Chonburi U21 vs Chainat U21",
+    "sportymill_displayed_league": "Youth League",
+    "final_authenticity_classification": "provider_verified",
+    "raw_payload": {
+      "id": "10d6say1jwn5dh14d8sytgv10",
+      "league": {
+        "id": "9729m7q80fqr4xnwjdwf2neac",
+        "name": "Youth League",
+        "country": "Thailand"
+      },
+      "week": "7",
+      "kickoff": "08:30",
+      "status": {
+        "status": "scheduled",
+        "display": "08:30",
+        "is_live": false,
+        "state": "preGame"
+      },
+      "home": {
+        "id": "2czlvc6u34zm9cwry4sdiisd0",
+        "name": "Chonburi U21",
+        "logo": "https://live-football-api.com/teams/2czlvc6u34zm9cwry4sdiisd0.png",
+        "score": null
+      },
+      "away": {
+        "id": "cojyjee50pzikpmyry145n6l0",
+        "name": "Chainat U21",
+        "logo": "https://live-football-api.com/teams/cojyjee50pzikpmyry145n6l0.png",
+        "score": null
+      },
+      "halftime": {
+        "home": null,
+        "away": null
+      },
+      "tv_broadcast": false,
+      "penalty": {
+        "home": null,
+        "away": null
+      }
+    }
+  },
+  {
+    "database_id": 21763,
+    "provider_fixture_id": "b59kw5hlwy6egxk3weylmf95g",
+    "provider_home_team": {
+      "name": "Gryf",
+      "id": "28xlw6pd8igvqedpo6x3hm2tx",
+      "logo": "https://live-football-api.com/teams/28xlw6pd8igvqedpo6x3hm2tx.png",
+      "score": null
+    },
+    "provider_away_team": {
+      "name": "Arka II",
+      "id": "atofzyyvwqsqvywmog1iqbs39",
+      "logo": "https://live-football-api.com/teams/atofzyyvwqsqvywmog1iqbs39.png",
+      "score": null
+    },
+    "provider_competition": {
+      "name": "4. League",
+      "id": "8b6pm41x365md8ojlb2y47v9w",
+      "country": "Poland"
+    },
+    "provider_kickoff": "17:00",
+    "provider_response_timezone": "UTC",
+    "provider_status": {
+      "status": "scheduled",
+      "display": "17:00",
+      "is_live": false,
+      "state": "preGame"
+    },
+    "synced_at_utc": "2026-11-10 08:36:52",
+    "sportymill_displayed_fixture": "Gryf vs Arka II",
+    "sportymill_displayed_league": "4. League",
+    "final_authenticity_classification": "provider_verified",
+    "raw_payload": {
+      "id": "b59kw5hlwy6egxk3weylmf95g",
+      "league": {
+        "id": "8b6pm41x365md8ojlb2y47v9w",
+        "name": "4. League",
+        "country": "Poland"
+      },
+      "week": "16",
+      "kickoff": "17:00",
+      "status": {
+        "status": "scheduled",
+        "display": "17:00",
+        "is_live": false,
+        "state": "preGame"
+      },
+      "home": {
+        "id": "28xlw6pd8igvqedpo6x3hm2tx",
+        "name": "Gryf",
+        "logo": "https://live-football-api.com/teams/28xlw6pd8igvqedpo6x3hm2tx.png",
+        "score": null
+      },
+      "away": {
+        "id": "atofzyyvwqsqvywmog1iqbs39",
+        "name": "Arka II",
+        "logo": "https://live-football-api.com/teams/atofzyyvwqsqvywmog1iqbs39.png",
+        "score": null
+      },
+      "halftime": {
+        "home": null,
+        "away": null
+      },
+      "tv_broadcast": false,
+      "penalty": {
+        "home": null,
+        "away": null
+      }
+    }
+  },
+  {
+    "database_id": 21746,
+    "provider_fixture_id": "6nmykenm9x1f2r6a1r7x18650",
+    "provider_home_team": {
+      "name": "Rosario",
+      "id": "8swpe7uxtadr0yb89wtom63fa",
+      "logo": "https://live-football-api.com/teams/8swpe7uxtadr0yb89wtom63fa.png",
+      "score": "0"
+    },
+    "provider_away_team": {
+      "name": "Pitbulls",
+      "id": "blc9avsm4dycdhnfh5j94cpw4",
+      "logo": "https://live-football-api.com/teams/blc9avsm4dycdhnfh5j94cpw4.png",
+      "score": "0"
+    },
+    "provider_competition": {
+      "name": "Liga de Ascenso",
+      "id": "2yyjcbbryf1r10apyzl7c7jvp",
+      "country": "Costa Rica"
+    },
+    "provider_kickoff": "01:00",
+    "provider_response_timezone": "UTC",
+    "provider_status": {
+      "status": "finished",
+      "display": "FT",
+      "is_live": false,
+      "state": "postGame"
+    },
+    "synced_at_utc": "2026-11-10 08:36:52",
+    "sportymill_displayed_fixture": "Rosario vs Pitbulls",
+    "sportymill_displayed_league": "Liga de Ascenso",
+    "final_authenticity_classification": "provider_verified",
+    "raw_payload": {
+      "id": "6nmykenm9x1f2r6a1r7x18650",
+      "league": {
+        "id": "2yyjcbbryf1r10apyzl7c7jvp",
+        "name": "Liga de Ascenso",
+        "country": "Costa Rica"
+      },
+      "week": "Apertura - Quarter-finals",
+      "kickoff": "01:00",
+      "status": {
+        "status": "finished",
+        "display": "FT",
+        "is_live": false,
+        "state": "postGame"
+      },
+      "home": {
+        "id": "8swpe7uxtadr0yb89wtom63fa",
+        "name": "Rosario",
+        "logo": "https://live-football-api.com/teams/8swpe7uxtadr0yb89wtom63fa.png",
+        "score": "0"
+      },
+      "away": {
+        "id": "blc9avsm4dycdhnfh5j94cpw4",
+        "name": "Pitbulls",
+        "logo": "https://live-football-api.com/teams/blc9avsm4dycdhnfh5j94cpw4.png",
+        "score": "0"
+      },
+      "halftime": {
+        "home": 0,
+        "away": 0
+      },
+      "tv_broadcast": false,
+      "penalty": {
+        "home": null,
+        "away": null
+      }
+    }
+  },
+  {
+    "database_id": 21756,
+    "provider_fixture_id": "5metr1gjbtueafyswe280wc9g",
+    "provider_home_team": {
+      "name": "Congo",
+      "id": "hay8yl2j6gypmpp91j5411at",
+      "logo": "https://live-football-api.com/teams/hay8yl2j6gypmpp91j5411at.png",
+      "score": null
+    },
+    "provider_away_team": {
+      "name": "CAF",
+      "id": "87002wrqs107t1xs3d4wwkmek",
+      "logo": "https://live-football-api.com/teams/87002wrqs107t1xs3d4wwkmek.png",
+      "score": null
+    },
+    "provider_competition": {
+      "name": "Friendly International Women",
+      "id": "dvtl8sf1262pd2aqgu641qa7u",
+      "country": "World"
+    },
+    "provider_kickoff": "12:00",
+    "provider_response_timezone": "UTC",
+    "provider_status": {
+      "status": "scheduled",
+      "display": "12:00",
+      "is_live": false,
+      "state": "preGame"
+    },
+    "synced_at_utc": "2026-11-10 08:36:52",
+    "sportymill_displayed_fixture": "Congo vs CAF",
+    "sportymill_displayed_league": "Friendly International Women",
+    "final_authenticity_classification": "provider_verified",
+    "raw_payload": {
+      "id": "5metr1gjbtueafyswe280wc9g",
+      "league": {
+        "id": "dvtl8sf1262pd2aqgu641qa7u",
+        "name": "Friendly International Women",
+        "country": "World"
+      },
+      "week": "Friendlies 2",
+      "kickoff": "12:00",
+      "status": {
+        "status": "scheduled",
+        "display": "12:00",
+        "is_live": false,
+        "state": "preGame"
+      },
+      "home": {
+        "id": "hay8yl2j6gypmpp91j5411at",
+        "name": "Congo",
+        "logo": "https://live-football-api.com/teams/hay8yl2j6gypmpp91j5411at.png",
+        "score": null
+      },
+      "away": {
+        "id": "87002wrqs107t1xs3d4wwkmek",
+        "name": "CAF",
+        "logo": "https://live-football-api.com/teams/87002wrqs107t1xs3d4wwkmek.png",
+        "score": null
+      },
+      "halftime": {
+        "home": null,
+        "away": null
+      },
+      "tv_broadcast": false,
+      "penalty": {
+        "home": null,
+        "away": null
+      }
+    }
+  },
+  {
+    "database_id": 21794,
+    "provider_fixture_id": "3gfooddqib76fx9kckjlg1i50",
+    "provider_home_team": {
+      "name": "Alamos",
+      "id": "7npxgulbjjbsdq1x3mhs5tsk",
+      "logo": "https://live-football-api.com/teams/7npxgulbjjbsdq1x3mhs5tsk.png",
+      "score": null
+    },
+    "provider_away_team": {
+      "name": "CDM",
+      "id": "48mhdqhtjz49uydpaognyneac",
+      "logo": "https://live-football-api.com/teams/48mhdqhtjz49uydpaognyneac.png",
+      "score": null
+    },
+    "provider_competition": {
+      "name": "Liga TDP",
+      "id": "vu7xa99q5fiywp8wpvyn4owk",
+      "country": "Mexico"
+    },
+    "provider_kickoff": "19:00",
+    "provider_response_timezone": "UTC",
+    "provider_status": {
+      "status": "scheduled",
+      "display": "19:00",
+      "is_live": false,
+      "state": "preGame"
+    },
+    "synced_at_utc": "2026-11-10 08:36:52",
+    "sportymill_displayed_fixture": "Alamos vs CDM",
+    "sportymill_displayed_league": "Liga TDP",
+    "final_authenticity_classification": "provider_verified",
+    "raw_payload": {
+      "id": "3gfooddqib76fx9kckjlg1i50",
+      "league": {
+        "id": "vu7xa99q5fiywp8wpvyn4owk",
+        "name": "Liga TDP",
+        "country": "Mexico"
+      },
+      "week": "1",
+      "kickoff": "19:00",
+      "status": {
+        "status": "scheduled",
+        "display": "19:00",
+        "is_live": false,
+        "state": "preGame"
+      },
+      "home": {
+        "id": "7npxgulbjjbsdq1x3mhs5tsk",
+        "name": "Alamos",
+        "logo": "https://live-football-api.com/teams/7npxgulbjjbsdq1x3mhs5tsk.png",
+        "score": null
+      },
+      "away": {
+        "id": "48mhdqhtjz49uydpaognyneac",
+        "name": "CDM",
+        "logo": "https://live-football-api.com/teams/48mhdqhtjz49uydpaognyneac.png",
+        "score": null
+      },
+      "halftime": {
+        "home": null,
+        "away": null
+      },
+      "tv_broadcast": false,
+      "penalty": {
+        "home": null,
+        "away": null
+      }
+    }
+  },
+  {
+    "database_id": 21755,
+    "provider_fixture_id": "ach99fxxjw9c0ufspvpbzn1g4",
+    "provider_home_team": {
+      "name": "Paderborn",
+      "id": "62ljqd4za2a6svd9wgctg8b53",
+      "logo": "https://live-football-api.com/teams/62ljqd4za2a6svd9wgctg8b53.png",
+      "score": null
+    },
+    "provider_away_team": {
+      "name": "Braunschweig",
+      "id": "kxpw3rqn4ukt7nqmtjj62lbn",
+      "logo": "https://live-football-api.com/teams/kxpw3rqn4ukt7nqmtjj62lbn.png",
+      "score": null
+    },
+    "provider_competition": {
+      "name": "Club Friendly",
+      "id": "4nidzmunvpvxk1ir9b6m8mpay",
+      "country": "World"
+    },
+    "provider_kickoff": "12:00",
+    "provider_response_timezone": "UTC",
+    "provider_status": {
+      "status": "scheduled",
+      "display": "12:00",
+      "is_live": false,
+      "state": "preGame"
+    },
+    "synced_at_utc": "2026-11-10 08:36:52",
+    "sportymill_displayed_fixture": "Paderborn vs Braunschweig",
+    "sportymill_displayed_league": "Club Friendly",
+    "final_authenticity_classification": "provider_verified",
+    "raw_payload": {
+      "id": "ach99fxxjw9c0ufspvpbzn1g4",
+      "league": {
+        "id": "4nidzmunvpvxk1ir9b6m8mpay",
+        "name": "Club Friendly",
+        "country": "World"
+      },
+      "week": "Regular Season",
+      "kickoff": "12:00",
+      "status": {
+        "status": "scheduled",
+        "display": "12:00",
+        "is_live": false,
+        "state": "preGame"
+      },
+      "home": {
+        "id": "62ljqd4za2a6svd9wgctg8b53",
+        "name": "Paderborn",
+        "logo": "https://live-football-api.com/teams/62ljqd4za2a6svd9wgctg8b53.png",
+        "score": null
+      },
+      "away": {
+        "id": "kxpw3rqn4ukt7nqmtjj62lbn",
+        "name": "Braunschweig",
+        "logo": "https://live-football-api.com/teams/kxpw3rqn4ukt7nqmtjj62lbn.png",
+        "score": null
+      },
+      "halftime": {
+        "home": null,
+        "away": null
+      },
+      "tv_broadcast": false,
+      "penalty": {
+        "home": null,
+        "away": null
+      }
+    }
+  }
+]

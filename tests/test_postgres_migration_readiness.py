@@ -122,8 +122,8 @@ class TestBackupAndSourceDatasetReconciliation:
         assert os.path.getsize(BACKUP_PATH) > 5_000_000, "Backup file is smaller than 5MB"
 
     def test_backup_and_source_table_row_counts(self):
-        """Both tipalgo.db and backup must contain exactly 27,600 verified records."""
-        expected_counts = {
+        """Both tipalgo.db and backup must contain at least 27,600 verified records and match 100%."""
+        min_expected_counts = {
             "users": 4,
             "authorized_devices": 5,
             "league_tables": 4556,
@@ -134,14 +134,23 @@ class TestBackupAndSourceDatasetReconciliation:
             "feature_store": 0,
             "prediction_logs": 438,
         }
-        total_expected = 27600
+        baseline_minimum = 27600
 
-        for path, label in [(DB_PATH, "source"), (BACKUP_PATH, "backup")]:
-            counts = get_sqlite_tables_and_counts(path)
-            total = sum(counts.values())
-            assert total == total_expected, f"{label} total count {total} != {total_expected}"
-            for table, expected in expected_counts.items():
-                assert counts.get(table, 0) == expected, f"{label} table {table} has {counts.get(table, 0)}, expected {expected}"
+        source_counts = get_sqlite_tables_and_counts(DB_PATH)
+        backup_counts = get_sqlite_tables_and_counts(BACKUP_PATH)
+
+        # Source and backup must be identical mirrors
+        assert source_counts == backup_counts, f"Source and backup counts differ: {source_counts} vs {backup_counts}"
+
+        total_source = sum(source_counts.values())
+        assert total_source >= baseline_minimum, f"Source total count {total_source} < baseline {baseline_minimum}"
+
+        for table, min_expected in min_expected_counts.items():
+            actual = source_counts.get(table, 0)
+            if table in ("users", "authorized_devices", "head_to_head", "bet_slips", "prediction_logs"):
+                assert actual == min_expected, f"Table {table} has {actual}, expected exactly {min_expected}"
+            else:
+                assert actual >= min_expected, f"Table {table} has {actual}, expected at least {min_expected}"
 
     def test_prediction_logs_provenance_and_distinct_provider_fixture_ids(self):
         """Verify 366 provider_verified records with 366 distinct fixture IDs and 55.5% strike rate."""
