@@ -5863,9 +5863,17 @@ async def settle_all_pending_predictions(db: AsyncSession = Depends(get_db)):
             except Exception:
                 pass
 
+            ep = p.endpoint
+            # Strict protection: Ineligible or informational predictions must never settle as lost
+            if ep in ["info", "none", "ineligible"] or odds <= 0.0 or not selection or p.confidence_percent == 0:
+                p.outcome = "INELIGIBLE"
+                p.unit_return = 0.0
+                p.feedback_notes = f"Ineligible prediction: Match finished {hs}-{as_}. Excluded from betting performance metrics."
+                settled_count += 1
+                continue
+
             won = False
             total_goals = hs + as_
-            ep = p.endpoint
 
             if ep in ["home-win", "straight-home-win"]:
                 won = (hs > as_)
@@ -5983,9 +5991,15 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
                 # Skip non-eligible competitions when user filters by specific betting market
                 continue
             # Display genuine fixture in calendar slate, but with prediction eligibility disabled
-            match_time_str = "15:00"
+            match_time_utc = "15:00"
+            match_time_wat = "16:00"
+            match_iso_utc = "2026-11-10T15:00:00Z"
             if hasattr(m, "match_date") and m.match_date:
-                match_time_str = m.match_date.strftime("%H:%M") if hasattr(m.match_date, "strftime") else str(m.match_date)[11:16]
+                match_dt = m.match_date
+                match_time_utc = match_dt.strftime("%H:%M") if hasattr(match_dt, "strftime") else str(match_dt)[11:16]
+                match_iso_utc = match_dt.strftime("%Y-%m-%dT%H:%M:%SZ") if hasattr(match_dt, "strftime") else (str(match_dt)[:19] + "Z")
+                wat_dt = (match_dt + timedelta(hours=1)) if hasattr(match_dt, "__add__") else None
+                match_time_wat = wat_dt.strftime("%H:%M") if wat_dt else match_time_utc
 
             match_cards.append({
                 "id": m.id,
@@ -6008,8 +6022,12 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
                 "league_id": m.league_id,
                 "league_name": league_name,
                 "country": country,
-                "match_date": m.match_date.isoformat() if hasattr(m.match_date, "isoformat") else str(m.match_date),
-                "time": match_time_str,
+                "match_date": match_iso_utc,
+                "match_date_utc": match_iso_utc,
+                "time": match_time_utc,
+                "time_utc": match_time_utc,
+                "time_wat": match_time_wat,
+                "provider_timezone": "UTC",
                 "home_odds": round(float(m.home_odds or 0.0), 2),
                 "draw_odds": round(float(m.draw_odds or 0.0), 2),
                 "away_odds": round(float(m.away_odds or 0.0), 2),
@@ -6524,7 +6542,15 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
         else:
             banter = f"Model scan confirm solid {top_tip['label']} at @{top_tip['odds']} odds. Follow the numbers, protect bankroll!"
             
-        match_time = m.match_date.strftime("%H:%M") if hasattr(m.match_date, "strftime") else str(m.match_date)[11:16]
+        match_time_utc = "15:00"
+        match_time_wat = "16:00"
+        match_iso_utc = "2026-11-10T15:00:00Z"
+        if hasattr(m, "match_date") and m.match_date:
+            match_dt = m.match_date
+            match_time_utc = match_dt.strftime("%H:%M") if hasattr(match_dt, "strftime") else str(match_dt)[11:16]
+            match_iso_utc = match_dt.strftime("%Y-%m-%dT%H:%M:%SZ") if hasattr(match_dt, "strftime") else (str(match_dt)[:19] + "Z")
+            wat_dt = (match_dt + timedelta(hours=1)) if hasattr(match_dt, "__add__") else None
+            match_time_wat = wat_dt.strftime("%H:%M") if wat_dt else match_time_utc
         
         m_status = getattr(m, "status", "scheduled") or "scheduled"
         h_score = getattr(m, "home_score", None)
@@ -6598,8 +6624,12 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
             "league_id": m.league_id,
             "league_name": league_name,
             "country": country,
-            "match_date": m.match_date.isoformat() if hasattr(m.match_date, "isoformat") else str(m.match_date),
-            "time": match_time,
+            "match_date": match_iso_utc,
+            "match_date_utc": match_iso_utc,
+            "time": match_time_utc,
+            "time_utc": match_time_utc,
+            "time_wat": match_time_wat,
+            "provider_timezone": "UTC",
             "home_odds": round(m_home_odds, 2),
             "draw_odds": round(m_draw_odds, 2),
             "away_odds": round(m_away_odds, 2),

@@ -1,0 +1,632 @@
+[
+  {
+    "database_id": 21753,
+    "provider_fixture_id": "10d6say1jwn5dh14d8sytgv10",
+    "pairing": "Chonburi U21 vs Chainat U21",
+    "competition_notes": "Thailand Youth League",
+    "home_team": "Chonburi U21",
+    "away_team": "Chainat U21",
+    "league_id": "THA_YOUT",
+    "match_date_stored_utc": "2026-11-11 01:30:00.000000",
+    "match_status": "scheduled",
+    "score": null,
+    "source_classification": "provider_verified",
+    "raw_payload_kickoff": "08:30",
+    "raw_payload_status": {
+      "status": "scheduled",
+      "display": "08:30",
+      "is_live": false,
+      "state": "preGame"
+    },
+    "raw_payload_league": {
+      "id": "9729m7q80fqr4xnwjdwf2neac",
+      "name": "Youth League",
+      "country": "Thailand"
+    },
+    "audit_findings": "Provider batch artifact corrected to Nov 11 at 08:30 ICT (01:30 UTC / 02:30 WAT). Excluded from predictions.",
+    "raw_payload": {
+      "id": "10d6say1jwn5dh14d8sytgv10",
+      "league": {
+        "id": "9729m7q80fqr4xnwjdwf2neac",
+        "name": "Youth League",
+        "country": "Thailand"
+      },
+      "week": "7",
+      "kickoff": "08:30",
+      "status": {
+        "status": "scheduled",
+        "display": "08:30",
+        "is_live": false,
+        "state": "preGame"
+      },
+      "home": {
+        "id": "2czlvc6u34zm9cwry4sdiisd0",
+        "name": "Chonburi U21",
+        "logo": "https://live-football-api.com/teams/2czlvc6u34zm9cwry4sdiisd0.png",
+        "score": null
+      },
+      "away": {
+        "id": "cojyjee50pzikpmyry145n6l0",
+        "name": "Chainat U21",
+        "logo": "https://live-football-api.com/teams/cojyjee50pzikpmyry145n6l0.png",
+        "score": null
+      },
+      "halftime": {
+        "home": null,
+        "away": null
+      },
+      "tv_broadcast": false,
+      "penalty": {
+        "home": null,
+        "away": null
+      }
+    }
+  },
+  {
+    "database_id": 21800,
+    "provider_fixture_id": "424mdz2639onn5gdv49p2nsic",
+    "pairing": "Boston River vs City Torque",
+    "competition_notes": "Copa Uruguay",
+    "home_team": "Boston River",
+    "away_team": "City Torque",
+    "league_id": "URU_CUP",
+    "match_date_stored_utc": "2026-11-10 19:30:00.000000",
+    "match_status": "scheduled",
+    "score": null,
+    "source_classification": "provider_verified",
+    "raw_payload_kickoff": "19:30",
+    "raw_payload_status": {
+      "status": "scheduled",
+      "display": "19:30",
+      "is_live": false,
+      "state": "preGame"
+    },
+    "raw_payload_league": {
+      "id": "9r3u0jtuznun4k2ydy39m1sve",
+      "name": "Cup",
+      "country": "Uruguay"
+    },
+    "audit_findings": "UTC: 19:30, UYT local: 16:30, WAT: 20:30, UK: 19:30. Excluded from Poisson (Cup competition).",
+    "raw_payload": {
+      "id": "424mdz2639onn5gdv49p2nsic",
+      "league": {
+        "id": "9r3u0jtuznun4k2ydy39m1sve",
+        "name": "Cup",
+        "country": "Uruguay"
+      },
+      "week": "Quarter-finals",
+      "kickoff": "19:30",
+      "status": {
+        "status": "scheduled",
+        "display": "19:30",
+        "is_live": false,
+        "state": "preGame"
+      },
+      "home": {
+        "id": "26v2qpjhchmz068uykg9al4f6",
+        "name": "Boston River",
+        "logo": "https://live-football-api.com/teams/26v2qpjhchmz068uykg9al4f6.png",
+        "score": null
+      },
+      "away": {
+        "id": "3d9c158350xh1oq4mhpdrkz3x",
+        "name": "City Torque",
+        "logo": "https://live-football-api.com/teams/3d9c158350xh1oq4mhpdrkz3x.png",
+        "score": null
+      },
+      "halftime": {
+        "home": null,
+        "away": null
+      },
+      "tv_broadcast": false,
+      "penalty": {
+        "home": null,
+        "away": null
+      }
+    }
+  },
+  {
+    "database_id": 21765,
+    "provider_fixture_id": "3ilz1yvm24vs49j46nv26pbtg",
+    "pairing": "H\u00e4cken vs Chelsea",
+    "competition_notes": "UEFA Women Champions League",
+    "home_team": "H\u00e4cken",
+    "away_team": "Chelsea",
+    "league_id": "EUR_UEFA",
+    "match_date_stored_utc": "2026-11-10 17:45:00.000000",
+    "match_status": "scheduled",
+    "score": null,
+    "source_classification": "provider_verified",
+    "raw_payload_kickoff": "17:45",
+    "raw_payload_status": {
+      "status": "scheduled",
+      "display": "17:45",
+      "is_live": false,
+      "state": "preGame"
+    },
+    "raw_payload_league": {
+      "id": "55hcphd1ccc6eai1ms77460on",
+      "name": "UEFA Women's Champions League",
+      "country": "Europe"
+    },
+    "audit_findings": "UTC: 17:45, Sweden CET local: 18:45, WAT: 18:45, UK GMT: 17:45. Excluded (Women).",
+    "raw_payload": {
+      "id": "3ilz1yvm24vs49j46nv26pbtg",
+      "league": {
+        "id": "55hcphd1ccc6eai1ms77460on",
+        "name": "UEFA Women's Champions League",
+        "country": "Europe"
+      },
+      "week": "4",
+      "kickoff": "17:45",
+      "status": {
+        "status": "scheduled",
+        "display": "17:45",
+        "is_live": false,
+        "state": "preGame"
+      },
+      "home": {
+        "id": "2a6lsb9jdxzvngwahyujnys5w",
+        "name": "H\u00e4cken",
+        "logo": "https://live-football-api.com/teams/2a6lsb9jdxzvngwahyujnys5w.png",
+        "score": null
+      },
+      "away": {
+        "id": "spi3g782q7m4evjxn1sv6cfa",
+        "name": "Chelsea",
+        "logo": "https://live-football-api.com/teams/spi3g782q7m4evjxn1sv6cfa.png",
+        "score": null
+      },
+      "halftime": {
+        "home": null,
+        "away": null
+      },
+      "tv_broadcast": false,
+      "penalty": {
+        "home": null,
+        "away": null
+      }
+    }
+  },
+  {
+    "database_id": 21766,
+    "provider_fixture_id": "3ixvwv70u6zbisv4yfneh9q8k",
+    "pairing": "Real Madrid vs Paris",
+    "competition_notes": "UEFA Women Champions League",
+    "home_team": "Real Madrid",
+    "away_team": "Paris",
+    "league_id": "EUR_UEFA",
+    "match_date_stored_utc": "2026-11-10 17:45:00.000000",
+    "match_status": "scheduled",
+    "score": null,
+    "source_classification": "provider_verified",
+    "raw_payload_kickoff": "17:45",
+    "raw_payload_status": {
+      "status": "scheduled",
+      "display": "17:45",
+      "is_live": false,
+      "state": "preGame"
+    },
+    "raw_payload_league": {
+      "id": "55hcphd1ccc6eai1ms77460on",
+      "name": "UEFA Women's Champions League",
+      "country": "Europe"
+    },
+    "audit_findings": "UTC: 17:45, Spain CET local: 18:45, WAT: 18:45, UK GMT: 17:45. Excluded (Women).",
+    "raw_payload": {
+      "id": "3ixvwv70u6zbisv4yfneh9q8k",
+      "league": {
+        "id": "55hcphd1ccc6eai1ms77460on",
+        "name": "UEFA Women's Champions League",
+        "country": "Europe"
+      },
+      "week": "4",
+      "kickoff": "17:45",
+      "status": {
+        "status": "scheduled",
+        "display": "17:45",
+        "is_live": false,
+        "state": "preGame"
+      },
+      "home": {
+        "id": "vaikl8nl7hdr4y9jj4jyb9ey",
+        "name": "Real Madrid",
+        "logo": "https://live-football-api.com/teams/vaikl8nl7hdr4y9jj4jyb9ey.png",
+        "score": null
+      },
+      "away": {
+        "id": "bdfjkux9o0vtsdig5zsbhtysq",
+        "name": "Paris",
+        "logo": "https://live-football-api.com/teams/bdfjkux9o0vtsdig5zsbhtysq.png",
+        "score": null
+      },
+      "halftime": {
+        "home": null,
+        "away": null
+      },
+      "tv_broadcast": false,
+      "penalty": {
+        "home": null,
+        "away": null
+      }
+    }
+  },
+  {
+    "database_id": 21774,
+    "provider_fixture_id": "2dft9vuvixb138w1d9dmmkrh0",
+    "pairing": "Feyenoord vs Wolfsburg",
+    "competition_notes": "UEFA Women Europa Cup",
+    "home_team": "Feyenoord",
+    "away_team": "Wolfsburg",
+    "league_id": "EUR_UEFA",
+    "match_date_stored_utc": "2026-11-10 18:00:00.000000",
+    "match_status": "scheduled",
+    "score": null,
+    "source_classification": "provider_verified",
+    "raw_payload_kickoff": "18:00",
+    "raw_payload_status": {
+      "status": "scheduled",
+      "display": "18:00",
+      "is_live": false,
+      "state": "preGame"
+    },
+    "raw_payload_league": {
+      "id": "1nwgd1b2d903fvnwgnsdadkb8",
+      "name": "UEFA Women's Europa Cup",
+      "country": "Europe"
+    },
+    "audit_findings": "UTC: 18:00, Netherlands CET local: 19:00, WAT: 19:00, UK GMT: 18:00. Excluded (Women).",
+    "raw_payload": {
+      "id": "2dft9vuvixb138w1d9dmmkrh0",
+      "league": {
+        "id": "1nwgd1b2d903fvnwgnsdadkb8",
+        "name": "UEFA Women's Europa Cup",
+        "country": "Europe"
+      },
+      "week": "Round of 16",
+      "kickoff": "18:00",
+      "status": {
+        "status": "scheduled",
+        "display": "18:00",
+        "is_live": false,
+        "state": "preGame"
+      },
+      "home": {
+        "id": "9xx15yz7sl5dore0z8d8556ok",
+        "name": "Feyenoord",
+        "logo": "https://live-football-api.com/teams/9xx15yz7sl5dore0z8d8556ok.png",
+        "score": null
+      },
+      "away": {
+        "id": "6bl19flj1eggw2gw7sya19bof",
+        "name": "Wolfsburg",
+        "logo": "https://live-football-api.com/teams/6bl19flj1eggw2gw7sya19bof.png",
+        "score": null
+      },
+      "halftime": {
+        "home": null,
+        "away": null
+      },
+      "tv_broadcast": false,
+      "penalty": {
+        "home": null,
+        "away": null
+      }
+    }
+  },
+  {
+    "database_id": 21762,
+    "provider_fixture_id": "6br2edankusony2lowtnz4il0",
+    "pairing": "Mokawloon vs Itesalat",
+    "competition_notes": "Egypt Cup",
+    "home_team": "Mokawloon",
+    "away_team": "Itesalat",
+    "league_id": "EGY_CUP",
+    "match_date_stored_utc": "2026-11-10 15:00:00.000000",
+    "match_status": "scheduled",
+    "score": null,
+    "source_classification": "provider_verified",
+    "raw_payload_kickoff": "15:00",
+    "raw_payload_status": {
+      "status": "scheduled",
+      "display": "15:00",
+      "is_live": false,
+      "state": "preGame"
+    },
+    "raw_payload_league": {
+      "id": "4x4vwsyz29sfgvvy1qt0l7sxm",
+      "name": "Cup",
+      "country": "Egypt"
+    },
+    "audit_findings": "UTC: 15:00, Egypt EET local: 17:00, WAT: 16:00, UK GMT: 15:00. Excluded (Cup competition).",
+    "raw_payload": {
+      "id": "6br2edankusony2lowtnz4il0",
+      "league": {
+        "id": "4x4vwsyz29sfgvvy1qt0l7sxm",
+        "name": "Cup",
+        "country": "Egypt"
+      },
+      "week": "16th Finals",
+      "kickoff": "15:00",
+      "status": {
+        "status": "scheduled",
+        "display": "15:00",
+        "is_live": false,
+        "state": "preGame"
+      },
+      "home": {
+        "id": "rujv815dna8z56ptdquzovlu",
+        "name": "Mokawloon",
+        "logo": "https://live-football-api.com/teams/rujv815dna8z56ptdquzovlu.png",
+        "score": null
+      },
+      "away": {
+        "id": "9zi5ezh0v3q84v3h7dy28gq3l",
+        "name": "Itesalat",
+        "logo": "https://live-football-api.com/teams/9zi5ezh0v3q84v3h7dy28gq3l.png",
+        "score": null
+      },
+      "halftime": {
+        "home": null,
+        "away": null
+      },
+      "tv_broadcast": false,
+      "penalty": {
+        "home": null,
+        "away": null
+      }
+    }
+  },
+  {
+    "database_id": 21763,
+    "provider_fixture_id": "b59kw5hlwy6egxk3weylmf95g",
+    "pairing": "Gryf vs Arka II",
+    "competition_notes": "Poland 4. League",
+    "home_team": "Gryf",
+    "away_team": "Arka II",
+    "league_id": "POL_4L",
+    "match_date_stored_utc": "2026-11-10 17:00:00.000000",
+    "match_status": "scheduled",
+    "score": null,
+    "source_classification": "provider_verified",
+    "raw_payload_kickoff": "17:00",
+    "raw_payload_status": {
+      "status": "scheduled",
+      "display": "17:00",
+      "is_live": false,
+      "state": "preGame"
+    },
+    "raw_payload_league": {
+      "id": "8b6pm41x365md8ojlb2y47v9w",
+      "name": "4. League",
+      "country": "Poland"
+    },
+    "audit_findings": "Provider verified raw payload. Independent external corroboration unverified. Excluded (Reserve squad).",
+    "raw_payload": {
+      "id": "b59kw5hlwy6egxk3weylmf95g",
+      "league": {
+        "id": "8b6pm41x365md8ojlb2y47v9w",
+        "name": "4. League",
+        "country": "Poland"
+      },
+      "week": "16",
+      "kickoff": "17:00",
+      "status": {
+        "status": "scheduled",
+        "display": "17:00",
+        "is_live": false,
+        "state": "preGame"
+      },
+      "home": {
+        "id": "28xlw6pd8igvqedpo6x3hm2tx",
+        "name": "Gryf",
+        "logo": "https://live-football-api.com/teams/28xlw6pd8igvqedpo6x3hm2tx.png",
+        "score": null
+      },
+      "away": {
+        "id": "atofzyyvwqsqvywmog1iqbs39",
+        "name": "Arka II",
+        "logo": "https://live-football-api.com/teams/atofzyyvwqsqvywmog1iqbs39.png",
+        "score": null
+      },
+      "halftime": {
+        "home": null,
+        "away": null
+      },
+      "tv_broadcast": false,
+      "penalty": {
+        "home": null,
+        "away": null
+      }
+    }
+  },
+  {
+    "database_id": 21757,
+    "provider_fixture_id": "6bqu4oyeqlxrvx45tv9sdy784",
+    "pairing": "Freja U19 vs Odense U19",
+    "competition_notes": "Denmark U19 Ligaen",
+    "home_team": "Freja U19",
+    "away_team": "Odense U19",
+    "league_id": "DEN_U19",
+    "match_date_stored_utc": "2026-11-10 13:00:00.000000",
+    "match_status": "scheduled",
+    "score": null,
+    "source_classification": "provider_verified",
+    "raw_payload_kickoff": "13:00",
+    "raw_payload_status": {
+      "status": "scheduled",
+      "display": "13:00",
+      "is_live": false,
+      "state": "preGame"
+    },
+    "raw_payload_league": {
+      "id": "e8hzels14elhoiezdax9ixj66",
+      "name": "U19 Ligaen",
+      "country": "Denmark"
+    },
+    "audit_findings": "Provider verified raw payload. Independent external corroboration unverified. Excluded (Youth).",
+    "raw_payload": {
+      "id": "6bqu4oyeqlxrvx45tv9sdy784",
+      "league": {
+        "id": "e8hzels14elhoiezdax9ixj66",
+        "name": "U19 Ligaen",
+        "country": "Denmark"
+      },
+      "week": "12",
+      "kickoff": "13:00",
+      "status": {
+        "status": "scheduled",
+        "display": "13:00",
+        "is_live": false,
+        "state": "preGame"
+      },
+      "home": {
+        "id": "7jkniknexn368lap893k9nmg0",
+        "name": "Freja U19",
+        "logo": "https://live-football-api.com/teams/7jkniknexn368lap893k9nmg0.png",
+        "score": null
+      },
+      "away": {
+        "id": "d53qroo3xhp553347rzpgijx3",
+        "name": "Odense U19",
+        "logo": "https://live-football-api.com/teams/d53qroo3xhp553347rzpgijx3.png",
+        "score": null
+      },
+      "halftime": {
+        "home": null,
+        "away": null
+      },
+      "tv_broadcast": false,
+      "penalty": {
+        "home": null,
+        "away": null
+      }
+    }
+  },
+  {
+    "database_id": 21742,
+    "provider_fixture_id": "41wnsagr2grclipy0ciitch04",
+    "pairing": "Maldonado vs Nacional",
+    "competition_notes": "Copa Uruguay",
+    "home_team": "Maldonado",
+    "away_team": "Nacional",
+    "league_id": "URU_CUP",
+    "match_date_stored_utc": "2026-11-10 00:00:00.000000",
+    "match_status": "finished",
+    "score": "1-2",
+    "source_classification": "provider_verified",
+    "raw_payload_kickoff": "00:00",
+    "raw_payload_status": {
+      "status": "finished",
+      "display": "FT",
+      "is_live": false,
+      "state": "postGame"
+    },
+    "raw_payload_league": {
+      "id": "9r3u0jtuznun4k2ydy39m1sve",
+      "name": "Cup",
+      "country": "Uruguay"
+    },
+    "audit_findings": "Finished 1-2. INELIGIBLE settlement. Zero win/loss records in prediction_logs. No Brier penalty. No ROI impact.",
+    "raw_payload": {
+      "id": "41wnsagr2grclipy0ciitch04",
+      "league": {
+        "id": "9r3u0jtuznun4k2ydy39m1sve",
+        "name": "Cup",
+        "country": "Uruguay"
+      },
+      "week": "Quarter-finals",
+      "kickoff": "00:00",
+      "status": {
+        "status": "finished",
+        "display": "FT",
+        "is_live": false,
+        "state": "postGame"
+      },
+      "home": {
+        "id": "dx57pww9amdsyxuwg679gwdhl",
+        "name": "Maldonado",
+        "logo": "https://live-football-api.com/teams/dx57pww9amdsyxuwg679gwdhl.png",
+        "score": "1"
+      },
+      "away": {
+        "id": "27ia8tgma24uc864wpnbdwoxo",
+        "name": "Nacional",
+        "logo": "https://live-football-api.com/teams/27ia8tgma24uc864wpnbdwoxo.png",
+        "score": "2"
+      },
+      "halftime": {
+        "home": 0,
+        "away": 1
+      },
+      "tv_broadcast": false,
+      "penalty": {
+        "home": null,
+        "away": null
+      }
+    }
+  },
+  {
+    "database_id": 21752,
+    "provider_fixture_id": "15s21cdfm3podbnv1rrn27i8k",
+    "pairing": "Deren vs Ulaanbaatar",
+    "competition_notes": "Mongolia Premier League",
+    "home_team": "Deren",
+    "away_team": "Ulaanbaatar",
+    "league_id": "MON_PREM",
+    "match_date_stored_utc": "2026-11-10 08:00:00.000000",
+    "match_status": "finished",
+    "score": "4-1",
+    "source_classification": "provider_verified",
+    "raw_payload_kickoff": "08:00",
+    "raw_payload_status": {
+      "status": "finished",
+      "display": "FT",
+      "is_live": false,
+      "state": "postGame"
+    },
+    "raw_payload_league": {
+      "id": "8s9m5mnys5sljfcss6seb6dca",
+      "name": "Premier League",
+      "country": "Mongolia"
+    },
+    "audit_findings": "Finished 4-1. Live snapshot 1-0 at 19 min was correctly gated against premature settlement. Senior professional match.",
+    "raw_payload": {
+      "id": "15s21cdfm3podbnv1rrn27i8k",
+      "league": {
+        "id": "8s9m5mnys5sljfcss6seb6dca",
+        "name": "Premier League",
+        "country": "Mongolia"
+      },
+      "week": "5",
+      "kickoff": "08:00",
+      "status": {
+        "status": "finished",
+        "display": "FT",
+        "is_live": false,
+        "state": "postGame"
+      },
+      "home": {
+        "id": "24ky2zix6308k1cv5q5ay609",
+        "name": "Deren",
+        "logo": "https://live-football-api.com/teams/24ky2zix6308k1cv5q5ay609.png",
+        "score": "4"
+      },
+      "away": {
+        "id": "4rrlv012dlsvkukgn3cmlcrmp",
+        "name": "Ulaanbaatar",
+        "logo": "https://live-football-api.com/teams/4rrlv012dlsvkukgn3cmlcrmp.png",
+        "score": "1"
+      },
+      "halftime": {
+        "home": 1,
+        "away": 0
+      },
+      "tv_broadcast": false,
+      "penalty": {
+        "home": null,
+        "away": null
+      }
+    }
+  }
+]

@@ -2686,37 +2686,37 @@
             ? `Chop confirm! ${home} hammer ${away} ${hScore}-${aScore} for stadium! Model see the heavy attack ginger and bookie price fail to match reality.`
             : `${home} produced a commanding ${hScore}-${aScore} victory over ${away}, outpacing bookmaker odds (@${odds}) through decisive offensive conversion.`;
           algoResponse = isBanter
-            ? `Winning ticket logged! Model Poisson attack rating for ${home} boost up sharp-sharp.`
-            : `High-conviction outcome verified. Offensive Poisson parameter for ${home} reinforced; Platt calibration weights updated.`;
+            ? `Winning ticket logged! Result recorded in empirical verification ledger.`
+            : `High-conviction outcome verified. Recorded in empirical evaluation ledger with positive Brier quadratic accuracy score.`;
         } else if (aScore === 0) {
           analysis = isBanter
             ? `Clean sheet chop! ${home} lock defense tight and score ${hScore}-${aScore} against ${away}. Model defensive rating hit bullseye!`
             : `${home} kept a disciplined clean sheet in a ${hScore}-${aScore} win over ${away}. Model defensive rating accurately suppressed opponent expectancies.`;
           algoResponse = isBanter
-            ? `Clean sheet bonus! Low variance recorded for ${home} home backline.`
-            : `Defensive solidity confirmed. Clean sheet factor for ${home} validated across ${league} tracking matrix.`;
+            ? `Clean sheet logged! Positive defensive expectation confirmed in tracking matrix.`
+            : `Defensive solidity confirmed. Clean sheet recorded in historical matrix; Brier score positively calibrated.`;
         } else {
           analysis = isBanter
             ? `Cashout alert! ${home} beat ${away} ${hScore}-${aScore} in tight contest. Model ${prob}% win likelihood carry us reach promised land!`
             : `${home} secured a competitive ${hScore}-${aScore} win over ${away}. The ${prob}% model probability edge converted into a verified positive margin.`;
           algoResponse = isBanter
-            ? `Kelly formula reward: +EV edge confirmed, probability scale adjusted higher for ${home}.`
-            : `Positive expectation validated. Kelly bankroll growth confirmed and Brier accuracy metric improved.`;
+            ? `Winning outcome confirmed: +EV edge verified and recorded in audit ledger.`
+            : `Outcome verified. Recorded in empirical validation ledger; Brier calibration score updated. Model parameters remain governed by batch historical estimation protocols.`;
         }
       } else if (aScore > hScore) {
         analysis = isBanter
           ? `Away ginger succeed! ${away} shock ${home} for their own yard with ${hScore}-${aScore}. Model sweet road value pick enter cleanly!`
           : `${away} executed an efficient road performance to defeat ${home} ${hScore}-${aScore}. Model underdog/away angle (@${odds}) successfully realized.`;
         algoResponse = isBanter
-          ? `Away edge verified! Model increase away multiplier for ${away} in next matches.`
-          : `Away transition model verified. Calibrated road Poisson index rewarded with higher predictive weight.`;
+          ? `Away edge verified! Result recorded in performance tracking.`
+          : `Away transition expectancy verified. Result recorded in historical performance ledger with favorable Brier accuracy score.`;
       } else {
         analysis = isBanter
           ? `Tactical stalemate! ${home} and ${away} share points at ${hScore}-${aScore}. Model draw radar catch the exact balance!`
           : `Equilibrium verified: ${home} and ${away} drew ${hScore}-${aScore}. Bivariate Poisson distribution correctly identified draw probability edge.`;
         algoResponse = isBanter
-          ? `Draw calculation hit! Model equilibrium parameters reinforced.`
-          : `Draw matrix verified. Brier score updated with positive verification for parity model.`;
+          ? `Draw hit! Outcome added to historical accuracy record.`
+          : `Equilibrium verified. Brier accuracy updated in empirical ledger; parameter weights remain stable pending batch calibration.`;
       }
     } else {
       if (hScore === aScore) {
@@ -2724,22 +2724,22 @@
           ? `Painful draw o! ${home} and ${away} lock at ${hScore}-${aScore}. Stubborn defense block our projected winner.`
           : `Unanticipated ${hScore}-${aScore} stalemate between ${home} and ${away}. Resilient defensive block suppressed expected scoring output.`;
         algoResponse = isBanter
-          ? `Draw penalty logged. Algorithm don adjust tempo damping make bookie trap no catch us.`
-          : `Variance recorded. Brier penalty applied and goal-conversion expectations recalibrated for ${home}.`;
+          ? `Draw variance recorded. Result logged in empirical audit ledger.`
+          : `Outcome recorded in validation ledger. Prediction error logged for empirical Brier loss tracking. Model parameter re-estimation follows scheduled batch calibration across multi-match samples, not single-fixture updates.`;
       } else if (aScore > hScore && mkt.includes('home')) {
         analysis = isBanter
           ? `Surprise upset! ${away} come shock ${home} ${hScore}-${aScore}. Road counter-attacks break our home model expectation.`
           : `Unexpected road upset: ${away} prevailed ${hScore}-${aScore} over ${home}. Defensive transition vulnerabilities exceeded modeled parameters.`;
         algoResponse = isBanter
-          ? `Algorithm don flag defensive leakage for ${home}. Heavy penalty applied to home rating!`
-          : `Recalibration triggered. Home pitch advantage discounted and defensive rating penalized for ${home}.`;
+          ? `Upset recorded in validation ledger. Result tracked in rolling performance statistics.`
+          : `Outcome recorded in validation ledger. Prediction variance logged for empirical Brier loss evaluation. Model parameters remain unchanged pending scheduled batch re-estimation.`;
       } else {
         analysis = isBanter
           ? `Game ended ${hScore}-${aScore} (${home} vs ${away}). Tactical variance diverge from our algorithmic projection.`
           : `Final scoreline ${hScore}-${aScore} diverged from projected distribution. Tempo and conversion variance observed in ${league}.`;
         algoResponse = isBanter
-          ? `Negative outcome logged. Model weights recalibrated under similar fixture conditions.`
-          : `Negative outcome logged. Brier loss penalty applied and model weights recalibrated under similar fixture conditions.`;
+          ? `Negative outcome logged to audit ledger. Result tracked in rolling strike-rate statistics.`
+          : `Outcome recorded in validation ledger. Quadratic Brier penalty logged for calibration tracking. Model weights are governed by multi-sample batch procedures and are not adjusted on single-fixture outcomes.`;
       }
     }
 
@@ -2832,7 +2832,9 @@
     let timeColText = m.time || '15:00';
     if (m.match_date && !isFinished && !isLive) {
       try {
-        const dt = new Date(m.match_date);
+        const rawIso = String(m.match_date || '');
+        const isoWithZ = rawIso.endsWith('Z') || rawIso.includes('+') ? rawIso : (rawIso.includes('T') ? rawIso + 'Z' : rawIso.replace(' ', 'T') + 'Z');
+        const dt = new Date(isoWithZ);
         if (!isNaN(dt.getTime())) {
           timeColText = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
         }
@@ -2866,8 +2868,17 @@
     // Determine prediction settlement outcome if match is finished
     const hScore = Number(m.home_score != null ? m.home_score : 0);
     const aScore = Number(m.away_score != null ? m.away_score : 0);
+    const isPredictionIneligible = (
+      m.prediction_eligible === false ||
+      !topTip ||
+      topTip.market === 'Match Information Only' ||
+      (topTip.label && topTip.label.toLowerCase().includes('ineligible')) ||
+      Number(topTip.prob_pct || 0) === 0 ||
+      Number(topTip.odds || 0) === 0 ||
+      topTip.endpoint_id === 'info'
+    );
     let isPredictionWon = false;
-    if (isFinished) {
+    if (isFinished && !isPredictionIneligible) {
       const mkt = (topTip.market || topTip.label || '').toLowerCase();
       if (mkt.includes('home win') || (mkt.includes(m.home_team.toLowerCase()) && mkt.includes('win') && !mkt.includes('away'))) {
         isPredictionWon = hScore > aScore;
@@ -2893,7 +2904,18 @@
         isPredictionWon = hScore > aScore;
       }
     }
-    const settledNarrative = isFinished ? getDynamicSettledNarrative(m, topTip, hScore, aScore, isPredictionWon, isBanter) : null;
+    const settledNarrative = isFinished ? (
+      isPredictionIneligible
+        ? {
+            analysis: isBanter
+              ? `Result logged: ${hScore}-${aScore} (${m.home_team} vs ${m.away_team}). Algorithmic betting models were not active for this fixture.`
+              : `Official match result recorded (${hScore}-${aScore}). Algorithmic betting models were inactive for this non-senior or friendly fixture.`,
+            algoResponse: isBanter
+              ? `No prediction settled: fixture classified as INELIGIBLE. No Brier score calculated; model weights unchanged.`
+              : `No prediction settlement executed. Ineligible fixture is excluded from Brier scoring, Kelly bankroll calculation, and model calibration.`
+          }
+        : getDynamicSettledNarrative(m, topTip, hScore, aScore, isPredictionWon, isBanter)
+    ) : null;
 
     return `
       <div class="employer-match-card ${isBanker ? 'is-banker' : ''} ${isFinished ? 'is-settled' : ''}" data-match-id="${m.id || rowIdx}" data-status="${m.status || ''}">
@@ -2978,9 +3000,15 @@
                   </div>
                   <div class="em-settled-status-group">
                     <span class="em-settled-score-pill">Score: ${hScore} - ${aScore}</span>
-                    <span class="em-settled-outcome-pill ${isPredictionWon ? 'won' : 'lost'}">
-                      ${isPredictionWon ? 'PREDICTION WON' : 'PREDICTION LOST'}
-                    </span>
+                    ${isPredictionIneligible ? `
+                      <span class="em-settled-outcome-pill ineligible" style="background: rgba(148, 163, 184, 0.2); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.4); font-weight: 700; font-size: 0.72rem; padding: 0.25rem 0.6rem; border-radius: 9999px;">
+                        NO PREDICTION (INELIGIBLE)
+                      </span>
+                    ` : `
+                      <span class="em-settled-outcome-pill ${isPredictionWon ? 'won' : 'lost'}">
+                        ${isPredictionWon ? 'PREDICTION WON' : 'PREDICTION LOST'}
+                      </span>
+                    `}
                     <button type="button" class="em-info-circle-btn btn-grid-details"
                       data-home="${esc(m.home_team)}" data-away="${esc(m.away_team)}" data-league="${m.league_id || ''}" data-idx="${rowIdx}"
                       title="View Analytics, Head-to-Head &amp; Standings" aria-label="View In-Depth Analytics">
@@ -2988,11 +3016,11 @@
                     </button>
                   </div>
                 </div>
-                <div class="em-settled-analysis ${isPredictionWon ? 'won' : 'lost'}">
-                  <strong>Result Analysis:</strong> ${settledNarrative ? settledNarrative.analysis : (isPredictionWon ? `Model prediction verified by final scoreline (${hScore}-${aScore}). High statistical conviction confirmed.` : `Prediction unfulfilled in final scoreline (${hScore}-${aScore}). Defensive/tempo variance observed.`)}
+                <div class="em-settled-analysis ${isPredictionIneligible ? 'ineligible' : (isPredictionWon ? 'won' : 'lost')}">
+                  <strong>Result Analysis:</strong> ${settledNarrative ? settledNarrative.analysis : (isPredictionIneligible ? `Official match result recorded (${hScore}-${aScore}). Algorithmic betting models inactive.` : (isPredictionWon ? `Model prediction verified by final scoreline (${hScore}-${aScore}). High statistical conviction confirmed.` : `Prediction unfulfilled in final scoreline (${hScore}-${aScore}). Defensive/tempo variance observed.`))}
                 </div>
                 <div class="em-settled-algorithm-response">
-                  <strong>Algorithm Response:</strong> ${settledNarrative ? settledNarrative.algoResponse : (isPredictionWon ? 'Positive outcome reinforced. Platt probability calibration updated.' : 'Negative outcome logged. Brier loss penalty applied and model weights recalibrated under similar fixture conditions.')}
+                  <strong>Algorithm Response:</strong> ${settledNarrative ? settledNarrative.algoResponse : (isPredictionIneligible ? 'No prediction settlement executed. Ineligible fixture is excluded from Brier scoring, Kelly bankroll calculation, and model calibration.' : (isPredictionWon ? 'Outcome verified. Result logged to validation ledger; Brier calibration score updated.' : 'Outcome recorded in validation ledger. Quadratic Brier penalty logged; model parameters remain governed by validated batch protocols rather than single-fixture adjustments.'))}
                 </div>
               </div>
             ` : `
@@ -3049,7 +3077,9 @@
     let localTimeStr = m.time || '15:00';
     if (m.match_date) {
       try {
-        const dt = new Date(m.match_date);
+        const rawIso = String(m.match_date || '');
+        const isoWithZ = rawIso.endsWith('Z') || rawIso.includes('+') ? rawIso : (rawIso.includes('T') ? rawIso + 'Z' : rawIso.replace(' ', 'T') + 'Z');
+        const dt = new Date(isoWithZ);
         if (!isNaN(dt.getTime())) {
           localTimeStr = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
         }
@@ -3064,8 +3094,17 @@
 
     const hScore = Number(m.home_score != null ? m.home_score : 0);
     const aScore = Number(m.away_score != null ? m.away_score : 0);
+    const isPredictionIneligible = (
+      m.prediction_eligible === false ||
+      !topTip ||
+      topTip.market === 'Match Information Only' ||
+      (topTip.label && topTip.label.toLowerCase().includes('ineligible')) ||
+      Number(topTip.prob_pct || 0) === 0 ||
+      Number(topTip.odds || 0) === 0 ||
+      topTip.endpoint_id === 'info'
+    );
     let isPredictionWon = false;
-    if (isFinished) {
+    if (isFinished && !isPredictionIneligible) {
       const mkt = (topTip.market || topTip.label || '').toLowerCase();
       if (mkt.includes('home win') || (mkt.includes(m.home_team.toLowerCase()) && mkt.includes('win') && !mkt.includes('away'))) {
         isPredictionWon = hScore > aScore;
@@ -3091,7 +3130,18 @@
         isPredictionWon = hScore > aScore;
       }
     }
-    const settledNarrative = isFinished ? getDynamicSettledNarrative(m, topTip, hScore, aScore, isPredictionWon, isBanter) : null;
+    const settledNarrative = isFinished ? (
+      isPredictionIneligible
+        ? {
+            analysis: isBanter
+              ? `Result logged: ${hScore}-${aScore} (${m.home_team} vs ${m.away_team}). Algorithmic betting models were not active for this fixture.`
+              : `Official match result recorded (${hScore}-${aScore}). Algorithmic betting models were inactive for this non-senior or friendly fixture.`,
+            algoResponse: isBanter
+              ? `No prediction settled: fixture classified as INELIGIBLE. No Brier score calculated; model weights unchanged.`
+              : `No prediction settlement executed. Ineligible fixture is excluded from Brier scoring, Kelly bankroll calculation, and model calibration.`
+          }
+        : getDynamicSettledNarrative(m, topTip, hScore, aScore, isPredictionWon, isBanter)
+    ) : null;
 
     let centerClashHtml = `<span class="grid-vs-chip">VS</span>`;
     if (isFinished || isLive) {
@@ -3165,15 +3215,21 @@
             </div>
             <div class="grid-settled-status-row">
               <span class="grid-settled-score">Score: ${hScore} - ${aScore}</span>
-              <span class="grid-settled-outcome ${isPredictionWon ? 'won' : 'lost'}">
-                ${isPredictionWon ? 'PREDICTION WON' : 'PREDICTION LOST'}
-              </span>
+              ${isPredictionIneligible ? `
+                <span class="grid-settled-outcome ineligible" style="background: rgba(148, 163, 184, 0.2); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.4); font-weight: 700; font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 9999px;">
+                  NO PREDICTION (INELIGIBLE)
+                </span>
+              ` : `
+                <span class="grid-settled-outcome ${isPredictionWon ? 'won' : 'lost'}">
+                  ${isPredictionWon ? 'PREDICTION WON' : 'PREDICTION LOST'}
+                </span>
+              `}
             </div>
-            <div class="grid-settled-analysis ${isPredictionWon ? 'won' : 'lost'}">
-              <strong>Result Analysis:</strong> ${settledNarrative ? settledNarrative.analysis : (isPredictionWon ? `Model prediction verified by final scoreline (${hScore}-${aScore}). High statistical conviction confirmed.` : `Prediction unfulfilled in final scoreline (${hScore}-${aScore}). Defensive/tempo variance observed.`)}
+            <div class="grid-settled-analysis ${isPredictionIneligible ? 'ineligible' : (isPredictionWon ? 'won' : 'lost')}">
+              <strong>Result Analysis:</strong> ${settledNarrative ? settledNarrative.analysis : (isPredictionIneligible ? `Official match result recorded (${hScore}-${aScore}). Algorithmic betting models inactive.` : (isPredictionWon ? `Model prediction verified by final scoreline (${hScore}-${aScore}). High statistical conviction confirmed.` : `Prediction unfulfilled in final scoreline (${hScore}-${aScore}). Defensive/tempo variance observed.`))}
             </div>
             <div class="grid-settled-response">
-              <strong>Algorithm Response:</strong> ${settledNarrative ? settledNarrative.algoResponse : (isPredictionWon ? 'Positive outcome reinforced. Platt probability calibration updated.' : 'Negative outcome logged. Brier loss penalty applied and model weights recalibrated under similar fixture conditions.')}
+              <strong>Algorithm Response:</strong> ${settledNarrative ? settledNarrative.algoResponse : (isPredictionIneligible ? 'No prediction settlement executed. Ineligible fixture is excluded from Brier scoring, Kelly bankroll calculation, and model calibration.' : (isPredictionWon ? 'Outcome verified. Result logged to validation ledger; Brier calibration score updated.' : 'Outcome recorded in validation ledger. Quadratic Brier penalty logged; model parameters remain governed by validated batch protocols rather than single-fixture adjustments.'))}
             </div>
           </div>
         ` : `
