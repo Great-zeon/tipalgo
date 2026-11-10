@@ -5509,9 +5509,17 @@ async def validate_slip(req: ValidateSlipRequest, db: AsyncSession = Depends(get
     for item in req.items:
         home = str(item.get("home_team", "")).strip()
         away = str(item.get("away_team", "")).strip()
-        league_id = str(item.get("league_id", "PL")).strip()
+        if (not home or not away) and item.get("match") and " vs " in str(item.get("match")):
+            m_parts = str(item.get("match")).split(" vs ")
+            if not home:
+                home = m_parts[0].strip()
+            if not away:
+                away = m_parts[1].strip()
+
+        league_id = str(item.get("league_id", item.get("league", "PL"))).strip()
         raw_odds = item.get("odds", 1.85)
         market = str(item.get("market", item.get("tip", "Home Win"))).strip()
+        item_status = str(item.get("status", "")).strip().lower()
 
         # 1. Odds Validation: strictly > 1.00
         try:
@@ -5532,7 +5540,24 @@ async def validate_slip(req: ValidateSlipRequest, db: AsyncSession = Depends(get
                 "potential_payout": 0.0, "joint_prob_pct": 0.0, "all_positive_edge": False, "legs": []
             }
 
-        # 2. Market & Ineligibility Validation
+        # 2. Live / In-Play Status Check (Reject immediately)
+        if item_status in ("live", "in_play", "in-play", "ht", "1h", "2h"):
+            return {
+                "valid": False,
+                "error": f"Fixture '{home} vs {away}' is currently live. Pre-match bet slip does not accept live in-play events.",
+                "legs_count": 0, "total_odds": 0.0, "stake": float(req.stake or 1000.0),
+                "potential_payout": 0.0, "joint_prob_pct": 0.0, "all_positive_edge": False, "legs": []
+            }
+
+        if item_status in ("finished", "ft", "aet", "pen"):
+            return {
+                "valid": False,
+                "error": f"Fixture '{home} vs {away}' has already finished. Bets cannot be accepted on completed events.",
+                "legs_count": 0, "total_odds": 0.0, "stake": float(req.stake or 1000.0),
+                "potential_payout": 0.0, "joint_prob_pct": 0.0, "all_positive_edge": False, "legs": []
+            }
+
+        # 3. Market & Ineligibility Validation
         if not market or market == "Match Information Only" or "ineligible" in market.lower():
             return {
                 "valid": False,
@@ -5541,7 +5566,9 @@ async def validate_slip(req: ValidateSlipRequest, db: AsyncSession = Depends(get
                 "potential_payout": 0.0, "joint_prob_pct": 0.0, "all_positive_edge": False, "legs": []
             }
 
-        if is_excluded_competition(league_id, item.get("league"), item.get("country"), home, away):
+        league_display = item.get("league") or format_league_display_name(league_id)
+        country_display = item.get("country") or get_league_country(league_id)
+        if is_excluded_competition(league_id, league_display, country_display, home, away):
             return {
                 "valid": False,
                 "error": f"Fixture '{home} vs {away}' ({league_id}) is excluded from algorithmic betting under competition integrity rules.",
@@ -5563,8 +5590,11 @@ async def validate_slip(req: ValidateSlipRequest, db: AsyncSession = Depends(get
         # 4. Independent Database Status Verification (Reject finished or live matches)
         candidates = get_team_alias_candidates(home)
         home_clauses = [HistoricalMatch.home_team.ilike(f"%{c}%") for c in candidates]
+        away_cands = get_team_alias_candidates(away)
+        away_clauses = [HistoricalMatch.away_team.ilike(f"%{c}%") for c in away_cands]
         hist_stmt = select(HistoricalMatch).where(
             or_(*home_clauses),
+            or_(*away_clauses),
             HistoricalMatch.home_score.isnot(None),
             HistoricalMatch.away_score.isnot(None)
         ).order_by(HistoricalMatch.match_date.desc()).limit(1)
@@ -5572,23 +5602,20 @@ async def validate_slip(req: ValidateSlipRequest, db: AsyncSession = Depends(get
         hist_match = hist_res.scalar_one_or_none()
 
         if hist_match:
-            away_cands = get_team_alias_candidates(away)
-            m_away_norm = normalize_team_name(hist_match.away_team)
-            if any(c in m_away_norm or m_away_norm in c for c in away_cands):
-                if hist_match.status in ("finished", "FT", "AET", "PEN") or (hist_match.home_score is not None and hist_match.away_score is not None):
-                    return {
-                        "valid": False,
-                        "error": f"Fixture '{home} vs {away}' has already finished (Final score: {hist_match.home_score}-{hist_match.away_score}). Bets cannot be accepted on completed events.",
-                        "legs_count": 0, "total_odds": 0.0, "stake": float(req.stake or 1000.0),
-                        "potential_payout": 0.0, "joint_prob_pct": 0.0, "all_positive_edge": False, "legs": []
-                    }
-                if hist_match.status in ("live", "IN_PLAY", "HT", "1H", "2H"):
-                    return {
-                        "valid": False,
-                        "error": f"Fixture '{home} vs {away}' is currently live. Pre-match bet slip does not accept live in-play events.",
-                        "legs_count": 0, "total_odds": 0.0, "stake": float(req.stake or 1000.0),
-                        "potential_payout": 0.0, "joint_prob_pct": 0.0, "all_positive_edge": False, "legs": []
-                    }
+            if hist_match.status in ("finished", "FT", "AET", "PEN") or (hist_match.home_score is not None and hist_match.away_score is not None):
+                return {
+                    "valid": False,
+                    "error": f"Fixture '{home} vs {away}' has already finished (Final score: {hist_match.home_score}-{hist_match.away_score}). Bets cannot be accepted on completed events.",
+                    "legs_count": 0, "total_odds": 0.0, "stake": float(req.stake or 1000.0),
+                    "potential_payout": 0.0, "joint_prob_pct": 0.0, "all_positive_edge": False, "legs": []
+                }
+            if hist_match.status in ("live", "IN_PLAY", "HT", "1H", "2H"):
+                return {
+                    "valid": False,
+                    "error": f"Fixture '{home} vs {away}' is currently live. Pre-match bet slip does not accept live in-play events.",
+                    "legs_count": 0, "total_odds": 0.0, "stake": float(req.stake or 1000.0),
+                    "potential_payout": 0.0, "joint_prob_pct": 0.0, "all_positive_edge": False, "legs": []
+                }
         
         try:
             probs_data = await predictor.get_probabilities(db, home, away, league_id)
@@ -6193,10 +6220,12 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
         m_away_odds = float(m.away_odds or 3.40)
         
         is_fallback = False
+        home_i = {}
+        away_i = {}
         try:
             probs = await predictor.get_probabilities(db, m.home_team, m.away_team, m.league_id)
-            home_i = probs.get("home_info", {})
-            away_i = probs.get("away_info", {})
+            home_i = probs.get("home_info", {}) or {}
+            away_i = probs.get("away_info", {}) or {}
             if (home_i.get("points") == 18 and home_i.get("played") == 12) or \
                (away_i.get("points") == 18 and away_i.get("played") == 12):
                 is_fallback = True
