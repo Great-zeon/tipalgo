@@ -4908,9 +4908,12 @@ async def health(request: Request):
     from football_ingestion import FootballDataService
     f_service = FootballDataService(api_key=config.FOOTBALL_API_KEY, base_url=config.FOOTBALL_API_BASE)
 
+    commit_sha = os.getenv("RENDER_GIT_COMMIT", "45cc036")[:7]
+
     return {
         "status": "ok",
         "version": "21.0",
+        "commit": commit_sha,
         "provider": f_service.provider,
         "database": db_status,
         "screener_model": {
@@ -4925,21 +4928,22 @@ async def health(request: Request):
 async def system_status_page(request: Request):
     if "application/json" in request.headers.get("accept", ""):
         return await health(request)
-    html_content = """<!DOCTYPE html>
+    commit_sha = os.getenv("RENDER_GIT_COMMIT", "45cc036")[:7]
+    html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>SportyMill — System Status</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #0a0e17; color: #f8fafc; padding: 40px; margin: 0; }
-    .status-card { max-width: 680px; margin: 0 auto; background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 32px; }
-    .badge-operational { display: inline-block; padding: 4px 12px; border-radius: 9999px; background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 600; font-size: 13px; }
-    h1 { font-size: 22px; margin-top: 0; color: #fff; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0; }
-    .item { background: #1a2234; padding: 16px; border-radius: 8px; border: 1px solid #26334d; }
-    .label { font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
-    .val { font-size: 15px; font-weight: 600; margin-top: 4px; color: #38bdf8; }
-    a { color: #10b981; text-decoration: none; font-size: 14px; }
+    body {{ font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #0a0e17; color: #f8fafc; padding: 40px; margin: 0; }}
+    .status-card {{ max-width: 680px; margin: 0 auto; background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 32px; }}
+    .badge-operational {{ display: inline-block; padding: 4px 12px; border-radius: 9999px; background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 600; font-size: 13px; }}
+    h1 {{ font-size: 22px; margin-top: 0; color: #fff; }}
+    .grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0; }}
+    .item {{ background: #1a2234; padding: 16px; border-radius: 8px; border: 1px solid #26334d; }}
+    .label {{ font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }}
+    .val {{ font-size: 15px; font-weight: 600; margin-top: 4px; color: #38bdf8; }}
+    a {{ color: #10b981; text-decoration: none; font-size: 14px; }}
   </style>
 </head>
 <body>
@@ -4954,6 +4958,8 @@ async def system_status_page(request: Request):
       <div class="item"><div class="label">Prediction Model</div><div class="val">Bivariate Poisson (Active)</div></div>
       <div class="item"><div class="label">Database Engine</div><div class="val">SQLite (WAL Mode Active)</div></div>
       <div class="item"><div class="label">Audited Strike Rate</div><div class="val">55.5% (Verified Authentic)</div></div>
+      <div class="item"><div class="label">Deployed Git Commit</div><div class="val">{commit_sha}</div></div>
+      <div class="item"><div class="label">System Environment</div><div class="val">{config.ENVIRONMENT}</div></div>
     </div>
     <div style="text-align:center; margin-top:24px;">
       <a href="/">← Return to SportyMill Dashboard</a>
@@ -5008,6 +5014,9 @@ async def enrich_with_total_predictions(response: dict, endpoint: str, db: Async
                     h_team = parts[0].strip()
                     a_team = parts[1].strip()
 
+            prov_fid = response.get("provider_fixture_id") or response.get("fixture_id")
+            s_class = "provider_verified" if (prov_fid and h_team and a_team and h_team.lower() != "home") else "unverified"
+
             pred_log = PredictionLog(
                 prediction_id=str(uuid.uuid4()),
                 endpoint=endpoint,
@@ -5018,7 +5027,8 @@ async def enrich_with_total_predictions(response: dict, endpoint: str, db: Async
                 raw_probs_json=json.dumps({"probability": response.get("probability")}),
                 market_probs_json=json.dumps({"odds": response.get("odds")}),
                 confidence_percent=float(response.get("probability") or 50.0),
-                source_classification="provider_verified",
+                source_classification=s_class,
+                provider_fixture_id=prov_fid,
                 model_version="v2.1"
             )
             db.add(pred_log)

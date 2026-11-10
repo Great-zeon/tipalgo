@@ -1,0 +1,93 @@
+{
+  "endpoint": "https://live-football-api.com/api/v1/matches?api_key=[REDACTED]&date=2026-11-10",
+  "date": "2026-11-10",
+  "http_status": 200,
+  "verified_at": "2026-11-10T09:20:19.939741+00:00",
+  "total_matches": 116,
+  "live_matches_count": 2,
+  "upcoming_matches_count": 107,
+  "finished_matches_count": 7,
+  "credits_remaining": 324,
+  "samples": [
+    {
+      "provider_fixture_id": "77efr3scruoksnr732sis4r2s",
+      "home_team_id": "52pduyh1bfri4d8rv9qby5brp",
+      "home_team_name": "Junior",
+      "away_team_id": "b2kbk81xguin1b3ofs92j97ic",
+      "away_team_name": "C\u00facuta",
+      "competition_id": "2ty8ihceabty8yddmu31iuuej",
+      "competition_name": "Primera A",
+      "kickoff_timestamp": "00:00",
+      "provider_status": {
+        "status": "finished",
+        "display": "FT",
+        "is_live": false,
+        "state": "postGame"
+      }
+    },
+    {
+      "provider_fixture_id": "41wnsagr2grclipy0ciitch04",
+      "home_team_id": "dx57pww9amdsyxuwg679gwdhl",
+      "home_team_name": "Maldonado",
+      "away_team_id": "27ia8tgma24uc864wpnbdwoxo",
+      "away_team_name": "Nacional",
+      "competition_id": "9r3u0jtuznun4k2ydy39m1sve",
+      "competition_name": "Cup",
+      "kickoff_timestamp": "00:00",
+      "provider_status": {
+        "status": "finished",
+        "display": "FT",
+        "is_live": false,
+        "state": "postGame"
+      }
+    },
+    {
+      "provider_fixture_id": "42sxn2y1m1g0zt8gaem2vto2c",
+      "home_team_id": "1p2mbne1t0rwtj3go5f5z98pu",
+      "home_team_name": "Liverpool M.",
+      "away_team_id": "7yxslrj734ntqcgb9d6bu02m4",
+      "away_team_name": "Juventud",
+      "competition_id": "9r3u0jtuznun4k2ydy39m1sve",
+      "competition_name": "Cup",
+      "kickoff_timestamp": "00:00",
+      "provider_status": {
+        "status": "scheduled",
+        "display": "00:00",
+        "is_live": false,
+        "state": "preGame"
+      }
+    },
+    {
+      "provider_fixture_id": "dzumkescpxrw1hwro73k9oe1g",
+      "home_team_id": "5nk1xw91dxp0t0znt9p8gpiw1",
+      "home_team_name": "Aurora",
+      "away_team_id": "blnwupja8ttva04e9yqvyijqi",
+      "away_team_name": "Uni de Vinto",
+      "competition_id": "alpfd99yd3lfv7bhjo0biuq7b",
+      "competition_name": "Primera Divisi\u00f3n",
+      "kickoff_timestamp": "00:30",
+      "provider_status": {
+        "status": "finished",
+        "display": "FT",
+        "is_live": false,
+        "state": "postGame"
+      }
+    },
+    {
+      "provider_fixture_id": "8rtddg0mszg8y6zw4y0lazv2s",
+      "home_team_id": "e29381coimf4lo8rx156vzhb0",
+      "home_team_name": "Isidro",
+      "away_team_id": "erhh6pzf5gb393pa1w3ob5qwa",
+      "away_team_name": "Platense",
+      "competition_id": "ein4fkggto3pdh5msp8huafiq",
+      "competition_name": "Primera Division",
+      "kickoff_timestamp": "01:00",
+      "provider_status": {
+        "status": "scheduled",
+        "display": "01:00",
+        "is_live": false,
+        "state": "preGame"
+      }
+    }
+  ]
+}
