@@ -3086,7 +3086,9 @@
               <!-- Finished Match: Clean Settled Status with Circular Check/Cross Button (Click for Analysis Modal) -->
               <div class="em-settled-card-right">
                 <div class="em-settled-header-row">
-                  <div class="em-settled-pick-group">
+                  <div class="em-settled-pick-group btn-settled-pick-notify"
+                    data-home="${esc(m.home_team)}" data-away="${esc(m.away_team)}" data-score="${hScore} - ${aScore}"
+                    title="Match completed (${hScore} - ${aScore}) • Bets cannot be placed on finished fixtures. Click for settlement details.">
                     <span class="em-canva-pick-label">${esc(topTip.label)}.</span>
                     <span class="em-canva-prob-badge">${topTip.prob_pct}%</span>
                     <span class="em-settled-odds-badge">@${Number(topTip.odds).toFixed(2)}</span>
@@ -3124,6 +3126,20 @@
                     </button>
                   </div>
                 </div>
+              </div>
+            ` : isPredictionIneligible ? `
+              <!-- Upcoming Ineligible Match: Clear Informational Notice without betting odds or slip button -->
+              <div class="em-canva-pred-row em-ineligible-wrap">
+                <div class="em-ineligible-pill" title="Predictions Ineligible: Non-senior, youth, friendly, or unverified fixture. Ingested for live score and schedule tracking only.">
+                  <span class="ineligible-badge-dot"></span>
+                  <span class="ineligible-main-lbl">Predictions Ineligible</span>
+                  <span class="ineligible-sub-lbl">Info Only &bull; No Odds</span>
+                </div>
+                <button type="button" class="em-info-circle-btn btn-grid-details"
+                  data-home="${esc(m.home_team)}" data-away="${esc(m.away_team)}" data-league="${m.league_id || ''}" data-idx="${rowIdx}"
+                  title="View Match Information" aria-label="View Match Information">
+                  <span class="info-letter">i</span>
+                </button>
               </div>
             ` : `
               <!-- Active Match: Clean Inline Pick + Probability + Odds Pill + Info Button (No Probability Track Box) -->
@@ -3323,6 +3339,17 @@
               `}
             </div>
           </div>
+        ` : isPredictionIneligible ? `
+          <!-- Upcoming Ineligible Match: Clear Informational Notice without betting odds or slip button -->
+          <div class="grid-odds-box">
+            <div class="grid-odds-top-inline em-ineligible-wrap">
+              <div class="em-ineligible-pill" title="Predictions Ineligible: Non-senior, youth, friendly, or unverified fixture. Ingested for live score and schedule tracking only.">
+                <span class="ineligible-badge-dot"></span>
+                <span class="ineligible-main-lbl">Predictions Ineligible</span>
+                <span class="ineligible-sub-lbl">Info Only &bull; No Odds</span>
+              </div>
+            </div>
+          </div>
         ` : `
           <!-- Model Pick Box: Clean Inline Pick + Probability + Odds (No Probability Meter Box) -->
           <div class="grid-odds-box">
@@ -3345,7 +3372,7 @@
             data-away="${escapeHtmlUtil(m.away_team)}" 
             data-league="${m.league_id || ''}"
             data-idx="${cardIdx}" 
-            ${isFinished ? 'style="width: 100%; justify-content: center;"' : ''}
+            ${(isFinished || isPredictionIneligible) ? 'style="width: 100%; justify-content: center;"' : ''}
             title="View In-Depth Analytics, Tactical Pitch & 33 Models">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M3 3v18h18"></path>
@@ -3353,7 +3380,7 @@
             </svg>
             <span>${isBanter ? 'Check Gist' : (isFinished ? 'Analytics & Form' : 'Analytics')}</span>
           </button>
-          ${isFinished ? '' : `
+          ${(isFinished || isPredictionIneligible) ? '' : `
             <button class="btn-card-add-slip-v2 pick-trigger ${inSlipTop ? 'in-slip' : ''}" 
               data-home="${escapeHtmlUtil(m.home_team)}" 
               data-away="${escapeHtmlUtil(m.away_team)}" 
@@ -3379,17 +3406,24 @@
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (btn.closest('.is-settled') || btn.closest('.settled-view') || btn.classList.contains('disabled')) {
+          toast('Match already finished. Completed games cannot be added to Bet Slip.', 'info');
           return;
         }
         const card = btn.closest('.employer-match-card, .grid-match-card');
         if (card && (card.classList.contains('is-settled') || card.getAttribute('data-status') === 'finished')) {
+          toast('Match already finished. Completed games cannot be added to Bet Slip.', 'info');
           return;
         }
         const home = btn.getAttribute('data-home');
         const away = btn.getAttribute('data-away');
         const league = btn.getAttribute('data-league');
         const market = btn.getAttribute('data-market');
-        const odds = parseFloat(btn.getAttribute('data-odds')) || 1.85;
+        const odds = parseFloat(btn.getAttribute('data-odds')) || 0;
+
+        if (!market || market === 'Match Information Only' || odds <= 1.0) {
+          toast('This fixture is for informational tracking only (no active betting line).', 'info');
+          return;
+        }
 
         addToSlip({
           match: `${home} vs ${away}`,
@@ -3400,6 +3434,14 @@
           odds: odds,
           date: state.calendar.selectedDate || 'Today'
         });
+      });
+    });
+
+    container.querySelectorAll('.btn-settled-pick-notify').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const score = el.getAttribute('data-score') || '';
+        toast(`Match already completed (${score}). Finished fixtures cannot be added to Bet Slip.`, 'info');
       });
     });
 
@@ -7089,12 +7131,23 @@
 
     // Attach click listeners to all pick triggers
     dom.calendarMatchesFeed.querySelectorAll('.pick-trigger').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const card = btn.closest('.employer-match-card, .grid-match-card');
+        if (btn.closest('.is-settled') || btn.closest('.settled-view') || (card && (card.classList.contains('is-settled') || card.getAttribute('data-status') === 'finished'))) {
+          toast('Match already finished. Completed games cannot be added to Bet Slip.', 'info');
+          return;
+        }
         const home = btn.getAttribute('data-home');
         const away = btn.getAttribute('data-away');
         const league = btn.getAttribute('data-league');
         const market = btn.getAttribute('data-market');
-        const odds = parseFloat(btn.getAttribute('data-odds')) || 1.85;
+        const odds = parseFloat(btn.getAttribute('data-odds')) || 0;
+
+        if (!market || market === 'Match Information Only' || odds <= 1.0) {
+          toast('This fixture is for informational tracking only (no active betting line).', 'info');
+          return;
+        }
 
         addToSlip({
           match: `${home} vs ${away}`,
@@ -7105,6 +7158,15 @@
           odds: odds,
           date: state.calendar.selectedDate || 'Today'
         });
+      });
+    });
+
+    // Helpful feedback when user clicks settled odds
+    dom.calendarMatchesFeed.querySelectorAll('.btn-settled-pick-notify').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const score = el.getAttribute('data-score') || '';
+        toast(`Match already completed (${score}). Finished fixtures cannot be added to Bet Slip.`, 'info');
       });
     });
 

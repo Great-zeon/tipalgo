@@ -15621,6 +15621,53 @@ body.in-dashboard-view .mobile-bottom-nav {
   color: #94a3b8;
 }
 
+.em-ineligible-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.em-ineligible-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: rgba(148, 163, 184, 0.08);
+  border: 1px dashed rgba(148, 163, 184, 0.35);
+  border-radius: 9999px;
+  padding: 0.3rem 0.7rem;
+  cursor: default;
+}
+
+.ineligible-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #94a3b8;
+}
+
+.ineligible-main-lbl {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #cbd5e1;
+}
+
+.ineligible-sub-lbl {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.btn-settled-pick-notify {
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: 6px;
+  transition: background 0.2s ease;
+}
+
+.btn-settled-pick-notify:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
 
 
 
