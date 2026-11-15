@@ -57,6 +57,41 @@ async def verify_postgres_staging(db_url: str):
         iso_level = await conn.fetchval("SHOW transaction_isolation;")
         logger.info(f"Default Transaction Isolation Level: {iso_level}")
 
+        # Ensure prediction_logs table exists if running on fresh staging database
+        await conn.execute(f"""
+            CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
+                id SERIAL PRIMARY KEY,
+                prediction_id VARCHAR UNIQUE,
+                endpoint VARCHAR,
+                home_team VARCHAR,
+                away_team VARCHAR,
+                match_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                fixture_json TEXT,
+                raw_probs_json TEXT,
+                market_probs_json TEXT,
+                processed BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                sub_strategies_json TEXT,
+                confidence_percent DOUBLE PRECISION,
+                criteria_breakdown_json TEXT,
+                playbook_adjustments_applied BOOLEAN DEFAULT FALSE,
+                outcome VARCHAR,
+                actual_home_score INTEGER,
+                actual_away_score INTEGER,
+                unit_return DOUBLE PRECISION,
+                settled_at TIMESTAMP WITH TIME ZONE,
+                feedback_notes TEXT,
+                source_classification VARCHAR DEFAULT 'unverified',
+                provider_fixture_id VARCHAR,
+                model_version VARCHAR DEFAULT 'v21.0'
+            );
+        """)
+
+        # 1b. Record initial baseline row counts
+        initial_row_count = await conn.fetchval(f"SELECT count(*) FROM {TABLE_NAME};")
+        initial_live_count = await conn.fetchval(f"SELECT count(*) FROM {TABLE_NAME} WHERE source_classification = 'live_recorded';")
+        logger.info(f"Pre-test baseline records in {TABLE_NAME}: Total={initial_row_count}, Live={initial_live_count}")
+
         # 2. Run Migration 002 Upgrade
         logger.info(f"Applying migration 002: Creating {INDEX_NAME}...")
         await conn.execute(POSTGRES_UPGRADE_SQL)
@@ -227,7 +262,16 @@ async def verify_postgres_staging(db_url: str):
 
         # Re-apply upgrade so staging remains prepared
         await conn.execute(POSTGRES_UPGRADE_SQL)
-        logger.info("Staging environment re-upgraded. POSTGRESQL VERIFICATION COMPLETE & PASSED.")
+        logger.info("Staging environment re-upgraded.")
+
+        # 11. Final historical baseline audit: confirm zero row leakage
+        final_row_count = await conn.fetchval(f"SELECT count(*) FROM {TABLE_NAME};")
+        final_live_count = await conn.fetchval(f"SELECT count(*) FROM {TABLE_NAME} WHERE source_classification = 'live_recorded';")
+        logger.info(f"Post-test records in {TABLE_NAME}: Total={final_row_count}, Live={final_live_count}")
+        assert final_row_count == initial_row_count, f"Cleanup leak detected: initial={initial_row_count}, final={final_row_count}"
+        assert final_live_count == initial_live_count, f"Live prediction leak detected: initial={initial_live_count}, final={final_live_count}"
+        logger.info("Historical data protection: SUCCESS (exact pre-test record counts preserved, zero leakage)")
+        logger.info("POSTGRESQL STAGING RUNTIME VERIFICATION COMPLETE & PASSED.")
     finally:
         await conn.close()
 
