@@ -130,6 +130,15 @@ class Config:
     TEAM_TO_SCORE_MEDIUM_CONFIDENCE = 55
     PREDICTION_COUNT_TTL = int(os.getenv("PREDICTION_COUNT_TTL", "60"))
     REDIS_URL = os.getenv("REDIS_URL", "")
+    DEFAULT_SITE_URL = "https://sporty-cn2q.onrender.com"
+    SITE_URL = (
+        os.getenv("SITE_URL")
+        or os.getenv("CANONICAL_BASE_URL")
+        or os.getenv("RENDER_EXTERNAL_URL")
+        or DEFAULT_SITE_URL
+    ).strip().rstrip("/")
+    GOOGLE_SITE_VERIFICATION = os.getenv("GOOGLE_SITE_VERIFICATION", "").strip()
+    GA4_MEASUREMENT_ID = os.getenv("GA4_MEASUREMENT_ID", "").strip()
 
     LEAGUE_DRAW_BASELINE = {
         "PL": 0.26, "PD": 0.28, "FL1": 0.27, "BL1": 0.25, "SA": 0.24,
@@ -4887,15 +4896,51 @@ app.add_middleware(GZipMiddleware, minimum_size=500)
 app.add_middleware(CORSMiddleware, allow_origins=allowed_origins, allow_credentials=True,
                    allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["*"])
 
+NON_INDEXABLE_PREFIXES = ("/api/", "/auth/", "/admin/", "/predict/", "/payments/", "/webhook/")
+NON_INDEXABLE_PATHS = {"/health", "/status", "/system-status", "/metrics"}
+
+def _render_seo_html(page_path: Path, status_code: int = 200) -> HTMLResponse:
+    import html as html_lib
+    import re
+    content = page_path.read_text(encoding="utf-8")
+    if config.SITE_URL and config.SITE_URL != config.DEFAULT_SITE_URL:
+        content = content.replace(config.DEFAULT_SITE_URL, config.SITE_URL)
+    head_injections = []
+    if config.GOOGLE_SITE_VERIFICATION:
+        token = html_lib.escape(config.GOOGLE_SITE_VERIFICATION, quote=True)
+        head_injections.append(f'<meta name="google-site-verification" content="{token}">')
+    if config.GA4_MEASUREMENT_ID and re.fullmatch(r"G-[A-Z0-9]+", config.GA4_MEASUREMENT_ID):
+        ga_id = html_lib.escape(config.GA4_MEASUREMENT_ID, quote=True)
+        head_injections.append(
+            f'<script async src="https://www.googletagmanager.com/gtag/js?id={ga_id}"></script>\n'
+            f'  <script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments);}}gtag("js",new Date());gtag("config","{ga_id}",{{"anonymize_ip":true}});</script>'
+        )
+    if head_injections and "</head>" in content:
+        content = content.replace("</head>", "  " + "\n  ".join(head_injections) + "\n</head>", 1)
+    headers = {"Cache-Control": "public, max-age=300"} if status_code == 200 else None
+    return HTMLResponse(content, status_code=status_code, headers=headers)
+
 @app.middleware("http")
 async def add_performance_cache_headers(request: Request, call_next):
     response = await call_next(request)
     req_path = request.url.path
+
+    # Standard security headers across all responses
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+
     if req_path.startswith("/static/"):
         if req_path.endswith((".jpg", ".jpeg", ".png", ".webp", ".svg", ".ico", ".woff", ".woff2")):
             response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
         elif req_path.endswith((".css", ".js")):
             response.headers["Cache-Control"] = "no-cache, must-revalidate"
+
+    if req_path.startswith(NON_INDEXABLE_PREFIXES) or req_path in NON_INDEXABLE_PATHS:
+        response.headers.setdefault("X-Robots-Tag", "noindex, nofollow")
+    elif response.status_code == 404 and req_path not in ("/robots.txt", "/sitemap.xml"):
+        response.headers.setdefault("X-Robots-Tag", "noindex, follow")
+
     return response
 
 @app.exception_handler(InsufficientDataError)
@@ -4917,10 +4962,74 @@ app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="stat
 async def root():
     index_path = BASE_DIR / "static" / "index.html"
     try:
-        with open(index_path) as f:
-            return HTMLResponse(f.read())
+        return _render_seo_html(index_path, status_code=200)
     except FileNotFoundError:
         return HTMLResponse("<h1>SportyMill v21</h1><p>Static frontend not found.</p>")
+
+@app.get("/robots.txt", include_in_schema=False)
+@app.head("/robots.txt", include_in_schema=False)
+async def robots_txt():
+    lines = [
+        "User-agent: *",
+        "Allow: /",
+        "Allow: /privacy",
+        "Allow: /terms",
+        "Allow: /static/",
+        "Disallow: /api/",
+        "Disallow: /auth/",
+        "Disallow: /admin/",
+        "Disallow: /predict/",
+        "Disallow: /payments/",
+        "Disallow: /webhook/",
+        "Disallow: /health",
+        "Disallow: /status",
+        "Disallow: /system-status",
+        "Disallow: /metrics",
+        "Disallow: /404",
+        "",
+        f"Sitemap: {config.SITE_URL}/sitemap.xml",
+        "",
+    ]
+    return Response(
+        content="\n".join(lines),
+        media_type="text/plain; charset=utf-8",
+        headers={"Cache-Control": "public, max-age=3600"}
+    )
+
+@app.get("/sitemap.xml", include_in_schema=False)
+@app.head("/sitemap.xml", include_in_schema=False)
+async def sitemap_xml():
+    from xml.sax.saxutils import escape as xml_escape
+    public_entries = [
+        ("", BASE_DIR / "static" / "index.html", "daily", "1.0"),
+        ("/privacy", BASE_DIR / "static" / "privacy.html", "monthly", "0.4"),
+        ("/terms", BASE_DIR / "static" / "terms.html", "monthly", "0.4"),
+    ]
+    url_blocks = []
+    for path_suffix, file_path, changefreq, priority in public_entries:
+        if not file_path.exists():
+            continue
+        mtime = datetime.fromtimestamp(file_path.stat().st_mtime, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        loc = xml_escape(f"{config.SITE_URL}{path_suffix}" if path_suffix else f"{config.SITE_URL}/")
+        url_blocks.append(
+            f"  <url>\n"
+            f"    <loc>{loc}</loc>\n"
+            f"    <lastmod>{mtime}</lastmod>\n"
+            f"    <changefreq>{changefreq}</changefreq>\n"
+            f"    <priority>{priority}</priority>\n"
+            f"  </url>"
+        )
+    xml_body = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        + "\n".join(url_blocks)
+        + "\n</urlset>\n"
+    )
+    return Response(
+        content=xml_body,
+        media_type="application/xml; charset=utf-8",
+        headers={"Cache-Control": "public, max-age=3600"}
+    )
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
@@ -4962,7 +5071,7 @@ async def apple_touch_icon():
 async def privacy_page():
     page_path = BASE_DIR / "static" / "privacy.html"
     if page_path.exists():
-        return HTMLResponse(page_path.read_text(encoding="utf-8"))
+        return _render_seo_html(page_path, status_code=200)
     return HTMLResponse("<h1>404 Not Found</h1>", status_code=404)
 
 @app.get("/terms", response_class=HTMLResponse)
@@ -4970,7 +5079,7 @@ async def privacy_page():
 async def terms_page():
     page_path = BASE_DIR / "static" / "terms.html"
     if page_path.exists():
-        return HTMLResponse(page_path.read_text(encoding="utf-8"))
+        return _render_seo_html(page_path, status_code=200)
     return HTMLResponse("<h1>404 Not Found</h1>", status_code=404)
 
 @app.get("/404", response_class=HTMLResponse)
@@ -4978,7 +5087,7 @@ async def terms_page():
 async def not_found_page():
     page_path = BASE_DIR / "static" / "404.html"
     if page_path.exists():
-        return HTMLResponse(page_path.read_text(encoding="utf-8"), status_code=404)
+        return _render_seo_html(page_path, status_code=404)
     return HTMLResponse("<h1>404 Not Found</h1>", status_code=404)
 
 @app.exception_handler(404)
@@ -4986,7 +5095,7 @@ async def custom_404_handler(request: Request, exc):
     if "text/html" in request.headers.get("accept", ""):
         page_404 = BASE_DIR / "static" / "404.html"
         if page_404.exists():
-            return HTMLResponse(page_404.read_text(encoding="utf-8"), status_code=404)
+            return _render_seo_html(page_404, status_code=404)
     return JSONResponse(status_code=404, content={"detail": "Not Found"})
 
 @app.get("/health")
@@ -5055,7 +5164,13 @@ async def system_status_page(request: Request):
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>SportyMill — System Status</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Status | SportyMill</title>
+  <meta name="description" content="Live operational status and infrastructure diagnostics for the SportyMill quantitative football analytics platform.">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="canonical" href="{config.SITE_URL}/status">
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+  <link rel="shortcut icon" href="/static/favicon.ico">
   <style>
     body {{ font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #0a0e17; color: #f8fafc; padding: 40px; margin: 0; }}
     .status-card {{ max-width: 680px; margin: 0 auto; background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 32px; }}
@@ -5774,9 +5889,9 @@ async def get_predictions_history(
     p_num = int(getattr(page, "default", page) if not isinstance(page, int) else page)
     l_num = int(getattr(limit, "default", limit) if not isinstance(limit, int) else limit)
     
-    # Audit strictly verified provider records; exclude synthetic, demo, or orphan placeholder predictions
+    # Audit strictly verified provider records & authentic live predictions; exclude synthetic, demo, or orphan placeholder predictions
     verified_base = and_(
-        PredictionLog.source_classification.in_(["provider_verified", "provider_cached"]),
+        PredictionLog.source_classification.in_(["provider_verified", "provider_cached", "live_recorded"]),
         PredictionLog.home_team != "Home",
         PredictionLog.home_team.isnot(None),
         PredictionLog.away_team != "Away",
@@ -5930,6 +6045,8 @@ async def get_predictions_history(
         predictions_list.append({
             "id": row.id,
             "prediction_id": row.prediction_id,
+            "provider_fixture_id": row.provider_fixture_id,
+            "source_classification": row.source_classification or "unverified",
             "match_date": row.match_date.strftime("%Y-%m-%d %H:%M") if hasattr(row.match_date, "strftime") else str(row.match_date)[:16],
             "home_team": row.home_team,
             "away_team": row.away_team,
@@ -6845,6 +6962,16 @@ async def get_calendar_daily_slate(
     cache_key = f"slate:{target_date}:{ep_filter}"
     cached_data = calendar_slate_cache.get(cache_key)
     if cached_data:
+        # Intercept cached slates marked unpersisted due to prior transient DB failure
+        if cached_data.get("live_recorded_persisted") is False:
+            try:
+                from settlement_engine import persist_slate_with_cache_retry
+                cached_data = await persist_slate_with_cache_retry(db, cached_data, PredictionLog)
+                calendar_slate_cache.set(cache_key, cached_data)
+                if ep_filter == "all":
+                    calendar_slate_cache.set(f"slate:{target_date}:all", cached_data)
+            except Exception as retry_ex:
+                logger.warning(f"Live prediction snapshot cache retry warning: {retry_ex}")
         return Response(content=json.dumps(cached_data), media_type="application/json")
 
     all_cached_data = calendar_slate_cache.get(f"slate:{target_date}:all")
@@ -6998,6 +7125,14 @@ async def get_calendar_daily_slate(
             "provider_status": p_status,
             "provider_message": p_msg
         }
+        # Idempotently persist genuine pre-kickoff predictions with cache retry handling
+        if match_cards and p_status != "error":
+            try:
+                from settlement_engine import persist_slate_with_cache_retry
+                response_payload = await persist_slate_with_cache_retry(db, response_payload, PredictionLog)
+            except Exception as batch_ex:
+                logger.warning(f"Live prediction snapshot batch persistence warning: {batch_ex}")
+
         if not provider_err:
             calendar_slate_cache.set(cache_key, response_payload)
             if ep_filter == "all":
@@ -8629,6 +8764,27 @@ async def paystack_webhook(request: Request, db: AsyncSession = Depends(get_db))
             user.subscription_expiry = datetime.now(timezone.utc) + timedelta(days=config.PRO_DURATION_DAYS)
             await db.commit()
     return {"status": "ok"}
+
+@app.post("/admin/settle-live-predictions")
+async def admin_settle_live_predictions(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
+):
+    """
+    Authorized administrative endpoint to execute automated multi-market settlement
+    of pending live predictions against verified provider match results.
+    """
+    from settlement_engine import verify_settlement_authorization, settle_live_predictions
+    auth_header = request.headers.get("Authorization")
+    is_auth, status_code, msg = await verify_settlement_authorization(
+        auth_header, admin_token, db, User, config.SECRET_KEY, config.ALGORITHM, config.ADMIN_TOKEN
+    )
+    if not is_auth:
+        raise HTTPException(status_code=status_code, detail=msg)
+
+    settle_report = await settle_live_predictions(db, PredictionLog, HistoricalMatch)
+    return {"status": "success", "report": settle_report}
 
 # ------------------------------------------------------------------
 # MAIN
