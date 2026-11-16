@@ -193,8 +193,11 @@ def map_league_to_code(country: str, name: str) -> str:
             return "BEL"
 
     # Other Top Leagues
-    if c in ("netherlands", "holland") and "eredivisie" in n:
-        return "DED"
+    if c in ("netherlands", "holland"):
+        if "women" in n or "vrouwen" in n:
+            return "NLD_WOM"
+        if "eredivisie" in n:
+            return "DED"
     if c == "scotland" and "premiership" in n:
         return "SC0"
     if c == "turkey" and "super lig" in n:
@@ -573,11 +576,12 @@ class FootballDataService:
                     away_score = int(raw_a_score) if raw_a_score is not None and str(raw_a_score).strip().isdigit() else None
 
                     kickoff_time = f.get("kickoff", "15:00")
+                    match_date_str = f.get("date") or d_str
                     try:
-                        f_date = datetime.fromisoformat(f"{d_str}T{kickoff_time}:00+00:00")
+                        f_date = datetime.fromisoformat(f"{match_date_str}T{kickoff_time}:00+00:00")
                     except Exception:
                         try:
-                            f_date = datetime.strptime(f"{d_str} {kickoff_time}", "%Y-%m-%d %H:%M")
+                            f_date = datetime.strptime(f"{match_date_str} {kickoff_time}", "%Y-%m-%d %H:%M").replace(tzinfo=timezone.utc)
                         except Exception:
                             f_date = datetime.now(timezone.utc)
 
@@ -589,6 +593,11 @@ class FootballDataService:
 
                     if st_val == "finished" or disp in ("FT", "AET", "PEN"):
                         match_status = "finished"
+                        # Logical boundary safeguard: A finished match cannot have a future kickoff timestamp
+                        now_utc = datetime.now(timezone.utc)
+                        if f_date > now_utc and not f.get("date"):
+                            # The match concluded prior to current UTC time (e.g. previous evening in western hemisphere)
+                            f_date = f_date - timedelta(days=1)
                     elif is_live or st_val == "live" or disp == "HT" or ("'" in disp):
                         match_status = "live"
                     elif st_val in ("postponed", "cancelled"):
