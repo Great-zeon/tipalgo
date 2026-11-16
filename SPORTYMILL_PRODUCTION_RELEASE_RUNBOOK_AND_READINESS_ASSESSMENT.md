@@ -143,14 +143,30 @@ flowchart TD
 3. Click the **Rollback** button.
 4. Render immediately switches live routing back to the proven baseline container. Zero Git operations required for immediate user restoration.
 
-### Step 2: Clean Git History Reversion (No Force-Pushing)
-Restore the shared Git history using a standard revert commit:
-```bash
-git checkout main
-git pull origin main
-git revert -m 1 HEAD --no-edit -m "Revert: Rollback live settlement release pending investigation"
-git push origin main
-```
+### Step 2: Clean, Commit-Type-Aware Git History Reversion (No Force-Pushing)
+> [!CAUTION]
+> Under NO circumstances execute `git reset --hard` or `git push --force` on `main`. Never blindly revert `HEAD`.
+
+1. **Inspect Git History & Identify Exact Release Commit:**
+   ```bash
+   git checkout main
+   git pull origin main
+   git status
+   git log --oneline --graph -10
+   ```
+2. **Execute Revert Based on Commit Type:**
+   * *If reverting an ordinary single release commit:*
+     ```bash
+     git revert --no-edit <exact-commit-hash>
+     ```
+   * *If reverting a merge release commit:*
+     ```bash
+     # -m 1 specifies mainline parent 1 (main) to preserve; required strictly for merge commits
+     git revert -m 1 --no-edit <exact-merge-commit-hash>
+     ```
+3. **Verify and Push:**
+   * Verify revert diff: `git log -1 -p`
+   * Push via standard push: `git push origin main` (Never force-push).
 This preserves an immutable, linear Git audit trail without rewriting history or desynchronizing team clones.
 
 ### Step 3: Governed Database Rollback
