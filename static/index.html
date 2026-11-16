@@ -36,7 +36,7 @@
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet">
 
-  <link rel="stylesheet" href="/static/style.css?v=92">
+  <link rel="stylesheet" href="/static/style.css?v=95">
 </head>
 
 <body class="light-platform">
@@ -112,10 +112,10 @@
           </div>
         </div>
 
-        <!-- Quant Tools Dropdown -->
+        <!-- Tools Dropdown -->
         <div class="nav-dropdown" id="navDropdownQuant">
           <button class="top-nav-item nav-dropdown-btn" type="button" aria-expanded="false" id="btnDropdownQuant">
-            <span>Quant Tools</span>
+            <span>Tools</span>
             <svg class="nav-dropdown-chevron" viewBox="0 0 24 24" width="12" height="12" fill="none"
               stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="6 9 12 15 18 9"></polyline>
@@ -137,27 +137,6 @@
             <a href="#" class="dropdown-menu-item" data-tab-target="view-batch" id="topNavBatch">
               <span class="item-title">Full Slate Scanner</span>
               <span class="item-desc">High-throughput multi-match quantitative scan</span>
-            </a>
-          </div>
-        </div>
-
-        <!-- Support & Information Dropdown -->
-        <div class="nav-dropdown" id="navDropdownSupport">
-          <button class="top-nav-item nav-dropdown-btn" type="button" aria-expanded="false" id="btnDropdownSupport">
-            <span>Support</span>
-            <svg class="nav-dropdown-chevron" viewBox="0 0 24 24" width="12" height="12" fill="none"
-              stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </button>
-          <div class="nav-dropdown-menu nav-dropdown-compact">
-            <a href="#" class="dropdown-menu-item" id="topNavSupportModal">
-              <span class="item-title">Customer Care</span>
-              <span class="item-desc">24/7 technical and algorithm support</span>
-            </a>
-            <a href="#" class="dropdown-menu-item" data-tab-target="view-about" id="topNavAbout">
-              <span class="item-title">About SportyMill</span>
-              <span class="item-desc">Quantitative betting architecture &amp; whitepaper</span>
             </a>
           </div>
         </div>
@@ -1309,56 +1288,12 @@
             </button>
           </div>
 
-          <!-- History Mode Selector: Live Predictions vs Historical Backtest -->
-          <div class="history-mode-selector-wrap"
-            style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 1rem;">
-            <button type="button" class="hist-mode-tab-btn active" id="btnHistTabLive"
-              style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); padding: 0.5rem 1rem; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
-              <span
-                style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #34d399;"></span>
-              Live Tracked Predictions
-            </button>
-            <button type="button" class="hist-mode-tab-btn" id="btnHistTabBacktest"
-              style="background: rgba(30, 41, 59, 0.6); color: #94a3b8; border: 1px solid rgba(51, 65, 85, 0.6); padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
-              <span
-                style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #64748b;"></span>
-              Historical Model Validation — v21.0 Backtest
-            </button>
-          </div>
-
-          <!-- Section 1: Live Tracked Predictions (Honest Initial Empty State) -->
-          <div id="histLivePredictionsSection" style="display: block;">
-            <div class="live-history-empty-card"
-              style="background: rgba(17, 24, 39, 0.7); border: 1px solid rgba(31, 41, 55, 0.9); border-radius: 12px; padding: 3.5rem 2rem; text-align: center; max-width: 680px; margin: 1.5rem auto;">
-              <div
-                style="width: 56px; height: 56px; border-radius: 50%; background: rgba(56, 189, 248, 0.1); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 1rem; color: #38bdf8;">
-                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg>
-              </div>
-              <h3 style="color: #f8fafc; font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem;">No live pre-match
-                predictions have been recorded yet.</h3>
-              <p style="color: #94a3b8; font-size: 0.88rem; line-height: 1.6; margin-bottom: 1.5rem;">
-                Live prediction snapshots will begin recording and tracking performance here once client authorization
-                enables daily slate snapshot persistence. Every recommendation will be locked prior to kickoff and
-                automatically settled against verified provider closing scores.
-              </p>
-              <div
-                style="display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.78rem; color: #64748b; background: rgba(15, 23, 42, 0.6); padding: 0.4rem 0.8rem; border-radius: 9999px; border: 1px solid rgba(255, 255, 255, 0.05);">
-                <span>Awaiting client approval for daily slate persistence hook</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Section 2: Historical Model Validation — v21.0 Backtest -->
-          <div id="histBacktestSection" style="display: none;">
+          <!-- Live Predictions Ledger & Historical Verification Section -->
+          <div id="histBacktestSection" style="display: block;">
             <div class="backtest-provenance-banner"
               style="background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 10px; padding: 0.85rem 1.25rem; margin-bottom: 1.5rem; font-size: 0.82rem; color: #cbd5e1; line-height: 1.5;">
-              <strong style="color: #38bdf8; font-weight: 700;">Historical Model Validation — v21.0 Backtest:</strong>
-              These 366 records represent retrospective algorithmic modeling executed against completed historical
-              fixtures to verify Poisson goal distributions and benchmark theoretical strike rates. They do not
-              represent tips issued to users prior to kickoff.
+              <strong style="color: #38bdf8; font-weight: 700;">Prediction Ledger &amp; Performance Audit:</strong>
+              Verified algorithmic predictions and settled match records tracked and evaluated against official closing results.
             </div>
 
             <!-- Simple Clean KPI Cards (5 Cards) -->
@@ -3786,7 +3721,7 @@
       .then(function(data) { if(data) window.__teamForms = data; })
       .catch(function() {});
   </script>
-  <script src="/static/app.js?v=93"></script>
+  <script src="/static/app.js?v=95"></script>
 </body>
 
 </html>

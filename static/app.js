@@ -4068,6 +4068,11 @@
   // UNIFIED VIEW SWITCHING ENGINE (Module Scoped)
   // ===================================================================
   function switchView(viewId, pushHistory = true) {
+    // Robust View ID Normalization & Aliases
+    if (viewId === 'view-banker') viewId = 'view-bankers';
+    if (viewId === 'view-value') viewId = 'view-screener';
+    if (viewId === 'view-scanner') viewId = 'view-batch';
+
     // 1. Panels
     document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
     const targetView = document.getElementById(viewId);
