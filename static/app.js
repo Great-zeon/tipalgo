@@ -5320,6 +5320,20 @@
         if (thisRequestId !== currentSlateRequestId) {
           return;
         }
+
+        // Automatic fallback: If requested date has 0 matches (e.g. today when provider is offline),
+        // seamlessly fall back to the most recent date with verified records so the user is never stranded on an error screen!
+        const sysToday = getSystemTodayDateStr();
+        if ((!data.matches || data.matches.length === 0) && (targetDate === sysToday || targetDate === 'today') && data.available_dates && data.available_dates.length > 0) {
+          const pastDates = data.available_dates.filter(d => d <= sysToday).sort();
+          const fallbackDate = pastDates.length > 0 ? pastDates[pastDates.length - 1] : data.available_dates[data.available_dates.length - 1];
+          if (fallbackDate && fallbackDate !== targetDate) {
+            console.info(`No matches recorded for ${targetDate}. Gracefully loading latest verified slate: ${fallbackDate}`);
+            loadCalendarSlate(fallbackDate, targetEndpoint);
+            return;
+          }
+        }
+
         applyCalendarSlateData(data);
       } catch (err) {
         if (!cached) {
@@ -6706,26 +6720,40 @@
           ` : ''}
           <div class="empty-actions">
             ${isProviderError ? `
-              <button class="btn-empty-today" id="btnEmptyRetrySync" style="background: #00d665; color: #052e16; font-weight: 800; border: none; display: inline-flex; align-items: center; gap: 0.45rem;">
+              <button class="btn-empty-today" id="btnEmptyViewLatestSlate" style="background: #00d665; color: #052e16; font-weight: 800; border: none; display: inline-flex; align-items: center; gap: 0.45rem;">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
-                <span>${isBanter ? 'Retry Connection' : 'Retry Connection'}</span>
+                <span>${isBanter ? 'View Latest Verified Matches' : 'View Latest Verified Slate'}</span>
+              </button>
+              <button class="btn-empty-today" id="btnEmptyRetrySync" style="background: rgba(255,255,255,0.08); color: #f8fafc; font-weight: 700; border: 1px solid rgba(255,255,255,0.15); display: inline-flex; align-items: center; gap: 0.45rem;">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                <span>${isBanter ? 'Retry Sync' : 'Retry Provider'}</span>
               </button>
             ` : ''}
             ${(hasActiveFilters || state.calendar.searchQuery) ? `
               <button class="btn-empty-today" id="btnEmptyResetFilters">
                 ${isBanter ? 'Clear Filters &amp; Show All' : 'Reset Filters &amp; Show All'}
               </button>
-            ` : `
+            ` : (!isProviderError ? `
               <button class="btn-empty-today" id="btnEmptyGoToday">
                 ${isBanter ? "See Today Matches" : "View Today's Slate"}
               </button>
-            `}
+            ` : '')}
             <button class="btn-empty-pick" id="btnEmptyPickDate">
               ${isBanter ? 'Pick Another Day' : 'Pick Another Date'}
             </button>
           </div>
         </div>
       `;
+
+      const btnViewLatest = document.getElementById('btnEmptyViewLatestSlate');
+      if (btnViewLatest) {
+        btnViewLatest.addEventListener('click', () => {
+          const dates = state.calendar.availableDates || [];
+          const past = dates.filter(d => d <= getSystemTodayDateStr()).sort();
+          const target = past.length > 0 ? past[past.length - 1] : '2026-11-16';
+          selectCalendarDate(target);
+        });
+      }
 
       const btnRetry = document.getElementById('btnEmptyRetrySync');
       if (btnRetry) {
