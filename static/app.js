@@ -1742,7 +1742,7 @@
       cardInSlip: "Don Enter",
       cardBankerBadge: "80%+ BANKER",
 
-      slipTitle: "Your Naija Chop Slip",
+      slipTitle: "Bet Slip",
       slipEmptyTitle: "Your chop slip still dey empty oga!",
       slipEmptySub: "Tap any sweet odds or 'Chop Am' make you load your ticket!",
       slipClear: "Clear Slip",
@@ -1899,11 +1899,11 @@
 
     // Betslip Drawer Elements
     const betslipTitleText = document.querySelector('.slip-title-text');
-    if (betslipTitleText) betslipTitleText.textContent = isBanter ? 'Naija Chop Slip' : 'Bet Slip';
+    if (betslipTitleText) betslipTitleText.textContent = 'Bet Slip';
     const slipHistoryBtnLabel = document.getElementById('slipHistoryBtnLabel');
-    if (slipHistoryBtnLabel) slipHistoryBtnLabel.textContent = isBanter ? 'Past Slips' : 'History';
+    if (slipHistoryBtnLabel) slipHistoryBtnLabel.textContent = 'History';
     const btnClearSlip = document.getElementById('btnClearSlip');
-    if (btnClearSlip) btnClearSlip.textContent = isBanter ? 'Clear Slip' : 'Clear';
+    if (btnClearSlip) btnClearSlip.textContent = 'Clear';
     const slipEmptyTitle = document.querySelector('#slipEmptyState p') || document.querySelector('#slipEmptyState div:nth-child(2)');
     if (slipEmptyTitle) slipEmptyTitle.textContent = isBanter ? 'Your Chop Slip Dey Empty Oga!' : 'Your Bet Slip is Empty';
     const slipEmptySub = document.querySelector('#slipEmptyState span') || document.querySelector('#slipEmptyState div:nth-child(3)');
@@ -7232,7 +7232,7 @@
         }
 
         const hasMoreThan5 = sortedLgMatches.length > 5 || (state.calendar.leagueFullSlates[lg.id] && state.calendar.leagueFullSlates[lg.id].length > 5);
-        const showSeeAll = hasMoreThan5 || isExpanded;
+        const showSeeAll = true;
 
         html += `
           <div class="sb-league-block" id="lg_${lg.id}">
@@ -9179,6 +9179,10 @@
         if (themeIconMoon) themeIconMoon.style.display = 'block';
         if (btnNavThemeToggle) btnNavThemeToggle.setAttribute('title', 'Switch to Dark Mode');
       }
+      const logoSrc = isDark ? '/static/img/sportymill_logo_transparent.webp' : '/static/img/sportymill_logo_light_theme.webp';
+      document.querySelectorAll('.brand-logo-img').forEach(img => {
+        img.src = logoSrc;
+      });
       try {
         localStorage.setItem('sportymill_theme_mode', isDark ? 'dark' : 'light');
       } catch (err) {}

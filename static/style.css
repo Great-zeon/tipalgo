@@ -9645,24 +9645,64 @@ body.light-theme-mode .notif-item-time {
 }
 
 /* ===================================================================
-   SMOOTH THEME TRANSITION SYSTEM
+   SMOOTH THEME TRANSITION SYSTEM & DYNAMIC BRAND LOGO
    =================================================================== */
-body, .app-wrapper, .top-navbar, .content-area,
-.sb-league-block, .sb-league-header, .em-league-matches-list,
-.employer-match-card, .em-card-header, .em-club-duel-col,
-.em-team-title, .em-time-val, .em-status-badge, .em-vs-sep,
-.em-form-text-lbl, .em-canva-pick-label, .em-canva-odds-badge,
-.em-canva-bar-track, .em-info-circle-btn, .nav-icon-btn,
-.header-select, .persona-styled-select, .tone-select-wrapper,
-.sporty-slip-panel, .sporty-slip-header, .sporty-slip-leg-item,
-.sporty-slip-summary-card, .sporty-slip-title, .sporty-sum-val,
-.cal-shortcut-chip, .btn-league-see-all, .club-planning-search-banner,
-.profile-dropdown-menu, .notifications-popover, .modal-box {
-  transition: background-color 0.28s cubic-bezier(0.16, 1, 0.3, 1),
-              background 0.28s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.28s cubic-bezier(0.16, 1, 0.3, 1),
-              color 0.22s ease,
-              box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+body.light-theme-mode .brand-logo-img {
+  content: url('/static/img/sportymill_logo_light_theme.webp');
+}
+
+body,
+.app-wrapper,
+.top-navbar,
+.content-area,
+.betslip-sidebar,
+.home-slip-col,
+.betslip-header,
+.betslip-body,
+.betslip-items-container,
+.betslip-footer,
+.site-footer,
+.footer-inner,
+.footer-top-grid,
+.footer-col,
+.footer-brand-col,
+.footer-status-chip,
+.footer-hours-badge,
+.footer-disclaimer-strip,
+.footer-bottom-row,
+.sb-league-block,
+.sb-league-header,
+.em-league-matches-list,
+.employer-match-card,
+.sportsbook-table,
+.sb-match-row,
+.sb-time-col,
+.sb-team-col,
+.sb-prediction-col,
+.sb-odds-pill,
+.grid-match-card,
+.card-match-header,
+.card-teams-duel,
+.card-pred-pill,
+.search-bar-wrap,
+.calendar-ribbon-bar,
+.cal-day-chip,
+.cal-shortcut-chip,
+.btn-league-see-all,
+.profile-dropdown-menu,
+.notifications-popover,
+.modal-box,
+.header-select,
+.persona-styled-select,
+.tone-select-wrapper {
+  transition: background-color 0.25s ease,
+              border-color 0.25s ease,
+              color 0.2s ease,
+              box-shadow 0.25s ease !important;
+}
+
+.brand-logo-img {
+  transition: opacity 0.2s ease;
 }
 
 /* ===================================================================
@@ -12448,12 +12488,42 @@ body.banter-mode-active .sb-model-pick-pill .sb-pick-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
   padding-bottom: 0.45rem;
 }
 .betslip-main-title {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.betslip-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+.btn-slip-history {
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+  font-size: 0.72rem;
+  padding: 0.22rem 0.55rem;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+.btn-slip-history:hover {
+  background: rgba(56, 189, 248, 0.22);
+  border-color: #38bdf8;
+  color: #ffffff;
 }
 .slip-title-text {
   font-size: 1.15rem;
@@ -15895,9 +15965,14 @@ body.in-dashboard-view .mobile-bottom-nav {
 
 .footer-top-grid {
   display: grid;
-  grid-template-columns: 1.5fr 1fr 1fr 1.3fr;
-  gap: 2.5rem;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.9fr) minmax(0, 0.9fr) minmax(0, 1.2fr);
+  gap: 2rem;
   align-items: start;
+}
+
+.footer-brand-col,
+.footer-col {
+  min-width: 0;
 }
 
 .footer-brand-col {
@@ -16033,6 +16108,38 @@ body.in-dashboard-view .mobile-bottom-nav {
   display: flex;
   gap: 1.5rem;
   flex-wrap: wrap;
+}
+
+body.light-theme-mode .site-footer {
+  background: #ffffff !important;
+  border-top-color: #e2e8f0 !important;
+}
+
+body.light-theme-mode .footer-col-title {
+  color: #0f172a !important;
+}
+
+body.light-theme-mode .footer-brand-desc,
+body.light-theme-mode .footer-link,
+body.light-theme-mode .footer-contact-item {
+  color: #64748b !important;
+}
+
+body.light-theme-mode .footer-hours-badge {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+body.light-theme-mode .footer-disclaimer-strip {
+  background: rgba(245, 158, 11, 0.08) !important;
+  border-color: rgba(245, 158, 11, 0.25) !important;
+  color: #92400e !important;
+}
+
+body.light-theme-mode .footer-bottom-row {
+  border-top-color: #e2e8f0 !important;
+  color: #94a3b8 !important;
 }
 
 @media (max-width: 1024px) {
