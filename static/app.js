@@ -2234,6 +2234,52 @@
         : 'Search 33 endpoints (e.g. Over 2.5, Both Teams Score, Home Win)...';
     }
 
+    // Site Footer Pidgin & Professional Tone Translations
+    const footerBrandDesc = document.querySelector('.footer-brand-desc');
+    if (footerBrandDesc) {
+      footerBrandDesc.textContent = isBanter
+        ? 'Heavyweight sports betting analytics platform powered by authentic Poisson mathematics, sharp value edge calculation, and disciplined Kelly bankroll management.'
+        : 'Institutional-grade sports betting analytics powered by authentic Poisson goal distributions, mathematical +EV detection, and Kelly bankroll optimization.';
+    }
+    const footerStatusChip = document.querySelector('.footer-status-chip span:last-child');
+    if (footerStatusChip) {
+      footerStatusChip.textContent = isBanter
+        ? 'Pure Mathematics Active • Zero Fake Odds Or Bot Slips'
+        : 'Deterministic Models Active • Zero Synthetic Metrics';
+    }
+    const footerColTitles = document.querySelectorAll('.footer-col-title');
+    if (footerColTitles.length >= 3) {
+      footerColTitles[0].textContent = isBanter ? 'Platform Features' : 'Platform';
+      footerColTitles[1].textContent = isBanter ? 'Rules & Care' : 'Compliance';
+      footerColTitles[2].textContent = isBanter ? 'Customer Care & Help' : 'Client Support Desk';
+    }
+    const footerLinks = document.querySelectorAll('.footer-links-list .footer-link');
+    if (footerLinks.length >= 11) {
+      footerLinks[0].textContent = isBanter ? 'Today Matches' : 'Matches Slate';
+      footerLinks[1].textContent = isBanter ? 'All 33 Prediction Markets' : '33 Endpoints Matrix';
+      footerLinks[2].textContent = isBanter ? '80%+ Sure Bankers' : '80%+ Bankers';
+      footerLinks[3].textContent = isBanter ? 'Value Edge Screener' : 'Value Screener (+EV)';
+      footerLinks[4].textContent = isBanter ? 'Accu-Forge Multi Slip' : 'Accu-Forge Parlay';
+      footerLinks[5].textContent = isBanter ? 'Prediction Audit & History' : 'Prediction History';
+      footerLinks[6].textContent = isBanter ? 'Privacy Policy' : 'Privacy Policy';
+      footerLinks[7].textContent = isBanter ? 'Terms & Conditions' : 'Terms & Conditions';
+      footerLinks[8].textContent = isBanter ? 'Responsible Wagering (18+)' : 'Responsible Wagering (18+)';
+      footerLinks[9].textContent = isBanter ? 'How The Math Works' : 'About Methodology';
+      footerLinks[10].textContent = isBanter ? 'Server & Feed Status' : 'System Status';
+    }
+    const footerHours = document.querySelector('.footer-hours-badge span');
+    if (footerHours) {
+      footerHours.textContent = isBanter
+        ? 'Mon – Sun: 07:00 – 23:00 WAT • Live Help Dey Standby'
+        : 'Mon – Sun: 07:00 – 23:00 GMT+1 • Live Escalation';
+    }
+    const footerDisclaimer = document.querySelector('.footer-disclaimer-strip span');
+    if (footerDisclaimer) {
+      footerDisclaimer.textContent = isBanter
+        ? 'SportyMill dey calculate statistical expectancy and quantitative football intelligence for analytical purpose. No mathematical model fit wipe out inherent match surprises completely. Play responsibly (18+).'
+        : 'SportyMill provides statistical expectancy models and quantitative betting intelligence for analytical purposes. No mathematical model can eliminate inherent match variance. Please gamble responsibly (18+).';
+    }
+
     // Refresh Active Feed & Calendar trigger display to reflect translated state
     updateCalendarDropdownTrigger();
     if (typeof renderCalendarMatchesFeed === 'function') {
@@ -2991,14 +3037,14 @@
     const isFinished = m.status === 'finished';
     const isLive = m.status === 'live';
     const isPostponed = m.status === 'postponed';
-    let timeColText = m.time || '15:00';
-    if (m.match_date && !isLive && !isPostponed) {
+    let timeColText = m.time_wat || m.time || '15:00';
+    if (m.match_date && !isLive && !isPostponed && !m.time_wat) {
       try {
         const rawIso = String(m.match_date || '');
         const isoWithZ = rawIso.endsWith('Z') || rawIso.includes('+') ? rawIso : (rawIso.includes('T') ? rawIso + 'Z' : rawIso.replace(' ', 'T') + 'Z');
         const dt = new Date(isoWithZ);
         if (!isNaN(dt.getTime())) {
-          timeColText = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+          timeColText = dt.toLocaleTimeString('en-GB', { timeZone: 'Africa/Lagos', hour: '2-digit', minute: '2-digit', hour12: false });
         }
       } catch (e) {}
     }
@@ -3017,15 +3063,14 @@
     const country = m.country || (lg && lg.country) || 'International';
     const leagueName = m.league_name || (lg && lg.name) || 'League Pro';
 
-    let dateDisplay = 'October 24, 2026';
-    const rawDate = m.match_date || state.calendar.selectedDate;
-    if (rawDate) {
+    let dateDisplay = m.display_date_wat || 'November 18, 2026';
+    if (m.match_date && !m.display_date_wat) {
       try {
-        const dateStr = String(rawDate).slice(0, 10);
-        const parts = dateStr.split('-');
-        if (parts.length === 3) {
-          const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
-          dateDisplay = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        const rawIso = String(m.match_date || '');
+        const isoWithZ = rawIso.endsWith('Z') || rawIso.includes('+') ? rawIso : (rawIso.includes('T') ? rawIso + 'Z' : rawIso.replace(' ', 'T') + 'Z');
+        const dt = new Date(isoWithZ);
+        if (!isNaN(dt.getTime())) {
+          dateDisplay = dt.toLocaleDateString('en-US', { timeZone: 'Africa/Lagos', month: 'long', day: 'numeric', year: 'numeric' });
         }
       } catch(e) {}
     }
@@ -3251,14 +3296,14 @@
     const isLive = m.status === 'live';
     const isPostponed = m.status === 'postponed';
 
-    let localTimeStr = m.time || '15:00';
-    if (m.match_date && !isLive && !isPostponed) {
+    let localTimeStr = m.time_wat || m.time || '15:00';
+    if (m.match_date && !isLive && !isPostponed && !m.time_wat) {
       try {
         const rawIso = String(m.match_date || '');
         const isoWithZ = rawIso.endsWith('Z') || rawIso.includes('+') ? rawIso : (rawIso.includes('T') ? rawIso + 'Z' : rawIso.replace(' ', 'T') + 'Z');
         const dt = new Date(isoWithZ);
         if (!isNaN(dt.getTime())) {
-          localTimeStr = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+          localTimeStr = dt.toLocaleTimeString('en-GB', { timeZone: 'Africa/Lagos', hour: '2-digit', minute: '2-digit', hour12: false });
         }
       } catch (e) {}
     }
@@ -4019,6 +4064,18 @@
                 <div class="sb-league-info">
                   <span class="sb-country-tag">${escapeHtmlUtil(lg.country)}</span>
                   <h3 class="sb-league-title">${escapeHtmlUtil(lg.name)}</h3>
+                </div>
+                <div class="sb-league-actions">
+                  <button type="button" class="btn-league-see-all" 
+                    data-league="${lg.id}" 
+                    data-name="${escapeHtmlUtil(lg.name)}" 
+                    data-country="${escapeHtmlUtil(lg.country)}"
+                    title="Show all games for ${escapeHtmlUtil(lg.name)}">
+                    <span>See all</span>
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                  </button>
                 </div>
               </div>
               <div class="em-league-matches-list">

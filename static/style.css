@@ -9647,8 +9647,17 @@ body.light-theme-mode .notif-item-time {
 /* ===================================================================
    SMOOTH THEME TRANSITION SYSTEM & DYNAMIC BRAND LOGO
    =================================================================== */
-body.light-theme-mode .brand-logo-img {
-  content: url('/static/img/sportymill_logo_light_theme.webp');
+.brand-logo-img.brand-logo-dark {
+  display: block !important;
+}
+.brand-logo-img.brand-logo-light {
+  display: none !important;
+}
+body.light-theme-mode .brand-logo-img.brand-logo-dark {
+  display: none !important;
+}
+body.light-theme-mode .brand-logo-img.brand-logo-light {
+  display: block !important;
 }
 
 body,

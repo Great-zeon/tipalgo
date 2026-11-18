@@ -23,6 +23,10 @@ from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv()
 from datetime import datetime, timedelta, timezone
+from timezone_service import (
+    WAT, UTC, now_utc as tz_now_utc, now_lagos, lagos_today_str,
+    parse_to_utc, utc_to_lagos, get_lagos_day_utc_bounds, format_fixture_datetime_meta
+)
 from typing import Dict, List, Optional, Any, Tuple
 from collections import defaultdict, deque
 from functools import wraps
@@ -4239,6 +4243,7 @@ async def get_all_candidate_bets(db: AsyncSession, predictor: PredictorService,
     result = await db.execute(
         select(HistoricalMatch)
         .where(HistoricalMatch.match_date > now)
+        .where(HistoricalMatch.status.in_(["scheduled", "ns"]))
         .where(HistoricalMatch.home_odds.isnot(None))
         .where(HistoricalMatch.away_odds.isnot(None))
         .where(HistoricalMatch.draw_odds.isnot(None))
@@ -4251,7 +4256,8 @@ async def get_all_candidate_bets(db: AsyncSession, predictor: PredictorService,
         home = fixture.home_team
         away = fixture.away_team
         league = fixture.league_id
-        match_date = fixture.match_date.isoformat() if fixture.match_date else None
+        meta_wat = format_fixture_datetime_meta(fixture.match_date)
+        match_date = meta_wat["match_date_utc"]
 
         # Exclude youth, women, and friendly fixtures from algorithmic candidate bets
         l_name = format_league_display_name(league)
@@ -4331,6 +4337,8 @@ async def get_all_candidate_bets(db: AsyncSession, predictor: PredictorService,
                 'model_prob': prob,
                 'edge': edge,
                 'match_date': match_date,
+                'match_date_wat': meta_wat['match_date_wat'],
+                'time_wat': meta_wat['time_wat'],
                 'home': home,
                 'away': away,
                 'league': league,
@@ -6044,6 +6052,7 @@ async def get_slip_history(db: AsyncSession = Depends(get_db), optional_user: Op
             items_parsed = json.loads(s.items)
         except Exception:
             items_parsed = []
+        created_lagos = utc_to_lagos(s.created_at) if s.created_at else None
         history.append({
             "id": s.id,
             "booking_code": s.slip_code,
@@ -6052,7 +6061,7 @@ async def get_slip_history(db: AsyncSession = Depends(get_db), optional_user: Op
             "potential_payout": s.potential_payout,
             "items_count": len(items_parsed),
             "items": items_parsed,
-            "created_at": s.created_at.strftime("%b %d, %Y %H:%M"),
+            "created_at": created_lagos.strftime("%b %d, %Y %H:%M WAT") if created_lagos else "",
             "status": s.status
         })
     return {"slips": history}
@@ -6460,22 +6469,16 @@ def resolve_fixture_lifecycle_state(
         return "finished"
 
     # 3. Parse match_date
-    m_dt: Optional[datetime] = None
-    if match_date is not None:
-        if isinstance(match_date, datetime):
-            m_dt = match_date
-        else:
-            try:
-                m_dt = datetime.fromisoformat(str(match_date)[:19])
-            except Exception:
-                m_dt = None
+    m_dt = parse_to_utc(match_date)
 
     if m_dt is not None:
-        if m_dt.tzinfo is None:
-            m_dt = m_dt.replace(tzinfo=timezone.utc)
         elapsed_seconds = (now_utc - m_dt).total_seconds()
     else:
         elapsed_seconds = 0.0
+
+    # If authoritative final score is recorded and match has passed 90 mins: finished
+    if home_score is not None and away_score is not None and elapsed_seconds > 5400:
+        return "finished"
 
     # 4. Check for in-play / live indicators
     is_live_provider = raw_p_status in ("live", "1h", "2h", "ht", "et", "p", "in_play") or raw_status in ("live", "in_play", "1h", "2h", "ht")
@@ -6483,35 +6486,36 @@ def resolve_fixture_lifecycle_state(
     if is_live_provider:
         # If match was scheduled > 210 minutes (3.5 hours) ago and provider has not sent a final FT:
         # A standard football match is 90 mins + 15 mins HT + 30 mins ET = max 150 mins.
-        # If > 210 minutes have elapsed without an FT status, provider feed has stalled or match is interrupted.
         if elapsed_seconds > 12600:
+            if home_score is not None and away_score is not None:
+                return "finished"
             # Check if provider sent a recent update within the last 30 minutes
-            p_upd: Optional[datetime] = None
-            if provider_updated_at is not None:
-                if isinstance(provider_updated_at, datetime):
-                    p_upd = provider_updated_at
-                else:
-                    try:
-                        p_upd = datetime.fromisoformat(str(provider_updated_at)[:19])
-                    except Exception:
-                        p_upd = None
-            if p_upd is not None and p_upd.tzinfo is None:
-                p_upd = p_upd.replace(tzinfo=timezone.utc)
-
+            p_upd = parse_to_utc(provider_updated_at)
             # If updated recently (e.g. prolonged stoppage / penalty shootout), keep live
             if p_upd and (now_utc - p_upd).total_seconds() < 1800:
                 return "live"
             
-            # Otherwise, it cannot be reliably assumed finished! Expose as stale.
+            # If past 5 hours, conclude as finished or stale
+            if elapsed_seconds > 18000:
+                return "finished"
             return "stale"
         return "live"
 
     # 5. Scheduled / not started
     if raw_p_status in ("ns", "timed", "scheduled", "not_started", "") or raw_status in ("scheduled", "ns"):
-        # If scheduled kickoff is > 4 hours in the past and no scores/events ever recorded
+        # If scheduled kickoff is > 3 hours ago and final scores recorded
+        if elapsed_seconds > 10800 and home_score is not None and away_score is not None:
+            return "finished"
+        # If scheduled kickoff is > 24 hours ago, match is concluded historical fixture
+        if elapsed_seconds > 86400:
+            return "finished"
+        # If scheduled kickoff is > 4 hours in the past and no scores recorded
         if elapsed_seconds > 14400 and (home_score is None and away_score is None):
             return "delayed"
         return "scheduled"
+
+    if elapsed_seconds > 86400:
+        return "finished"
 
     return raw_status or "scheduled"
 
@@ -6552,16 +6556,7 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
                 # Skip non-eligible competitions when user filters by specific betting market
                 continue
             # Display genuine fixture in calendar slate, but with prediction eligibility disabled
-            match_time_utc = "15:00"
-            match_time_wat = "16:00"
-            match_iso_utc = "2026-11-10T15:00:00Z"
-            if hasattr(m, "match_date") and m.match_date:
-                match_dt = m.match_date
-                match_time_utc = match_dt.strftime("%H:%M") if hasattr(match_dt, "strftime") else str(match_dt)[11:16]
-                match_iso_utc = match_dt.strftime("%Y-%m-%dT%H:%M:%SZ") if hasattr(match_dt, "strftime") else (str(match_dt)[:19] + "Z")
-                wat_dt = (match_dt + timedelta(hours=1)) if hasattr(match_dt, "__add__") else None
-                match_time_wat = wat_dt.strftime("%H:%M") if wat_dt else match_time_utc
-
+            meta = format_fixture_datetime_meta(getattr(m, "match_date", None))
             comp_cat, comp_label, comp_reason = classify_competition_category(
                 m.league_id, league_name, country, m.home_team, raw_away_name or m.away_team
             )
@@ -6586,12 +6581,15 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
                 "league_id": m.league_id,
                 "league_name": league_name,
                 "country": country,
-                "match_date": match_iso_utc,
-                "match_date_utc": match_iso_utc,
-                "time": match_time_utc,
-                "time_utc": match_time_utc,
-                "time_wat": match_time_wat,
+                "match_date": meta["match_date_utc"],
+                "match_date_utc": meta["match_date_utc"],
+                "match_date_wat": meta["match_date_wat"],
+                "display_date_wat": meta["display_date_wat"],
+                "time": meta["time_wat"],
+                "time_utc": meta["time_utc"],
+                "time_wat": meta["time_wat"],
                 "provider_timezone": "UTC",
+                "display_timezone": meta["timezone"],
                 "home_odds": round(float(m.home_odds or 0.0), 2),
                 "draw_odds": round(float(m.draw_odds or 0.0), 2),
                 "away_odds": round(float(m.away_odds or 0.0), 2),
@@ -7108,15 +7106,7 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
         else:
             banter = f"Model scan confirm solid {top_tip['label']} at @{top_tip['odds']} odds. Follow the numbers, protect bankroll!"
             
-        match_time_utc = "15:00"
-        match_time_wat = "16:00"
-        match_iso_utc = "2026-11-10T15:00:00Z"
-        if hasattr(m, "match_date") and m.match_date:
-            match_dt = m.match_date
-            match_time_utc = match_dt.strftime("%H:%M") if hasattr(match_dt, "strftime") else str(match_dt)[11:16]
-            match_iso_utc = match_dt.strftime("%Y-%m-%dT%H:%M:%SZ") if hasattr(match_dt, "strftime") else (str(match_dt)[:19] + "Z")
-            wat_dt = (match_dt + timedelta(hours=1)) if hasattr(match_dt, "__add__") else None
-            match_time_wat = wat_dt.strftime("%H:%M") if wat_dt else match_time_utc
+        meta = format_fixture_datetime_meta(getattr(m, "match_date", None))
         
         h_score = getattr(m, "home_score", None)
         a_score = getattr(m, "away_score", None)
@@ -7196,12 +7186,15 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
             "league_id": m.league_id,
             "league_name": league_name,
             "country": country,
-            "match_date": match_iso_utc,
-            "match_date_utc": match_iso_utc,
-            "time": match_time_utc,
-            "time_utc": match_time_utc,
-            "time_wat": match_time_wat,
+            "match_date": meta["match_date_utc"],
+            "match_date_utc": meta["match_date_utc"],
+            "match_date_wat": meta["match_date_wat"],
+            "display_date_wat": meta["display_date_wat"],
+            "time": meta["time_wat"],
+            "time_utc": meta["time_utc"],
+            "time_wat": meta["time_wat"],
             "provider_timezone": "UTC",
+            "display_timezone": meta["timezone"],
             "home_odds": round(m_home_odds, 2),
             "draw_odds": round(m_draw_odds, 2),
             "away_odds": round(m_away_odds, 2),
@@ -7228,8 +7221,8 @@ async def get_calendar_daily_slate(
     db: AsyncSession = Depends(get_db),
     predictor: PredictorService = Depends(get_predictor)
 ):
-    today_dt = datetime.now(timezone.utc)
-    today_str = today_dt.strftime("%Y-%m-%d")
+    lagos_now = now_lagos()
+    today_str = lagos_now.strftime("%Y-%m-%d")
 
     safe_page = max(1, int(page or 1))
     safe_limit = max(1, min(500, int(limit or 100)))
@@ -7239,9 +7232,9 @@ async def get_calendar_daily_slate(
     if not raw_date or raw_date in ["today", "undefined", "null", "none"]:
         target_date = today_str
     elif raw_date == "yesterday":
-        target_date = (today_dt - timedelta(days=1)).strftime("%Y-%m-%d")
+        target_date = (lagos_now - timedelta(days=1)).strftime("%Y-%m-%d")
     elif raw_date == "tomorrow":
-        target_date = (today_dt + timedelta(days=1)).strftime("%Y-%m-%d")
+        target_date = (lagos_now + timedelta(days=1)).strftime("%Y-%m-%d")
     elif raw_date in ["next-5-days", "upcoming"]:
         target_date = raw_date
     else:
@@ -7292,18 +7285,22 @@ async def get_calendar_daily_slate(
         return Response(content=json.dumps(filtered_payload), media_type="application/json")
 
     try:
-        cached_dates = recent_matches_cache.get("all_available_dates")
+        cached_dates = recent_matches_cache.get("all_available_dates_lagos")
         if cached_dates:
             all_dates = cached_dates
         else:
             date_rows = await db.execute(
-                select(func.substr(func.cast(HistoricalMatch.match_date, String), 1, 10))
+                select(HistoricalMatch.match_date)
                 .where(HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"]))
                 .distinct()
-                .order_by(func.substr(func.cast(HistoricalMatch.match_date, String), 1, 10).asc())
             )
-            all_dates = [r[0] for r in date_rows.fetchall() if r[0]]
-            recent_matches_cache.set("all_available_dates", all_dates)
+            wat_dates_set = set()
+            for r in date_rows.fetchall():
+                if r[0]:
+                    meta = format_fixture_datetime_meta(r[0])
+                    wat_dates_set.add(meta["match_date_wat"])
+            all_dates = sorted(list(wat_dates_set))
+            recent_matches_cache.set("all_available_dates_lagos", all_dates)
 
         major_leagues = ["PL", "PD", "SA", "BL1", "FL1", "CL", "UEL", "UECL", "BSA", "ARG", "COL", "UNL", "PPL", "DED", "ELC", "TUR", "BEL", "SC0"]
         priority_order = case({lid: i for i, lid in enumerate(major_leagues)}, value=HistoricalMatch.league_id, else_=99)
@@ -7311,13 +7308,16 @@ async def get_calendar_daily_slate(
         total_fixtures_count = 0
         provider_err = None
         if target_date in ["next-5-days", "upcoming"]:
-            today_prefix = today_str
-            end_prefix = (datetime.now(timezone.utc) + timedelta(days=5)).strftime("%Y-%m-%d")
+            start_utc, _ = get_lagos_day_utc_bounds(today_str)
+            _, end_utc = get_lagos_day_utc_bounds((lagos_now + timedelta(days=5)).strftime("%Y-%m-%d"))
+            start_utc_str = start_utc.strftime("%Y-%m-%d %H:%M:%S")
+            end_utc_str = end_utc.strftime("%Y-%m-%d %H:%M:%S")
+
             count_res = await db.execute(
                 select(func.count(HistoricalMatch.id)).where(
                     and_(
-                        func.cast(HistoricalMatch.match_date, String) >= today_prefix,
-                        func.cast(HistoricalMatch.match_date, String) <= end_prefix + "T23:59:59",
+                        func.cast(HistoricalMatch.match_date, String) >= start_utc_str,
+                        func.cast(HistoricalMatch.match_date, String) <= end_utc_str,
                         HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"])
                     )
                 )
@@ -7326,18 +7326,23 @@ async def get_calendar_daily_slate(
             res = await db.execute(
                 select(HistoricalMatch).where(
                     and_(
-                        func.cast(HistoricalMatch.match_date, String) >= today_prefix,
-                        func.cast(HistoricalMatch.match_date, String) <= end_prefix + "T23:59:59",
+                        func.cast(HistoricalMatch.match_date, String) >= start_utc_str,
+                        func.cast(HistoricalMatch.match_date, String) <= end_utc_str,
                         HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"])
                     )
                 ).order_by(priority_order, HistoricalMatch.match_date.asc(), HistoricalMatch.id.asc()).offset(offset).limit(safe_limit)
             )
             fixtures = res.scalars().all()
         else:
+            start_utc, end_utc = get_lagos_day_utc_bounds(target_date)
+            start_utc_str = start_utc.strftime("%Y-%m-%d %H:%M:%S")
+            end_utc_str = end_utc.strftime("%Y-%m-%d %H:%M:%S")
+
             count_res = await db.execute(
                 select(func.count(HistoricalMatch.id)).where(
                     and_(
-                        func.cast(HistoricalMatch.match_date, String).like(f"{target_date}%"),
+                        func.cast(HistoricalMatch.match_date, String) >= start_utc_str,
+                        func.cast(HistoricalMatch.match_date, String) <= end_utc_str,
                         HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"])
                     )
                 )
@@ -7361,7 +7366,8 @@ async def get_calendar_daily_slate(
                         count_res = await db.execute(
                             select(func.count(HistoricalMatch.id)).where(
                                 and_(
-                                    func.cast(HistoricalMatch.match_date, String).like(f"{target_date}%"),
+                                    func.cast(HistoricalMatch.match_date, String) >= start_utc_str,
+                                    func.cast(HistoricalMatch.match_date, String) <= end_utc_str,
                                     HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"])
                                 )
                             )
@@ -7380,7 +7386,8 @@ async def get_calendar_daily_slate(
             res = await db.execute(
                 select(HistoricalMatch).where(
                     and_(
-                        func.cast(HistoricalMatch.match_date, String).like(f"{target_date}%"),
+                        func.cast(HistoricalMatch.match_date, String) >= start_utc_str,
+                        func.cast(HistoricalMatch.match_date, String) <= end_utc_str,
                         HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"])
                     )
                 ).order_by(priority_order, HistoricalMatch.match_date.asc(), HistoricalMatch.id.asc()).offset(offset).limit(safe_limit)
@@ -7511,7 +7518,11 @@ async def get_calendar_league_slate(
         HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached", "seed"])
     ]
     if date and date not in ["all", "any", "null", "undefined"]:
-        conditions.append(func.substr(HistoricalMatch.match_date, 1, 10) == date)
+        start_utc, end_utc = get_lagos_day_utc_bounds(date)
+        start_utc_str = start_utc.strftime("%Y-%m-%d %H:%M:%S")
+        end_utc_str = end_utc.strftime("%Y-%m-%d %H:%M:%S")
+        conditions.append(func.cast(HistoricalMatch.match_date, String) >= start_utc_str)
+        conditions.append(func.cast(HistoricalMatch.match_date, String) <= end_utc_str)
         
     stmt = (
         select(HistoricalMatch)
