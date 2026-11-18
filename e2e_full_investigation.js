@@ -66,7 +66,7 @@ async function runFullInvestigation() {
     // ----------------------------------------------------
     console.log('\n--- Test 2: Whitelisted Partner Login ---');
     await page.fill('#gateUsernameInput', 'tip_partner');
-    await page.fill('#gatePasswordInput', 'TipAlgo2026!');
+    await page.fill('#gatePasswordInput', process.env.TIPALGO_MASTER_PASSWORD || 'dev_test_password');
     // Intentionally do NOT fill any override PIN
     await page.click('#btnGateLoginSubmit');
     await page.waitForTimeout(1500);

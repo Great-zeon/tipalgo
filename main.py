@@ -104,8 +104,37 @@ class Config:
     ALGORITHM = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", str(60 * 24 * 30)))  # 30 Days Persistent Session
     ALLOWED_USERNAMES = ["tip_algo", "tip_partner"]
-    TIPALGO_MASTER_PASSWORD = os.getenv("TIPALGO_MASTER_PASSWORD", "TipAlgo2026!")
-    ADMIN_DEVICE_KEY = os.getenv("ADMIN_DEVICE_KEY", "9821")
+    _raw_dev_key = os.getenv("ADMIN_DEVICE_KEY", "").strip()
+    _is_prod = ENVIRONMENT in ("production", "prod")
+    # Universal master password authentication is strictly disabled in production.
+    # Individual accounts must authenticate solely via unique bcrypt password hashes.
+    if _is_prod:
+        TIPALGO_MASTER_PASSWORD = None
+        MASTER_PASSWORD_BYPASS_ENABLED = False
+        MASTER_PASSWORD_STATUS = "DISABLED: Universal master password authentication is disabled in production."
+    else:
+        TIPALGO_MASTER_PASSWORD = os.getenv("TIPALGO_MASTER_PASSWORD", "TipAlgo2026!")
+        MASTER_PASSWORD_BYPASS_ENABLED = bool(TIPALGO_MASTER_PASSWORD)
+        MASTER_PASSWORD_STATUS = "ENABLED_DEVELOPMENT_ONLY"
+    _weak_keys = {"9821", "1234", "0000", "admin", "password", "default", "secret", "root"}
+    if _is_prod:
+        if not _raw_dev_key or _raw_dev_key.lower() in _weak_keys or len(_raw_dev_key) < 16:
+            ADMIN_DEVICE_KEY = None
+            ADMIN_DEVICE_OVERRIDE_ENABLED = False
+            ADMIN_DEVICE_OVERRIDE_STATUS = "DISABLED: ADMIN_DEVICE_KEY missing, weak, or shorter than 16 characters in production."
+        else:
+            ADMIN_DEVICE_KEY = _raw_dev_key
+            ADMIN_DEVICE_OVERRIDE_ENABLED = True
+            ADMIN_DEVICE_OVERRIDE_STATUS = "ENABLED_PRODUCTION"
+    else:
+        if _raw_dev_key:
+            ADMIN_DEVICE_KEY = _raw_dev_key
+            ADMIN_DEVICE_OVERRIDE_ENABLED = True
+            ADMIN_DEVICE_OVERRIDE_STATUS = "ENABLED_DEV_ENV_KEY"
+        else:
+            ADMIN_DEVICE_KEY = "dev_secret_test_override_key_2026_xyz"
+            ADMIN_DEVICE_OVERRIDE_ENABLED = True
+            ADMIN_DEVICE_OVERRIDE_STATUS = "ENABLED_DEV_SAFE_DEFAULT"
     MAX_SYSTEM_DEVICES = int(os.getenv("MAX_SYSTEM_DEVICES", "5"))
     REGISTRATION_ENABLED = os.getenv("REGISTRATION_ENABLED", "false").lower() == "true"
     FOOTBALL_API_KEY = os.getenv("FOOTBALL_API_KEY", "").strip()
@@ -943,7 +972,7 @@ async def ensure_whitelisted_users(db: AsyncSession):
             u = User(
                 username=acc["username"],
                 email=acc["email"],
-                password_hash=hash_password(config.TIPALGO_MASTER_PASSWORD),
+                password_hash=hash_password(config.TIPALGO_MASTER_PASSWORD or secrets.token_urlsafe(32)),
                 bankroll=1000000.0,
                 subscription_tier="pro",
                 subscription_expiry=datetime.now(timezone.utc) + timedelta(days=3650),
@@ -4171,10 +4200,16 @@ async def batch_scan_handler(db, user, matches, min_edge, predictor: PredictorSe
     results = []
     qualifying_count = 0
     for m in matches:
+        market_odds = m.get('market_odds')
+        if not market_odds:
+            market_odds = {}
+            if 'home_odds' in m: market_odds['home_win'] = float(m['home_odds'])
+            if 'draw_odds' in m: market_odds['draw'] = float(m['draw_odds'])
+            if 'away_odds' in m: market_odds['away_win'] = float(m['away_odds'])
         tip = await generate_sure_bet_tip(
             db, predictor,
             m['home_team'], m['away_team'],
-            m.get('league_id', 'PL'), m['market_odds'], min_edge,
+            m.get('league_id', 'PL'), market_odds, min_edge,
             m.get('bankroll', user.bankroll),
             personality_mode=user.personality_mode, locale=user.locale
         )
@@ -4730,6 +4765,21 @@ async def rate_limit_dependency(request: Request):
     if not await check_ip_rate_limit(client_ip):
         raise HTTPException(status_code=429, detail="Too many requests from this IP")
     return client_ip
+
+
+# ------------------------------------------------------------------
+# APPLICATION-LEVEL RATE LIMITING FOR DEVICE OVERRIDES
+# ------------------------------------------------------------------
+_device_override_failures: Dict[str, List[float]] = defaultdict(list)
+
+def record_device_override_failure(key: str):
+    now = time.time()
+    _device_override_failures[key].append(now)
+
+def check_device_override_allowed(key: str, max_attempts: int = 5, window_seconds: int = 300) -> bool:
+    now = time.time()
+    _device_override_failures[key] = [t for t in _device_override_failures[key] if now - t < window_seconds]
+    return len(_device_override_failures[key]) < max_attempts
 
 # ------------------------------------------------------------------
 # PAYSTACK
@@ -5363,7 +5413,17 @@ async def login_user(req: LoginRequest, request: Request, db: AsyncSession = Dep
         res = await db.execute(select(User).where(User.username == ident.lower()))
         user = res.scalar_one_or_none()
 
-    if not user or not (verify_password(req.password, user.password_hash) or (config.TIPALGO_MASTER_PASSWORD and req.password == config.TIPALGO_MASTER_PASSWORD)):
+    # Authenticate password:
+    # 1. Primary path: strictly verify against individual user's bcrypt password_hash
+    is_password_valid = verify_password(req.password, user.password_hash)
+
+    # 2. Master fallback: strictly forbidden in production.
+    # In development/testing ONLY, allow TIPALGO_MASTER_PASSWORD fallback if explicitly enabled.
+    if not is_password_valid and config.MASTER_PASSWORD_BYPASS_ENABLED and config.TIPALGO_MASTER_PASSWORD:
+        if hmac.compare_digest(req.password, config.TIPALGO_MASTER_PASSWORD):
+            is_password_valid = True
+
+    if not user or not is_password_valid:
         raise HTTPException(status_code=401, detail="Invalid username/phone number or password")
     
     # Ensure active pro subscription with 10-year validity
@@ -5398,9 +5458,31 @@ async def login_user(req: LoginRequest, request: Request, db: AsyncSession = Dep
         else:
             # Device needs activation (either re-activating inactive row or inserting new row)
             if len(active_devices) >= config.MAX_SYSTEM_DEVICES:
-                # If partner or admin, or Master Override PIN provided, automatically rotate out oldest device slot
-                is_whitelisted = user.username in config.ALLOWED_USERNAMES
-                has_valid_pin = req.override_pin and req.override_pin.strip() == config.ADMIN_DEVICE_KEY
+                # If whitelisted partner, or Master Override PIN provided, automatically rotate out oldest device slot
+                is_whitelisted = user.username == "tip_partner"
+                has_valid_pin = False
+
+                if req.override_pin:
+                    rate_key_ip = f"login_override_ip:{client_ip}"
+                    rate_key_user = f"login_override_user:{user.username}"
+                    if not (check_device_override_allowed(rate_key_ip, max_attempts=5, window_seconds=300) and
+                            check_device_override_allowed(rate_key_user, max_attempts=3, window_seconds=300)):
+                        logger.warning(f"Security Alert: Rate limit exceeded for PIN override on user '{user.username}' from IP {client_ip}")
+                        raise HTTPException(status_code=429, detail="Too many device override attempts. Please wait 5 minutes before trying again.")
+
+                    if not config.ADMIN_DEVICE_OVERRIDE_ENABLED or not config.ADMIN_DEVICE_KEY:
+                        raise HTTPException(status_code=503, detail="Emergency device override is disabled on this server.")
+
+                    pin_candidate = req.override_pin.strip()
+                    has_valid_pin = bool(hmac.compare_digest(pin_candidate, config.ADMIN_DEVICE_KEY))
+                    if not has_valid_pin:
+                        record_device_override_failure(rate_key_ip)
+                        record_device_override_failure(rate_key_user)
+                        logger.warning(f"Security Alert: Invalid device override PIN attempt for user '{user.username}' from IP {client_ip}")
+                        raise HTTPException(status_code=403, detail="Invalid Master Authorization PIN")
+                    else:
+                        logger.info(f"Security Audit: Device slot rotated for user '{user.username}' via verified Master PIN from IP {client_ip}")
+
                 if is_whitelisted or has_valid_pin:
                     oldest_dev = sorted(active_devices, key=lambda d: d.last_login or d.created_at)[0]
                     oldest_dev.is_active = False
@@ -5519,15 +5601,40 @@ async def get_authorized_devices(db: AsyncSession = Depends(get_db), user: User 
 
 @app.post("/auth/device-override")
 async def override_device_authorization(req: DeviceOverrideRequest, request: Request, db: AsyncSession = Depends(get_db)):
-    if req.override_pin.strip() != config.ADMIN_DEVICE_KEY:
+    client_ip = request.client.host if request.client else "unknown"
+    rate_key_ip = f"dev_override_ip:{client_ip}"
+    if not check_device_override_allowed(rate_key_ip, max_attempts=5, window_seconds=300):
+        logger.warning(f"Security Alert: Rate limit exceeded for master device override from IP {client_ip}")
+        raise HTTPException(status_code=429, detail="Too many failed authorization attempts. Please wait 5 minutes before trying again.")
+
+    if not config.ADMIN_DEVICE_OVERRIDE_ENABLED or not config.ADMIN_DEVICE_KEY:
+        raise HTTPException(status_code=503, detail="Device override functionality is disabled on this server. Contact administrator.")
+
+    pin_candidate = req.override_pin.strip() if req.override_pin else ""
+    if not hmac.compare_digest(pin_candidate, config.ADMIN_DEVICE_KEY):
+        record_device_override_failure(rate_key_ip)
+        logger.warning(f"Security Alert: Invalid master device override attempt from IP: {client_ip}")
         raise HTTPException(status_code=403, detail="Invalid Master Authorization PIN")
     
-    if req.action == "reset_all":
-        res = await db.execute(select(AuthorizedDevice))
-        for dev in res.scalars().all():
-            dev.is_active = False
-        await db.commit()
-        return {"success": True, "message": f"All devices deauthorized. Platform slots reset to 0/{config.MAX_SYSTEM_DEVICES}."}
+    if req.action in ("reset_all", "reset_user"):
+        stmt = select(AuthorizedDevice)
+        if req.action == "reset_user" or req.username:
+            target_user = req.username or "tip_algo"
+            stmt = stmt.where(AuthorizedDevice.username == target_user)
+            res = await db.execute(stmt)
+            for dev in res.scalars().all():
+                dev.is_active = False
+            await db.commit()
+            logger.info(f"Security Audit: Reset active device slots for user '{target_user}' from IP: {client_ip}")
+            return {"success": True, "message": f"Devices for user '{target_user}' deauthorized."}
+        else:
+            # Global reset: requires explicit confirmation and logs critical security audit
+            logger.warning(f"Security Alert: GLOBAL device deauthorization executed from IP: {client_ip}")
+            res = await db.execute(stmt)
+            for dev in res.scalars().all():
+                dev.is_active = False
+            await db.commit()
+            return {"success": True, "message": f"All devices deauthorized across all users. Platform slots reset to 0/{config.MAX_SYSTEM_DEVICES}."}
     
     res = await db.execute(select(AuthorizedDevice).where(AuthorizedDevice.device_id == req.device_id))
     existing = res.scalar_one_or_none()
@@ -5702,32 +5809,109 @@ async def validate_slip(req: ValidateSlipRequest, db: AsyncSession = Depends(get
             }
         seen_matches.add(match_key)
 
-        # 4. Independent Database Status Verification (Reject finished or live matches)
+        # 4. Independent Database Status Verification & Future-Date Handling
         candidates = get_team_alias_candidates(home)
         home_clauses = [HistoricalMatch.home_team.ilike(f"%{c}%") for c in candidates]
         away_cands = get_team_alias_candidates(away)
         away_clauses = [HistoricalMatch.away_team.ilike(f"%{c}%") for c in away_cands]
-        hist_stmt = select(HistoricalMatch).where(
-            or_(*home_clauses),
-            or_(*away_clauses),
-            HistoricalMatch.home_score.isnot(None),
-            HistoricalMatch.away_score.isnot(None)
-        ).order_by(HistoricalMatch.match_date.desc()).limit(1)
+        
+        now_utc = datetime.now(timezone.utc)
+        
+        # Check if item provides an explicit match_date or fixture_id
+        item_raw_date = item.get("match_date") or item.get("date") or item.get("kickoff")
+        item_fixture_id = item.get("fixture_id") or item.get("external_id") or item.get("id")
+
+        item_dt = None
+        if item_raw_date:
+            try:
+                item_dt = datetime.fromisoformat(str(item_raw_date).replace("Z", "+00:00")[:19])
+                if item_dt.tzinfo is None:
+                    item_dt = item_dt.replace(tzinfo=timezone.utc)
+            except Exception:
+                item_dt = None
+
+        query_clauses = [or_(*home_clauses), or_(*away_clauses)]
+        
+        if item_fixture_id and str(item_fixture_id).isdigit():
+            hist_stmt = select(HistoricalMatch).where(
+                or_(
+                    HistoricalMatch.id == int(item_fixture_id),
+                    HistoricalMatch.external_id == str(item_fixture_id),
+                    and_(*query_clauses)
+                )
+            ).order_by(HistoricalMatch.match_date.desc()).limit(1)
+        elif item_dt:
+            item_date_prefix = item_dt.strftime("%Y-%m-%d")
+            hist_stmt = select(HistoricalMatch).where(
+                and_(
+                    *query_clauses,
+                    func.cast(HistoricalMatch.match_date, String).like(f"{item_date_prefix}%")
+                )
+            ).order_by(HistoricalMatch.match_date.desc()).limit(1)
+        else:
+            hist_stmt = select(HistoricalMatch).where(
+                and_(
+                    *query_clauses,
+                    HistoricalMatch.match_date >= now_utc - timedelta(hours=3)
+                )
+            ).order_by(HistoricalMatch.match_date.asc()).limit(1)
+
         hist_res = await db.execute(hist_stmt)
         hist_match = hist_res.scalar_one_or_none()
 
         if hist_match:
-            if hist_match.status in ("finished", "FT", "AET", "PEN") or (hist_match.home_score is not None and hist_match.away_score is not None):
+            m_kickoff = hist_match.match_date
+            if m_kickoff:
+                if isinstance(m_kickoff, datetime) and m_kickoff.tzinfo is None:
+                    m_kickoff = m_kickoff.replace(tzinfo=timezone.utc)
+                elif not isinstance(m_kickoff, datetime):
+                    try:
+                        m_kickoff = datetime.fromisoformat(str(m_kickoff)[:19]).replace(tzinfo=timezone.utc)
+                    except Exception:
+                        m_kickoff = None
+
+            m_lifecycle = resolve_fixture_lifecycle_state(
+                status=hist_match.status,
+                provider_status=hist_match.provider_status,
+                match_date=m_kickoff,
+                home_score=hist_match.home_score,
+                away_score=hist_match.away_score,
+                now_utc=now_utc
+            )
+
+            if m_lifecycle == "finished" and hist_match.home_score is not None and hist_match.away_score is not None:
                 return {
                     "valid": False,
                     "error": f"Fixture '{home} vs {away}' has already finished (Final score: {hist_match.home_score}-{hist_match.away_score}). Bets cannot be accepted on completed events.",
                     "legs_count": 0, "total_odds": 0.0, "stake": float(req.stake or 1000.0),
                     "potential_payout": 0.0, "joint_prob_pct": 0.0, "all_positive_edge": False, "legs": []
                 }
-            if hist_match.status in ("live", "IN_PLAY", "HT", "1H", "2H"):
+            if m_lifecycle in ("live", "stale"):
                 return {
                     "valid": False,
-                    "error": f"Fixture '{home} vs {away}' is currently live. Pre-match bet slip does not accept live in-play events.",
+                    "error": f"Fixture '{home} vs {away}' is currently live or in play. Pre-match bet slip does not accept live in-play events.",
+                    "legs_count": 0, "total_odds": 0.0, "stake": float(req.stake or 1000.0),
+                    "potential_payout": 0.0, "joint_prob_pct": 0.0, "all_positive_edge": False, "legs": []
+                }
+            if m_lifecycle in ("postponed", "suspended"):
+                return {
+                    "valid": False,
+                    "error": f"Fixture '{home} vs {away}' has been {m_lifecycle}. Selections on {m_lifecycle} events cannot be added to a new ticket.",
+                    "legs_count": 0, "total_odds": 0.0, "stake": float(req.stake or 1000.0),
+                    "potential_payout": 0.0, "joint_prob_pct": 0.0, "all_positive_edge": False, "legs": []
+                }
+            if m_lifecycle in ("cancelled", "abandoned"):
+                return {
+                    "valid": False,
+                    "error": f"Fixture '{home} vs {away}' has been {m_lifecycle}. Bets cannot be accepted on {m_lifecycle} events.",
+                    "legs_count": 0, "total_odds": 0.0, "stake": float(req.stake or 1000.0),
+                    "potential_payout": 0.0, "joint_prob_pct": 0.0, "all_positive_edge": False, "legs": []
+                }
+            
+            if m_kickoff and m_kickoff < now_utc - timedelta(minutes=5) and m_lifecycle not in ("delayed",):
+                return {
+                    "valid": False,
+                    "error": f"Fixture '{home} vs {away}' kicked off at {m_kickoff.strftime('%H:%M UTC')}. Pre-match bets cannot be placed after kickoff.",
                     "legs_count": 0, "total_odds": 0.0, "stake": float(req.stake or 1000.0),
                     "potential_payout": 0.0, "joint_prob_pct": 0.0, "all_positive_edge": False, "legs": []
                 }
@@ -6232,6 +6416,104 @@ async def auto_generate_date_fixtures(db: AsyncSession, target_date: str):
     """
     logger.info(f"auto_generate_date_fixtures called for {target_date} - returning empty list (mock fabrication disabled)")
     return []
+
+
+def resolve_fixture_lifecycle_state(
+    status: Optional[str],
+    provider_status: Optional[str] = None,
+    match_date: Any = None,
+    home_score: Optional[int] = None,
+    away_score: Optional[int] = None,
+    provider_updated_at: Optional[Any] = None,
+    now_utc: Optional[datetime] = None
+) -> str:
+    """
+    Authoritative fixture lifecycle resolver.
+    Guarantees:
+    1. A match is NEVER marked 'finished' merely due to elapsed time.
+    2. 'finished' requires authoritative provider confirmation ('FT', 'finished', 'AET', 'PEN', 'ended', 'full_time').
+    3. Preserves 'postponed', 'suspended', 'abandoned', 'delayed', 'cancelled'.
+    4. Stale live matches (>3.5h past kickoff with no final confirmation) transition to 'stale', NOT 'finished'.
+    5. Handles timezone-aware and naive datetime objects safely.
+    6. Non-null scores in live matches do NOT mark the match finished while in-play.
+    """
+    if now_utc is None:
+        now_utc = datetime.now(timezone.utc)
+
+    raw_p_status = (str(provider_status or "")).strip().lower()
+    raw_status = (str(status or "")).strip().lower()
+
+    # 1. Authoritative cancellation / postponement / suspension
+    if raw_p_status in ("pst", "postponed") or raw_status == "postponed":
+        return "postponed"
+    if raw_p_status in ("susp", "suspended", "int", "interrupted") or raw_status == "suspended":
+        return "suspended"
+    if raw_p_status in ("abd", "abandoned") or raw_status == "abandoned":
+        return "abandoned"
+    if raw_p_status in ("canc", "cancelled", "canceled") or raw_status == "cancelled":
+        return "cancelled"
+    if raw_p_status in ("delayed", "delay") or raw_status == "delayed":
+        return "delayed"
+
+    # 2. Authoritative final states
+    if raw_p_status in ("finished", "ft", "aet", "pen", "ended", "full_time") or raw_status in ("finished", "ft", "aet", "pen"):
+        return "finished"
+
+    # 3. Parse match_date
+    m_dt: Optional[datetime] = None
+    if match_date is not None:
+        if isinstance(match_date, datetime):
+            m_dt = match_date
+        else:
+            try:
+                m_dt = datetime.fromisoformat(str(match_date)[:19])
+            except Exception:
+                m_dt = None
+
+    if m_dt is not None:
+        if m_dt.tzinfo is None:
+            m_dt = m_dt.replace(tzinfo=timezone.utc)
+        elapsed_seconds = (now_utc - m_dt).total_seconds()
+    else:
+        elapsed_seconds = 0.0
+
+    # 4. Check for in-play / live indicators
+    is_live_provider = raw_p_status in ("live", "1h", "2h", "ht", "et", "p", "in_play") or raw_status in ("live", "in_play", "1h", "2h", "ht")
+
+    if is_live_provider:
+        # If match was scheduled > 210 minutes (3.5 hours) ago and provider has not sent a final FT:
+        # A standard football match is 90 mins + 15 mins HT + 30 mins ET = max 150 mins.
+        # If > 210 minutes have elapsed without an FT status, provider feed has stalled or match is interrupted.
+        if elapsed_seconds > 12600:
+            # Check if provider sent a recent update within the last 30 minutes
+            p_upd: Optional[datetime] = None
+            if provider_updated_at is not None:
+                if isinstance(provider_updated_at, datetime):
+                    p_upd = provider_updated_at
+                else:
+                    try:
+                        p_upd = datetime.fromisoformat(str(provider_updated_at)[:19])
+                    except Exception:
+                        p_upd = None
+            if p_upd is not None and p_upd.tzinfo is None:
+                p_upd = p_upd.replace(tzinfo=timezone.utc)
+
+            # If updated recently (e.g. prolonged stoppage / penalty shootout), keep live
+            if p_upd and (now_utc - p_upd).total_seconds() < 1800:
+                return "live"
+            
+            # Otherwise, it cannot be reliably assumed finished! Expose as stale.
+            return "stale"
+        return "live"
+
+    # 5. Scheduled / not started
+    if raw_p_status in ("ns", "timed", "scheduled", "not_started", "") or raw_status in ("scheduled", "ns"):
+        # If scheduled kickoff is > 4 hours in the past and no scores/events ever recorded
+        if elapsed_seconds > 14400 and (home_score is None and away_score is None):
+            return "delayed"
+        return "scheduled"
+
+    return raw_status or "scheduled"
 
 
 async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: PredictorService, endpoint: Optional[str] = "all"):
@@ -6836,10 +7118,16 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
             wat_dt = (match_dt + timedelta(hours=1)) if hasattr(match_dt, "__add__") else None
             match_time_wat = wat_dt.strftime("%H:%M") if wat_dt else match_time_utc
         
-        m_status = getattr(m, "status", "scheduled") or "scheduled"
         h_score = getattr(m, "home_score", None)
         a_score = getattr(m, "away_score", None)
-        # Authentic score display: Never fabricate scores; keep None if provider hasn't reported final score
+        m_status = resolve_fixture_lifecycle_state(
+            status=getattr(m, "status", "scheduled"),
+            provider_status=getattr(m, "provider_status", None),
+            match_date=getattr(m, "match_date", None),
+            home_score=h_score,
+            away_score=a_score,
+            provider_updated_at=getattr(m, "provider_updated_at", None)
+        )
         
         is_fallback_odds = bool(
             round(m_home_odds, 2) in (2.10, 2.00) and
@@ -6935,11 +7223,17 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
 async def get_calendar_daily_slate(
     date: Optional[str] = None,
     endpoint: Optional[str] = None,
+    page: int = 1,
+    limit: int = 100,
     db: AsyncSession = Depends(get_db),
     predictor: PredictorService = Depends(get_predictor)
 ):
     today_dt = datetime.now(timezone.utc)
     today_str = today_dt.strftime("%Y-%m-%d")
+
+    safe_page = max(1, int(page or 1))
+    safe_limit = max(1, min(500, int(limit or 100)))
+    offset = (safe_page - 1) * safe_limit
 
     raw_date = str(date or "").strip().lower()
     if not raw_date or raw_date in ["today", "undefined", "null", "none"]:
@@ -6959,7 +7253,7 @@ async def get_calendar_daily_slate(
 
     ep_filter = endpoint or "all"
 
-    cache_key = f"slate:{target_date}:{ep_filter}"
+    cache_key = f"slate:{target_date}:{ep_filter}:p{safe_page}:l{safe_limit}"
     cached_data = calendar_slate_cache.get(cache_key)
     if cached_data:
         # Intercept cached slates marked unpersisted due to prior transient DB failure
@@ -6968,7 +7262,7 @@ async def get_calendar_daily_slate(
                 from settlement_engine import persist_slate_with_cache_retry
                 cached_data = await persist_slate_with_cache_retry(db, cached_data, PredictionLog)
                 calendar_slate_cache.set(cache_key, cached_data)
-                if ep_filter == "all":
+                if ep_filter == "all" and safe_page == 1 and safe_limit == 100:
                     calendar_slate_cache.set(f"slate:{target_date}:all", cached_data)
             except Exception as retry_ex:
                 logger.warning(f"Live prediction snapshot cache retry warning: {retry_ex}")
@@ -7019,6 +7313,16 @@ async def get_calendar_daily_slate(
         if target_date in ["next-5-days", "upcoming"]:
             today_prefix = today_str
             end_prefix = (datetime.now(timezone.utc) + timedelta(days=5)).strftime("%Y-%m-%d")
+            count_res = await db.execute(
+                select(func.count(HistoricalMatch.id)).where(
+                    and_(
+                        func.cast(HistoricalMatch.match_date, String) >= today_prefix,
+                        func.cast(HistoricalMatch.match_date, String) <= end_prefix + "T23:59:59",
+                        HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"])
+                    )
+                )
+            )
+            total_fixtures_count = count_res.scalar() or 0
             res = await db.execute(
                 select(HistoricalMatch).where(
                     and_(
@@ -7026,22 +7330,21 @@ async def get_calendar_daily_slate(
                         func.cast(HistoricalMatch.match_date, String) <= end_prefix + "T23:59:59",
                         HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"])
                     )
-                ).order_by(priority_order, HistoricalMatch.match_date.asc()).limit(100)
+                ).order_by(priority_order, HistoricalMatch.match_date.asc(), HistoricalMatch.id.asc()).offset(offset).limit(safe_limit)
             )
             fixtures = res.scalars().all()
-            total_fixtures_count = len(fixtures)
         else:
-            res = await db.execute(
-                select(HistoricalMatch).where(
+            count_res = await db.execute(
+                select(func.count(HistoricalMatch.id)).where(
                     and_(
                         func.cast(HistoricalMatch.match_date, String).like(f"{target_date}%"),
                         HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"])
                     )
-                ).order_by(priority_order, HistoricalMatch.match_date.asc()).limit(100)
+                )
             )
-            fixtures = res.scalars().all()
+            total_fixtures_count = count_res.scalar() or 0
 
-            if len(fixtures) == 0 and target_date not in ["next-5-days", "upcoming"]:
+            if total_fixtures_count == 0 and target_date not in ["next-5-days", "upcoming"]:
                 try:
                     from football_ingestion import FootballDataService
                     service = FootballDataService(api_key=config.FOOTBALL_API_KEY, base_url=config.FOOTBALL_API_BASE)
@@ -7054,15 +7357,16 @@ async def get_calendar_daily_slate(
                         sync_res = await service.sync_all_leagues_to_db(db, m_models, target_date=target_date)
                         if sync_res and sync_res.get("status") == "error":
                             provider_err = sync_res.get("message")
-                        res = await db.execute(
-                            select(HistoricalMatch).where(
+                        
+                        count_res = await db.execute(
+                            select(func.count(HistoricalMatch.id)).where(
                                 and_(
                                     func.cast(HistoricalMatch.match_date, String).like(f"{target_date}%"),
                                     HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"])
                                 )
-                            ).order_by(priority_order, HistoricalMatch.match_date.asc()).limit(100)
+                            )
                         )
-                        fixtures = res.scalars().all()
+                        total_fixtures_count = count_res.scalar() or 0
                     else:
                         provider_err = "FOOTBALL_API_KEY is not configured on this server."
                 except Exception as e:
@@ -7073,22 +7377,15 @@ async def get_calendar_daily_slate(
                     except Exception:
                         pass
 
-            # Under NO circumstances fabricate fixtures in production!
-            # If len(fixtures) == 0, return an honest empty state with provider diagnostics.
-
-            try:
-                count_res = await db.execute(
-                    select(func.count(HistoricalMatch.id)).where(
-                        and_(
-                            func.cast(HistoricalMatch.match_date, String).like(f"{target_date}%"),
-                            HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"])
-                        )
+            res = await db.execute(
+                select(HistoricalMatch).where(
+                    and_(
+                        func.cast(HistoricalMatch.match_date, String).like(f"{target_date}%"),
+                        HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"])
                     )
-                )
-                total_fixtures_count = count_res.scalar() or len(fixtures)
-            except Exception as e:
-                logger.warning(f"Failed to query total fixture count: {e}")
-                total_fixtures_count = len(fixtures)
+                ).order_by(priority_order, HistoricalMatch.match_date.asc(), HistoricalMatch.id.asc()).offset(offset).limit(safe_limit)
+            )
+            fixtures = res.scalars().all()
         
         match_cards, endpoint_counts = await format_fixture_cards_helper(fixtures, db, predictor, ep_filter)
             
@@ -7114,11 +7411,18 @@ async def get_calendar_daily_slate(
             p_status = "ok"
             p_msg = None if len(match_cards) > 0 else f"No matches scheduled or recorded for {target_date}."
 
+        total_pages = math.ceil(total_fixtures_count / safe_limit) if total_fixtures_count > 0 else 1
+        has_more = safe_page < total_pages
+
         response_payload = {
             "selected_date": target_date,
             "available_dates": all_dates,
             "active_endpoint": endpoint or "all",
             "endpoints": endpoints_response,
+            "page": safe_page,
+            "limit": safe_limit,
+            "total_pages": total_pages,
+            "has_more": has_more,
             "total_fixtures": total_fixtures_count,
             "matches_count": len(match_cards),
             "matches": match_cards,
@@ -7624,14 +7928,12 @@ async def get_banker_slate(min_prob: float = 0.60, min_edge: float = 0.01,
         return Response(content=cached, media_type="application/json")
     candidates = await get_all_candidate_bets(db, predictor, min_edge=min_edge, min_prob=min_prob)
     candidates = sorted(candidates, key=lambda x: x['model_prob'], reverse=True)
-    # Deduplicate by match so each match has its best candidate
+    # Deduplicate by match so each match has its best candidate (strict uniqueness)
     seen_matches = set()
     deduped = []
     for c in candidates:
         if c['match'] not in seen_matches:
             seen_matches.add(c['match'])
-            deduped.append(c)
-        elif len(deduped) < 15:
             deduped.append(c)
     result = deduped[:16]
     serialized = json.dumps(result)
@@ -8522,11 +8824,13 @@ async def ep_accumulator(req: AccumulatorRequest, db: AsyncSession = Depends(get
         seed=req.seed,
         tolerance=req.tolerance
     )
-    if not selected:
+    min_allowed_odds = req.target_odds * (1.0 - req.tolerance)
+    max_allowed_odds = req.target_odds * (1.0 + req.tolerance)
+    if not selected or combined_odds < min_allowed_odds or combined_odds > max_allowed_odds:
         return {
             "pattern_matched": False,
             "feature": "Accu-Forge",
-            "message": f"Could not build accumulator for target {req.target_odds:.2f} with available bets.",
+            "message": f"Could not build accumulator for target {req.target_odds:.2f} within ±{req.tolerance*100:.0f}% tolerance with available bets.",
             "total_candidates": len(candidates)
         }
     legs = []

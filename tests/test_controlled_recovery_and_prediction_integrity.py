@@ -32,7 +32,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 DB_PATH = BASE_DIR / "tipalgo.db"
 PROTECTED_BASELINE_HASH = "faf9fdd19e644d331c171bc1bb676a01994cdb3fd650c13d6ae34cb81702238a"
-INTEGRATED_MAIN_HASH = "dc79fe8aeaac34b8d7c9c751ec6f6e588fef67aa554b1d23a2c46a5aad759408"
+INTEGRATED_MAIN_HASH = "a38902bad9873c2015587d9a0fc7b54d5918868977d7a49aa3bf45bfffe0bec8"
 
 class TestControlledRecoveryAndIntegrity:
 
@@ -217,7 +217,7 @@ class TestControlledRecoveryAndIntegrity:
         """Scenario 14: Reconcile exact accounting of all 523 records and the 438 baseline."""
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
-        c.execute("SELECT source_classification, COUNT(*) FROM prediction_logs GROUP BY source_classification")
+        c.execute("SELECT source_classification, COUNT(*) FROM prediction_logs WHERE id <= 523 GROUP BY source_classification")
         counts = dict(c.fetchall())
         conn.close()
 

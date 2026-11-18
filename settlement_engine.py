@@ -259,7 +259,19 @@ async def persist_live_slate_snapshots(
                     )
                 )
             else:
-                # SQLite prefix with OR IGNORE
+                # SQLite idempotency check: prevent duplicate snapshot for identical fixture and endpoint
+                existing_check = await db.execute(
+                    select(prediction_log_model.id).where(
+                        and_(
+                            prediction_log_model.provider_fixture_id == r["provider_fixture_id"],
+                            prediction_log_model.endpoint == r["endpoint"],
+                            prediction_log_model.source_classification == "live_recorded"
+                        )
+                    ).limit(1)
+                )
+                if existing_check.scalar_one_or_none() is not None:
+                    continue
+
                 stmt = (
                     sqlite_insert(prediction_log_model)
                     .values(**r)

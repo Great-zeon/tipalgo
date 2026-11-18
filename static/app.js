@@ -733,7 +733,7 @@
         if (dom.heroPickTitle) {
           dom.heroPickTitle.textContent = isInsufficient 
             ? 'Prediction Unavailable: Insufficient Verified Data'
-            : 'Model Pass: No Qualifying Value';
+            : 'Model Pass — No Qualifying Value';
         }
         if (dom.heroOddsValue) {
           dom.heroOddsValue.textContent = f.home_odds ? `Odds: ${Number(f.home_odds).toFixed(2)}` : 'Odds: Unavailable';
@@ -5268,15 +5268,20 @@
     renderCalendarMatchesFeed();
   }
 
-  async function loadCalendarSlate(dateStr, endpointId = 'all') {
+  async function loadCalendarSlate(dateStr, endpointId = 'all', page = 1, limit = 100) {
     if (!dom.calendarMatchesFeed) return;
 
     const targetDate = dateStr || state.calendar.selectedDate || getSystemTodayDateStr();
     const targetEndpoint = endpointId || 'all';
+    const curPage = Math.max(1, parseInt(page, 10) || 1);
+    const curLimit = Math.max(1, Math.min(500, parseInt(limit, 10) || 100));
+
     state.calendar.selectedDate = targetDate;
     state.calendar.selectedEndpoint = targetEndpoint;
+    state.calendar.page = curPage;
+    state.calendar.limit = curLimit;
 
-    const cacheKey = `${targetDate}__${targetEndpoint}`;
+    const cacheKey = `${targetDate}__${targetEndpoint}__p${curPage}__l${curLimit}`;
 
     const thisRequestId = ++currentSlateRequestId;
 
@@ -5307,7 +5312,7 @@
     activeSlateRequestKey = cacheKey;
     activeSlateRequestPromise = (async () => {
       try {
-        const url = `/api/calendar/daily-slate?date=${encodeURIComponent(targetDate)}&endpoint=${encodeURIComponent(targetEndpoint)}`;
+        const url = `/api/calendar/daily-slate?date=${encodeURIComponent(targetDate)}&endpoint=${encodeURIComponent(targetEndpoint)}&page=${curPage}&limit=${curLimit}`;
         const data = await api(url);
         if (!data) return;
 
@@ -7252,6 +7257,42 @@
       });
 
       html += '</div>';
+    }
+
+    // Render Fixture Pagination Toolbar when matches exceed page limit
+    const calData = state.calendar.data;
+    if (calData && (calData.total_pages > 1 || (calData.total_fixtures && calData.total_fixtures > matches.length))) {
+      const curPage = calData.page || 1;
+      const totalPages = calData.total_pages || Math.ceil((calData.total_fixtures || matches.length) / (calData.limit || 100));
+      const totalFixtures = calData.total_fixtures || matches.length;
+      const curLimit = calData.limit || 100;
+      const remaining = Math.max(0, totalFixtures - (curPage * curLimit));
+
+      const paginationHtml = `
+        <div class="calendar-pagination-toolbar" style="margin-top: 2rem; margin-bottom: 2rem; padding: 1.25rem 1.5rem; background: var(--bg-card, #131b2e); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+          <div style="font-size: 0.88rem; color: #94a3b8; font-weight: 600;">
+            Showing Page <span style="color: #38bdf8; font-weight: 700;">${curPage}</span> of <span style="color: #ffffff; font-weight: 700;">${totalPages}</span> &bull; <span style="color: #34d399; font-weight: 700;">${matches.length}</span> of <span style="color: #ffffff; font-weight: 700;">${totalFixtures}</span> Total Verified Matches
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.65rem;">
+            ${curPage > 1 ? `
+              <button class="btn-pill-info" style="padding: 0.45rem 1rem; cursor: pointer; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: #ffffff; border-radius: 8px; font-weight: 600;" onclick="loadCalendarSlate('${calData.selected_date}', '${calData.active_endpoint}', ${curPage - 1}, ${curLimit})">
+                &larr; Previous Page
+              </button>
+            ` : ''}
+            ${curPage < totalPages ? `
+              <button class="btn-pill-info" style="padding: 0.45rem 1rem; cursor: pointer; background: #00d665; border: none; color: #052e16; border-radius: 8px; font-weight: 800;" onclick="loadCalendarSlate('${calData.selected_date}', '${calData.active_endpoint}', ${curPage + 1}, ${curLimit})">
+                Next Page (${remaining} more) &rarr;
+              </button>
+            ` : ''}
+            ${curLimit < totalFixtures ? `
+              <button class="btn-pill-info" style="padding: 0.45rem 1rem; cursor: pointer; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; border-radius: 8px; font-weight: 700;" onclick="loadCalendarSlate('${calData.selected_date}', '${calData.active_endpoint}', 1, 500)">
+                ${totalFixtures > 500 ? 'View Top 500 Matches (Max)' : `View All ${totalFixtures} Matches`}
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `;
+      html += paginationHtml;
     }
 
     dom.calendarMatchesFeed.innerHTML = html;

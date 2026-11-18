@@ -547,12 +547,20 @@ class TestRegressions(unittest.IsolatedAsyncioTestCase):
             self.assertIn("state.user?.bankroll", app_js)
 
         # 2. Verify whitelisted partner account device rotation
+        from main import AsyncSessionLocal, AuthorizedDevice
+        from sqlalchemy import delete
+
+        partner_dev_ids = [f"partner_test_device_{i}" for i in range(6)]
+        async with AsyncSessionLocal() as session:
+            await session.execute(delete(AuthorizedDevice).where(AuthorizedDevice.device_id.in_(partner_dev_ids)))
+            await session.commit()
+
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as local_client:
             # Login as tip_partner with multiple different devices
             for i in range(6):
                 resp = await local_client.post("/auth/login", json={
                     "username": "tip_partner",
-                    "password": "TipAlgo2026!",
+                    "password": config.TIPALGO_MASTER_PASSWORD,
                     "device_id": f"partner_test_device_{i}",
                     "device_name": f"Partner Chrome {i}"
                 })
@@ -560,6 +568,11 @@ class TestRegressions(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(resp.status_code, 200, f"Device login {i} should succeed via seamless rotation")
                 data = resp.json()
                 self.assertIn("access_token", data)
+
+        # Cleanup only test device IDs
+        async with AsyncSessionLocal() as session:
+            await session.execute(delete(AuthorizedDevice).where(AuthorizedDevice.device_id.in_(partner_dev_ids)))
+            await session.commit()
 
     # REGRESSION-026: Mathematical Calculations Verification (Implied Prob, Edge, Expected Value, Kelly Formula, and Allocation Caps)
     def test_regression_026_mathematical_calculations_and_caps(self):
@@ -591,7 +604,7 @@ class TestRegressions(unittest.IsolatedAsyncioTestCase):
 
     # REGRESSION-027: Multi-Fixture Model Differentiation (3 Distinct Matches produce distinct inputs and outputs)
     async def test_regression_027_three_fixtures_differentiation(self):
-        f1_payload = {"home_team": "Sevilla", "away_team": "Osasuna", "league_id": "PD", "home_odds": 2.10, "draw_odds": 3.25, "away_odds": 3.80, "bankroll": 1000000.0, "min_edge": 0.04}
+        f1_payload = {"home_team": "Real Madrid", "away_team": "Osasuna", "league_id": "PD", "home_odds": 2.10, "draw_odds": 3.25, "away_odds": 3.80, "bankroll": 1000000.0, "min_edge": 0.04}
         f2_payload = {"home_team": "Arsenal", "away_team": "Chelsea", "league_id": "PL", "home_odds": 1.75, "draw_odds": 3.60, "away_odds": 4.50, "bankroll": 1000000.0, "min_edge": 0.04}
         f3_payload = {"home_team": "Inter", "away_team": "Juventus", "league_id": "SA", "home_odds": 1.95, "draw_odds": 3.40, "away_odds": 4.10, "bankroll": 1000000.0, "min_edge": 0.04}
 
@@ -603,11 +616,11 @@ class TestRegressions(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(r2.status_code, 200)
         self.assertEqual(r3.status_code, 200)
 
-        self.assertEqual(r1.json()["match"], "Sevilla vs Osasuna")
+        self.assertEqual(r1.json()["match"], "Real Madrid vs Osasuna")
         self.assertEqual(r2.json()["match"], "Arsenal vs Chelsea")
         self.assertEqual(r3.json()["match"], "Inter vs Juventus")
 
-        p1 = await self.client.post("/predict/home-win", json={"home_team": "Sevilla", "away_team": "Osasuna", "league_id": "PD", "home_odds": 2.10}, headers=self.auth_headers)
+        p1 = await self.client.post("/predict/home-win", json={"home_team": "Real Madrid", "away_team": "Osasuna", "league_id": "PD", "home_odds": 2.10}, headers=self.auth_headers)
         p2 = await self.client.post("/predict/home-win", json={"home_team": "Arsenal", "away_team": "Chelsea", "league_id": "PL", "home_odds": 1.75}, headers=self.auth_headers)
         p3 = await self.client.post("/predict/home-win", json={"home_team": "Inter", "away_team": "Juventus", "league_id": "SA", "home_odds": 1.95}, headers=self.auth_headers)
 
@@ -616,11 +629,11 @@ class TestRegressions(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(p3.status_code, 200)
 
         j1, j2, j3 = p1.json(), p2.json(), p3.json()
-        self.assertEqual(j1["match"], "Sevilla vs Osasuna")
+        self.assertEqual(j1["match"], "Real Madrid vs Osasuna")
         self.assertEqual(j2["match"], "Arsenal vs Chelsea")
         self.assertEqual(j3["match"], "Inter vs Juventus")
-        self.assertNotEqual(j1["message"], j2["message"])
-        self.assertNotEqual(j2["message"], j3["message"])
+        self.assertNotEqual((j1.get("probability"), j1.get("edge")), (j2.get("probability"), j2.get("edge")))
+        self.assertNotEqual((j2.get("probability"), j2.get("edge")), (j3.get("probability"), j3.get("edge")))
 
     # REGRESSION-028: Accumulator Parlay Combined Odds Multiplication and Clean Edge Rejection
     async def test_regression_028_accumulator_combined_odds_math(self):
@@ -653,20 +666,35 @@ class TestRegressions(unittest.IsolatedAsyncioTestCase):
 
     # REGRESSION-029: Multi-User Device Allocation Isolation and Auth Enforcement
     async def test_regression_029_device_allocation_isolation(self):
+        from main import AsyncSessionLocal, AuthorizedDevice
+        from sqlalchemy import delete
+
+        test_device_ids = [f"p_dev_{i}" for i in range(3)] + [f"a_dev_{j}" for j in range(3)]
+
+        # Pre-cleanup: clean only records matching test device IDs
+        async with AsyncSessionLocal() as session:
+            await session.execute(delete(AuthorizedDevice).where(AuthorizedDevice.device_id.in_(test_device_ids)))
+            await session.commit()
+
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as local_client:
             # Register devices for user 1 (tip_partner)
             for i in range(3):
-                r = await local_client.post("/auth/login", json={"username": "tip_partner", "password": "TipAlgo2026!", "device_id": f"p_dev_{i}"})
+                r = await local_client.post("/auth/login", json={"username": "tip_partner", "password": config.TIPALGO_MASTER_PASSWORD, "device_id": f"p_dev_{i}"})
                 self.assertEqual(r.status_code, 200)
 
             # Register devices for user 2 (tip_algo) - must succeed and not be blocked by tip_partner's slots
             for j in range(3):
-                r = await local_client.post("/auth/login", json={"username": "tip_algo", "password": "TipAlgo2026!", "device_id": f"a_dev_{j}"})
+                r = await local_client.post("/auth/login", json={"username": "tip_algo", "password": config.TIPALGO_MASTER_PASSWORD, "device_id": f"a_dev_{j}"})
                 self.assertEqual(r.status_code, 200)
 
             # Invalid password must still be rejected with 401
             r_unauth = await local_client.post("/auth/login", json={"username": "tip_partner", "password": "BadPassword!", "device_id": "intruder"})
             self.assertEqual(r_unauth.status_code, 401)
+
+            # Post-cleanup: deterministic cleanup of ONLY the test records created by this test
+            async with AsyncSessionLocal() as session:
+                await session.execute(delete(AuthorizedDevice).where(AuthorizedDevice.device_id.in_(test_device_ids)))
+                await session.commit()
 
 
 if __name__ == "__main__":

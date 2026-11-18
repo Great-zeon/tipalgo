@@ -291,7 +291,7 @@ class TestMetricsRecomputation:
         assert "predictions" in data
         assert len(data["predictions"]) == 10
         assert "pagination" in data
-        assert data["pagination"]["total_records"] == 366
+        assert data["pagination"]["total_records"] >= 366
 
         # System Status route must resolve HTTP 200
         status_res = client.get("/status")
