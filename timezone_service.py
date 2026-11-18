@@ -108,3 +108,4 @@ def format_fixture_datetime_meta(dt_val: Union[datetime, str, None]) -> Dict[str
         "display_time_wat": dt_w.strftime("%H:%M"),
         "timezone": "Africa/Lagos (WAT, UTC+1)"
     }
+

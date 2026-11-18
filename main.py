@@ -27,6 +27,13 @@ from timezone_service import (
     WAT, UTC, now_utc as tz_now_utc, now_lagos, lagos_today_str,
     parse_to_utc, utc_to_lagos, get_lagos_day_utc_bounds, format_fixture_datetime_meta
 )
+from fixture_integrity_service import (
+    validate_and_normalize_fixture,
+    normalize_lifecycle_status,
+    VerificationStatus,
+    FixtureLifecycleStatus,
+    FIXTURE_INTEGRITY_AUDIT_LOG
+)
 from typing import Dict, List, Optional, Any, Tuple
 from collections import defaultdict, deque
 from functools import wraps
@@ -6549,6 +6556,32 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
             except Exception:
                 pass
 
+        f_dict = {
+            "id": getattr(m, "id", None),
+            "external_id": getattr(m, "external_id", None),
+            "home_team": getattr(m, "home_team", None),
+            "away_team": raw_away_name or getattr(m, "away_team", None),
+            "home_team_id": getattr(m, "home_team_id", None),
+            "away_team_id": getattr(m, "away_team_id", None),
+            "home_score": getattr(m, "home_score", None),
+            "away_score": getattr(m, "away_score", None),
+            "league_id": league_id,
+            "league_name": league_name,
+            "country": country,
+            "match_date": getattr(m, "match_date", None),
+            "status": getattr(m, "status", None),
+            "provider_status": getattr(m, "provider_status", None),
+            "provider_updated_at": getattr(m, "provider_updated_at", None),
+            "synced_at": getattr(m, "synced_at", None),
+            "source_classification": getattr(m, "source_classification", None),
+            "home_odds": getattr(m, "home_odds", None),
+            "draw_odds": getattr(m, "draw_odds", None),
+            "away_odds": getattr(m, "away_odds", None),
+        }
+        verdict, norm_rec, audit_reasons = validate_and_normalize_fixture(f_dict)
+        if verdict == VerificationStatus.UNVERIFIED:
+            continue
+
         # Check competition eligibility for algorithmic betting models
         is_ineligible_comp = is_excluded_competition(league_id, league_name, country, m.home_team, m.away_team)
         if is_ineligible_comp:
@@ -6556,7 +6589,6 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
                 # Skip non-eligible competitions when user filters by specific betting market
                 continue
             # Display genuine fixture in calendar slate, but with prediction eligibility disabled
-            meta = format_fixture_datetime_meta(getattr(m, "match_date", None))
             comp_cat, comp_label, comp_reason = classify_competition_category(
                 m.league_id, league_name, country, m.home_team, raw_away_name or m.away_team
             )
@@ -6575,21 +6607,21 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
                 "home_venue_form": [],
                 "away_form": [],
                 "away_venue_form": [],
-                "status": getattr(m, "status", "scheduled") or "scheduled",
-                "home_score": getattr(m, "home_score", None),
-                "away_score": getattr(m, "away_score", None),
+                "status": norm_rec["status"],
+                "home_score": norm_rec["home_score"],
+                "away_score": norm_rec["away_score"],
                 "league_id": m.league_id,
                 "league_name": league_name,
                 "country": country,
-                "match_date": meta["match_date_utc"],
-                "match_date_utc": meta["match_date_utc"],
-                "match_date_wat": meta["match_date_wat"],
-                "display_date_wat": meta["display_date_wat"],
-                "time": meta["time_wat"],
-                "time_utc": meta["time_utc"],
-                "time_wat": meta["time_wat"],
+                "match_date": norm_rec["match_date_utc"],
+                "match_date_utc": norm_rec["match_date_utc"],
+                "match_date_wat": norm_rec["match_date_wat"],
+                "display_date_wat": norm_rec["display_date_wat"],
+                "time": norm_rec["time_wat"],
+                "time_utc": norm_rec["time_utc"],
+                "time_wat": norm_rec["time_wat"],
                 "provider_timezone": "UTC",
-                "display_timezone": meta["timezone"],
+                "display_timezone": norm_rec["display_timezone"],
                 "home_odds": round(float(m.home_odds or 0.0), 2),
                 "draw_odds": round(float(m.draw_odds or 0.0), 2),
                 "away_odds": round(float(m.away_odds or 0.0), 2),
@@ -7106,18 +7138,10 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
         else:
             banter = f"Model scan confirm solid {top_tip['label']} at @{top_tip['odds']} odds. Follow the numbers, protect bankroll!"
             
-        meta = format_fixture_datetime_meta(getattr(m, "match_date", None))
-        
-        h_score = getattr(m, "home_score", None)
-        a_score = getattr(m, "away_score", None)
-        m_status = resolve_fixture_lifecycle_state(
-            status=getattr(m, "status", "scheduled"),
-            provider_status=getattr(m, "provider_status", None),
-            match_date=getattr(m, "match_date", None),
-            home_score=h_score,
-            away_score=a_score,
-            provider_updated_at=getattr(m, "provider_updated_at", None)
-        )
+        meta = norm_rec
+        h_score = norm_rec.get("home_score")
+        a_score = norm_rec.get("away_score")
+        m_status = norm_rec.get("status", "scheduled")
         
         is_fallback_odds = bool(
             round(m_home_odds, 2) in (2.10, 2.00) and

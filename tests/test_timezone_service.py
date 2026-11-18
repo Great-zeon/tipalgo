@@ -78,3 +78,4 @@ def test_nigerian_day_utc_boundaries():
     dt_fla = datetime(2026, 11, 18, 23, 30, 0, tzinfo=UTC)
     assert not (start_18 <= dt_fla <= end_18)
     assert start_19 <= dt_fla <= end_19
+
