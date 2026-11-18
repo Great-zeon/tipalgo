@@ -1898,33 +1898,37 @@
     }
 
     // Betslip Drawer Elements
-    const betslipTitle = document.querySelector('#betslipSidebar h3');
-    if (betslipTitle) betslipTitle.textContent = lang.slipTitle;
+    const betslipTitleText = document.querySelector('.slip-title-text');
+    if (betslipTitleText) betslipTitleText.textContent = isBanter ? 'Naija Chop Slip' : 'Bet Slip';
+    const slipHistoryBtnLabel = document.getElementById('slipHistoryBtnLabel');
+    if (slipHistoryBtnLabel) slipHistoryBtnLabel.textContent = isBanter ? 'Past Slips' : 'History';
     const btnClearSlip = document.getElementById('btnClearSlip');
-    if (btnClearSlip) btnClearSlip.textContent = lang.slipClear;
-    const slipEmptyTitle = document.querySelector('#slipEmptyState p');
-    if (slipEmptyTitle) slipEmptyTitle.textContent = lang.slipEmptyTitle;
-    const slipEmptySub = document.querySelector('#slipEmptyState span');
-    if (slipEmptySub) slipEmptySub.textContent = lang.slipEmptySub;
-    const slipTotalLegsLabel = document.querySelector('.summary-row span');
-    if (slipTotalLegsLabel) slipTotalLegsLabel.textContent = isBanter ? 'Games Added:' : 'Predictions Added:';
+    if (btnClearSlip) btnClearSlip.textContent = isBanter ? 'Clear Slip' : 'Clear';
+    const slipEmptyTitle = document.querySelector('#slipEmptyState p') || document.querySelector('#slipEmptyState div:nth-child(2)');
+    if (slipEmptyTitle) slipEmptyTitle.textContent = isBanter ? 'Your Chop Slip Dey Empty Oga!' : 'Your Bet Slip is Empty';
+    const slipEmptySub = document.querySelector('#slipEmptyState span') || document.querySelector('#slipEmptyState div:nth-child(3)');
+    if (slipEmptySub) slipEmptySub.textContent = isBanter ? 'Tap any sweet odds or match pick make you load your ticket sharp sharp!' : 'Click the odds box on any prediction to add it to your ticket.';
+    const slipAddedLabel = document.getElementById('slipAddedLabel');
+    if (slipAddedLabel) slipAddedLabel.textContent = isBanter ? 'Matches We Don Load:' : 'Games Added:';
+    const slipOddsLabel = document.getElementById('slipOddsLabel');
+    if (slipOddsLabel) slipOddsLabel.textContent = isBanter ? 'Total Combined Odds:' : 'Combined Odds:';
     const btnValidatePrintSlipSpan = document.querySelector('#btnValidatePrintSlip span');
-    if (btnValidatePrintSlipSpan) btnValidatePrintSlipSpan.textContent = isBanter ? 'Check Slip & Print' : 'Validate & Print';
+    if (btnValidatePrintSlipSpan) btnValidatePrintSlipSpan.textContent = isBanter ? 'Audit Slip & Print Ticket' : 'Check Slip & Print';
 
     // Filter Modal & Drawer Elements
-    const filterTitle = document.querySelector('.filter-sidebar-title');
-    if (filterTitle) filterTitle.textContent = isBanter ? 'Sort Your Games' : 'Filter Matches';
-    const filterSub = document.querySelector('.filter-sidebar-sub');
-    if (filterSub) filterSub.textContent = isBanter ? 'Filter matches by league, win chance, stake size & 33 endpoints' : 'Filter matches by league, win chance, stake size & 33 betting endpoints';
+    const filterTitle = document.querySelector('.filter-sidebar-title') || document.querySelector('.filter-sidebar-header h3');
+    if (filterTitle) filterTitle.textContent = isBanter ? 'Arrange Your Matches' : 'Sort Your Games';
+    const filterSub = document.querySelector('.filter-sidebar-sub') || document.querySelector('.filter-sidebar-header p');
+    if (filterSub) filterSub.textContent = isBanter ? 'Filter games by league, chance to win, chop stake & all 33 markets' : 'Filter matches by league, win chance, stake size & 33 endpoints';
     const filterTitleLeague = document.getElementById('filterTitleLeague');
     if (filterTitleLeague) {
       const svg = filterTitleLeague.querySelector('svg');
-      filterTitleLeague.innerHTML = `${svg ? svg.outerHTML : ''} ${isBanter ? 'League / Competition' : 'Competition / League'}`;
+      filterTitleLeague.innerHTML = `${svg ? svg.outerHTML : ''} ${isBanter ? 'League / Tournament' : 'League / Competition'}`;
     }
     const filterTitleProb = document.getElementById('filterTitleProb');
     if (filterTitleProb) {
       const svg = filterTitleProb.querySelector('svg');
-      filterTitleProb.innerHTML = `${svg ? svg.outerHTML : ''} ${isBanter ? 'Win Chance &amp; Sure Bankers' : 'Win Likelihood &amp; Bankers'}`;
+      filterTitleProb.innerHTML = `${svg ? svg.outerHTML : ''} ${isBanter ? 'Win Chance & Sure Bankers' : 'Win Chance & Sure Bankers'}`;
     }
     const filterTitleStake = document.getElementById('filterTitleStake');
     if (filterTitleStake) {
@@ -1934,18 +1938,21 @@
     const filterTitleTree = document.getElementById('filterTitleTree');
     if (filterTitleTree) {
       const svg = filterTitleTree.querySelector('svg');
-      filterTitleTree.innerHTML = `${svg ? svg.outerHTML : ''} ${isBanter ? 'Filter by Prediction Endpoints' : 'Filter by Prediction Endpoints'}`;
+      filterTitleTree.innerHTML = `${svg ? svg.outerHTML : ''} ${isBanter ? 'All 33 Betting Markets' : 'Betting Market'}`;
     }
     const btnSelectAll = document.getElementById('btnSelectAllEndpoints');
-    if (btnSelectAll) btnSelectAll.textContent = isBanter ? 'Select All' : 'Select All';
+    if (btnSelectAll) btnSelectAll.textContent = isBanter ? 'Select All Markets' : 'Select All';
     const btnClearAll = document.getElementById('btnClearAllEndpoints');
     if (btnClearAll) btnClearAll.textContent = isBanter ? 'Clear All' : 'Clear';
     const filterSearchInput = document.getElementById('inputFilterSearchEndpoints');
     if (filterSearchInput) filterSearchInput.placeholder = isBanter ? 'Search 33 endpoints (e.g. Over 2.5, BTTS, 1X)...' : 'Search 33 endpoints (e.g. Over 2.5, Both Teams Score, Home Win)...';
-    const btnFilterReset = document.getElementById('btnResetAllFilters');
-    if (btnFilterReset) btnFilterReset.textContent = isBanter ? 'Reset All' : 'Reset';
+    const btnFilterReset = document.getElementById('btnResetAllFilters') || document.getElementById('btnResetFilters');
+    if (btnFilterReset) btnFilterReset.textContent = isBanter ? 'Clear All Filter' : 'Reset All';
     const btnApplyFiltersText = document.getElementById('btnApplyFiltersText');
-    if (btnApplyFiltersText) btnApplyFiltersText.textContent = isBanter ? 'Apply Filters (Oya Run Am)' : 'Apply Filters';
+    if (btnApplyFiltersText) btnApplyFiltersText.textContent = isBanter ? 'Load Matching Games (Oya Run Am)' : 'Apply Filters';
+    if (!state.betslip.items || !state.betslip.items.length) {
+      updateSlipUI();
+    }
 
     // Sidebar items
     const elNavContest = document.getElementById('textNavContest');
@@ -2980,6 +2987,7 @@
     }
 
     const inSlipTop = state.betslip.items.some(i => i.match === `${m.home_team} vs ${m.away_team}` && i.market === topTip.market);
+    const isBanter = state.personalityMode === 'BANTER';
     const isBanker = (topTip.prob_pct >= 80) || m.is_banker_80;
     const isFinished = m.status === 'finished';
     const isLive = m.status === 'live';
@@ -3087,11 +3095,11 @@
                 <div class="em-team-form-col">
                   <div class="em-form-row">
                     ${renderFormRunPills(m.home_form, m.home_team)}
-                    <span class="em-form-text-lbl">Last 5 Games</span>
+                    <span class="em-form-text-lbl">${isBanter ? 'Last 5 Matches' : 'Last 5 Games'}</span>
                   </div>
                   <div class="em-form-row">
                     ${renderFormRunPills(m.home_venue_form, m.home_team)}
-                    <span class="em-form-text-lbl">Last 5 Home Games</span>
+                    <span class="em-form-text-lbl">${isBanter ? 'Last 5 Home Matches' : 'Last 5 Home Games'}</span>
                   </div>
                 </div>
               </div>
@@ -3111,11 +3119,11 @@
                 <div class="em-team-form-col">
                   <div class="em-form-row">
                     ${renderFormRunPills(m.away_form, m.away_team)}
-                    <span class="em-form-text-lbl">Last 5 Games</span>
+                    <span class="em-form-text-lbl">${isBanter ? 'Last 5 Matches' : 'Last 5 Games'}</span>
                   </div>
                   <div class="em-form-row">
                     ${renderFormRunPills(m.away_venue_form, m.away_team)}
-                    <span class="em-form-text-lbl">Last 5 Away Games</span>
+                    <span class="em-form-text-lbl">${isBanter ? 'Last 5 Away Matches' : 'Last 5 Away Games'}</span>
                   </div>
                 </div>
               </div>
@@ -3239,6 +3247,7 @@
     const inSlipDraw = state.betslip.items.some(i => i.match === `${m.home_team} vs ${m.away_team}` && (i.market === 'Draw' || i.market === 'Match Draw'));
     const inSlipAway = state.betslip.items.some(i => i.match === `${m.home_team} vs ${m.away_team}` && i.market === `${m.away_team} Win`);
     const inSlipTop = state.betslip.items.some(i => i.match === `${m.home_team} vs ${m.away_team}` && i.market === topTip.market);
+    const isBanter = state.personalityMode === 'BANTER';
     const isBanker = (topTip.prob_pct >= 80) || m.is_banker_80;
     const isFinished = m.status === 'finished';
     const isLive = m.status === 'live';
@@ -7678,6 +7687,7 @@
         dom.btnValidateSlip.setAttribute('aria-disabled', 'true');
       }
 
+      const isBanter = state.personalityMode === 'BANTER';
       dom.slipItemsContainer.innerHTML = `
         <div class="slip-empty-state" id="slipEmptyState" style="text-align: center; padding: 1.15rem 0.75rem;">
           <div class="slip-empty-icon" style="margin: 0 auto 0.5rem auto; width: 36px; height: 36px; border-radius: 50%; background: rgba(0, 214, 101, 0.1); display: flex; align-items: center; justify-content: center; color: #00d665;">
@@ -7688,15 +7698,15 @@
               <line x1="16" y1="17" x2="8" y2="17"></line>
             </svg>
           </div>
-          <div style="font-weight: 800; font-size: 0.92rem; color: #ffffff;">Your Bet Slip is Empty</div>
-          <div style="font-size: 0.74rem; color: #94a3b8; margin-top: 0.25rem; line-height: 1.35;">Click the odds box on any prediction to add it to your ticket.</div>
+          <div style="font-weight: 800; font-size: 0.92rem; color: #ffffff;">${isBanter ? 'Your Chop Slip Dey Empty Oga!' : 'Your Bet Slip is Empty'}</div>
+          <div style="font-size: 0.74rem; color: #94a3b8; margin-top: 0.25rem; line-height: 1.35;">${isBanter ? 'Tap any sweet odds or match pick make you load your ticket sharp sharp!' : 'Click the odds box on any prediction to add it to your ticket.'}</div>
         </div>
       `;
 
-      if (dom.slipTotalLegs) dom.slipTotalLegs.textContent = '0 Picks';
+      if (dom.slipTotalLegs) dom.slipTotalLegs.textContent = isBanter ? '0 Match' : '0 Picks';
       if (dom.slipTotalOdds) dom.slipTotalOdds.textContent = '0.00';
       if (dom.slipPotentialWin) dom.slipPotentialWin.textContent = '₦0.00';
-      if (dom.slipBanterText) dom.slipBanterText.textContent = 'Select games across the calendar to add to your prediction ticket.';
+      if (dom.slipBanterText) dom.slipBanterText.textContent = isBanter ? 'Select games across the calendar make you load your sweet ticket.' : 'Select games across the calendar to add to your prediction ticket.';
       return;
     }
 
@@ -8763,6 +8773,13 @@
     if (dom.btnCloseValidateModal) dom.btnCloseValidateModal.addEventListener('click', () => dom.modalValidateSlip.classList.remove('open'));
     if (dom.btnCloseValidateModalBtn) dom.btnCloseValidateModalBtn.addEventListener('click', () => dom.modalValidateSlip.classList.remove('open'));
     if (dom.btnCloseHistoryModal) dom.btnCloseHistoryModal.addEventListener('click', () => dom.modalSlipHistory.classList.remove('open'));
+    const btnOpenSlipHistory = document.getElementById('btnOpenSlipHistory');
+    if (btnOpenSlipHistory) btnOpenSlipHistory.addEventListener('click', loadSlipHistory);
+    const topNavSlipHistory = document.getElementById('topNavSlipHistory');
+    if (topNavSlipHistory) topNavSlipHistory.addEventListener('click', (e) => {
+      e.preventDefault();
+      loadSlipHistory();
+    });
     // Fixture Dropdown
     if (dom.fixtureSelect) {
       dom.fixtureSelect.addEventListener('change', (e) => {

@@ -138,6 +138,10 @@
               <span class="item-title">Full Slate Scanner</span>
               <span class="item-desc">High-throughput multi-match quantitative scan</span>
             </a>
+            <a href="#" class="dropdown-menu-item" id="topNavSlipHistory">
+              <span class="item-title">Bet Slip History</span>
+              <span class="item-desc">Review and re-load past validated betting slips</span>
+            </a>
           </div>
         </div>
       </nav>
@@ -612,6 +616,11 @@
                       <span class="betslip-count-badge" id="slipPicksCount">0</span>
                     </div>
                     <div class="betslip-header-actions">
+                      <button type="button" class="btn-slip-history" id="btnOpenSlipHistory"
+                        title="View Past Validated Bet Slips" style="background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); color: #38bdf8; font-size: 0.72rem; padding: 0.2rem 0.55rem; border-radius: 6px; cursor: pointer; font-weight: 700; margin-right: 0.35rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+                        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                        <span id="slipHistoryBtnLabel">History</span>
+                      </button>
                       <button type="button" class="btn-clear-slip-simple" id="btnClearSlip"
                         title="Clear all selections">Clear</button>
                       <button type="button" class="btn-close-slip mobile-only" id="btnCloseBetslip"
@@ -640,11 +649,11 @@
                 <div class="betslip-footer">
                   <div class="slip-summary-table">
                     <div class="summary-row">
-                      <span>Predictions Added:</span>
+                      <span id="slipAddedLabel">Games Added:</span>
                       <strong id="slipTotalLegs">0 Picks</strong>
                     </div>
                     <div class="summary-row">
-                      <span>Combined Odds:</span>
+                      <span id="slipOddsLabel">Combined Odds:</span>
                       <strong id="slipTotalOdds" class="accent-odds">0.00</strong>
                     </div>
                   </div>
@@ -2697,17 +2706,6 @@
         </div>
       </div>
     </div>
-  </footer>
-  <div>
-    &copy; <span id="footerCopyrightYear">2026</span> SportyMill (TipAlgo Platform). All rights reserved.
-  </div>
-  <div class="footer-bottom-links">
-    <a href="/privacy" class="footer-link">Privacy Policy</a>
-    <a href="/terms" class="footer-link">Terms of Service</a>
-    <a href="#" class="footer-link" id="footerBtnHelpModal">Support Desk</a>
-  </div>
-  </div>
-  </div>
   </footer>
 
   </main>
