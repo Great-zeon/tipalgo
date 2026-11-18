@@ -2987,7 +2987,6 @@
     }
 
     const inSlipTop = state.betslip.items.some(i => i.match === `${m.home_team} vs ${m.away_team}` && i.market === topTip.market);
-    const isBanter = state.personalityMode === 'BANTER';
     const isBanker = (topTip.prob_pct >= 80) || m.is_banker_80;
     const isFinished = m.status === 'finished';
     const isLive = m.status === 'live';
@@ -3247,7 +3246,6 @@
     const inSlipDraw = state.betslip.items.some(i => i.match === `${m.home_team} vs ${m.away_team}` && (i.market === 'Draw' || i.market === 'Match Draw'));
     const inSlipAway = state.betslip.items.some(i => i.match === `${m.home_team} vs ${m.away_team}` && i.market === `${m.away_team} Win`);
     const inSlipTop = state.betslip.items.some(i => i.match === `${m.home_team} vs ${m.away_team}` && i.market === topTip.market);
-    const isBanter = state.personalityMode === 'BANTER';
     const isBanker = (topTip.prob_pct >= 80) || m.is_banker_80;
     const isFinished = m.status === 'finished';
     const isLive = m.status === 'live';
