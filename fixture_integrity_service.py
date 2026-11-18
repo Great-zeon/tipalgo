@@ -249,6 +249,7 @@ def validate_and_normalize_fixture(
         "time_utc": tz_meta["time_utc"],
         "display_time_wat": tz_meta["display_time_wat"],
         "provider_timezone": "UTC",
+        "timezone": tz_meta["timezone"],
         "display_timezone": tz_meta["timezone"],
         "status": lifecycle_status.value,
         "provider_status": fixture_dict.get("provider_status") or lifecycle_status.value,

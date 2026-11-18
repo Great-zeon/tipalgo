@@ -1712,7 +1712,7 @@
       navScreener: "Value Edge Scanner",
       navAccumulator: "Accu-Forge Multi",
       navBatch: "Full Slate Scanner",
-      navSlip: "Chop Slip",
+      navSlip: "Bet Slip",
       navProfile: "My Profile",
 
       matchLabel: "Game",

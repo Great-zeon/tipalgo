@@ -7218,7 +7218,7 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
             "time_utc": meta["time_utc"],
             "time_wat": meta["time_wat"],
             "provider_timezone": "UTC",
-            "display_timezone": meta["timezone"],
+            "display_timezone": meta.get("display_timezone") or meta.get("timezone", "Africa/Lagos (WAT, UTC+1)"),
             "home_odds": round(m_home_odds, 2),
             "draw_odds": round(m_draw_odds, 2),
             "away_odds": round(m_away_odds, 2),
