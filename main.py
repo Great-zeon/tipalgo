@@ -453,7 +453,9 @@ LEAGUE_METADATA = {
     "GIB_NATI": ("National League", "Gibraltar"),
     "NIR_PREM": ("NIFL Premiership", "Northern Ireland"),
     "IRL_PREM": ("League of Ireland Premier Division", "Ireland"),
-    "SCO_CHAM": ("Scottish Championship", "Scotland")
+    "SCO_CHAM": ("Scottish Championship", "Scotland"),
+    "EGY_SECO": ("Second Division", "Egypt"),
+    "EGY_PREM": ("Premier League", "Egypt")
 }
 
 KNOWN_SCRAPED_LEAGUES = {k: v[0] for k, v in LEAGUE_METADATA.items()}
@@ -575,6 +577,29 @@ def classify_competition_category(
         "Competition tier lacks sufficient verified historical liquidity and provider depth for algorithmic projection."
     )
 
+COMMON_LEAGUE_SUFFIX_MAP = {
+    "SECO": "Second Division",
+    "SEC": "Second Division",
+    "DIV2": "Second Division",
+    "DIV1": "First Division",
+    "PREM": "Premier League",
+    "CHAM": "Championship",
+    "CHAMP": "Championship",
+    "CONF": "Conference",
+    "SERB": "Serie B",
+    "SERA": "Serie A",
+    "LIG1": "Ligue 1",
+    "LIG2": "Ligue 2",
+    "BUN1": "Bundesliga",
+    "BUN2": "2. Bundesliga",
+    "PRIM": "Primera División",
+    "SEGD": "Segunda División",
+    "SUPER": "Super League",
+    "SUP": "Super League",
+    "PRO": "Pro League",
+    "CUP": "National Cup",
+}
+
 def format_league_display_name(lid: str) -> str:
     if not lid:
         return "International Football"
@@ -591,7 +616,7 @@ def format_league_display_name(lid: str) -> str:
     if "_" in upper:
         prefix, suffix = upper.split("_", 1)
         country = COUNTRY_CODE_MAP.get(prefix, "")
-        clean_suffix = suffix.replace("_", " ").title()
+        clean_suffix = COMMON_LEAGUE_SUFFIX_MAP.get(suffix, suffix.replace("_", " ").title())
         if country:
             return f"{clean_suffix} ({country})"
         return f"{prefix} {clean_suffix}"
@@ -8520,7 +8545,7 @@ async def get_match_analytics(
             "home_logo": getattr(curr_match, "home_logo", None) if curr_match else None,
             "away_logo": getattr(curr_match, "away_logo", None) if curr_match else None,
             "league_id": league_id,
-            "league_name": config.LEAGUE_NAMES.get(league_id, league_id),
+            "league_name": format_league_display_name(league_id),
             "country": get_league_country(league_id),
             "home_odds": home_odds,
             "draw_odds": draw_odds,

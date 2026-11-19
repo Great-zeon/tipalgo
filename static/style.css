@@ -11841,22 +11841,185 @@ body.banter-mode-active .sb-model-pick-pill .sb-pick-title {
   gap: 1.5rem;
 }
 @media (max-width: 768px) {
-  .footystats-hero-clash-row {
-    flex-direction: column;
-    text-align: center;
-    gap: 1.25rem;
+  /* Mobile-Refined Top Navigation */
+  .footystats-top-nav-bar {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 0.5rem !important;
+    margin-bottom: 0.75rem !important;
+    flex-wrap: nowrap !important;
+    width: 100% !important;
   }
+  .btn-back-overview {
+    padding: 0.35rem 0.65rem !important;
+    font-size: 0.76rem !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    line-height: 1.2 !important;
+  }
+  .btn-back-overview svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+  .footy-nav-right {
+    display: flex !important;
+    align-items: center !important;
+    flex-shrink: 0 !important;
+  }
+  .footy-quant-audit-pill {
+    font-size: 0.65rem !important;
+    padding: 0.2rem 0.5rem !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    line-height: 1.2 !important;
+  }
+
+  .footystats-match-hero-card {
+    padding: 0.85rem 0.65rem !important;
+    margin-bottom: 0.85rem !important;
+    border-radius: 10px !important;
+  }
+  .footy-meta-row {
+    margin-bottom: 0.65rem !important;
+    gap: 0.2rem !important;
+  }
+  .footy-breadcrumb {
+    font-size: 0.78rem !important;
+  }
+  .footy-match-datetime {
+    font-size: 0.74rem !important;
+  }
+  .footy-match-venue {
+    font-size: 0.68rem !important;
+  }
+
+  /* Compact Horizontal 3-Column Duel Grid for Mobile */
+  .footystats-hero-clash-row {
+    display: grid !important;
+    grid-template-columns: 1fr auto 1fr !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 0.35rem !important;
+    width: 100% !important;
+  }
+
   .footy-hero-team,
   .footy-hero-team.home,
   .footy-hero-team.away {
+    display: flex !important;
+    flex-direction: column !important;
     align-items: center !important;
     text-align: center !important;
+    gap: 0.2rem !important;
+    min-width: 0 !important;
   }
+
+  .footy-hero-badge {
+    width: 46px !important;
+    height: 46px !important;
+    margin-bottom: 0.15rem !important;
+  }
+  .footy-hero-badge .cal-club-crest-wrap,
+  .footy-hero-badge .cal-team-logo-img,
+  .footy-hero-badge .cal-crest-shield {
+    width: 46px !important;
+    height: 46px !important;
+    max-width: 46px !important;
+    max-height: 46px !important;
+    font-size: 0.95rem !important;
+    border-radius: 10px !important;
+  }
+  .footy-hero-badge .cal-flag-rect-wrap,
+  .footy-hero-badge .cal-country-flag-rect {
+    width: 46px !important;
+    height: 32px !important;
+  }
+
   .footy-hero-team-details,
   .footy-hero-team.home .footy-hero-team-details,
   .footy-hero-team.away .footy-hero-team-details {
+    display: flex !important;
+    flex-direction: column !important;
     align-items: center !important;
     text-align: center !important;
+    gap: 0.15rem !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .footy-rating-pill {
+    font-size: 0.65rem !important;
+    padding: 0.1rem 0.35rem !important;
+    margin-bottom: 0.15rem !important;
+    line-height: 1 !important;
+  }
+
+  .footy-form-squares {
+    gap: 2px !important;
+    margin-bottom: 0.15rem !important;
+    justify-content: center !important;
+  }
+  .footy-sq {
+    width: 15px !important;
+    height: 15px !important;
+    font-size: 8px !important;
+    border-radius: 2px !important;
+  }
+
+  .footy-hero-team-name {
+    font-size: 0.85rem !important;
+    font-weight: 800 !important;
+    line-height: 1.15 !important;
+    color: #ffffff !important;
+    word-break: break-word !important;
+    max-width: 100% !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    text-align: center !important;
+  }
+
+  /* Center Column: VS & Odds Strip */
+  .footy-hero-center {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.3rem !important;
+    padding: 0 0.15rem !important;
+    flex-shrink: 0 !important;
+  }
+
+  .footy-hero-vs-badge {
+    font-size: 0.82rem !important;
+    font-weight: 900 !important;
+    color: #64748b !important;
+  }
+
+  .footy-hero-odds-strip {
+    display: flex !important;
+    gap: 0.2rem !important;
+  }
+
+  .footy-hero-odd-btn {
+    padding: 0.25rem 0.35rem !important;
+    min-width: 32px !important;
+    border-radius: 4px !important;
+  }
+  .footy-hero-odd-btn .odd-lbl {
+    font-size: 0.6rem !important;
+  }
+  .footy-hero-odd-btn .odd-val {
+    font-size: 0.72rem !important;
+    font-weight: 800 !important;
+  }
+
+  /* Full Match Hub clearance above Fixed Mobile Bottom Nav */
+  #view-match-analytics {
+    padding-bottom: calc(85px + env(safe-area-inset-bottom, 15px)) !important;
   }
 }
 .footy-hero-team {
@@ -12097,7 +12260,8 @@ body.banter-mode-active .sb-model-pick-pill .sb-pick-title {
 }
 @media (max-width: 600px) {
   .footy-stat-grid-6 {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
   }
 }
 .footy-grid-tile {

@@ -1687,7 +1687,7 @@
       pillBestEdge: "Best Edge",
       pillAllMarkets: "All Markets",
 
-      textBackOverview: "← Back to Matches & Slate",
+      textBackOverview: "← Back to Matches",
       analyticsModePill: "QUANT MODEL AUDIT",
       labelHomeOdds: "Home (1)",
       labelDrawOdds: "Draw (X)",
@@ -1772,7 +1772,7 @@
       pillBestEdge: "Sweetest Edge",
       pillAllMarkets: "All Options",
 
-      textBackOverview: "← Go Back to Matches",
+      textBackOverview: "← Back to Matches",
       analyticsModePill: "FULL MATCH GIST",
       labelHomeOdds: "Home Win (1)",
       labelDrawOdds: "Draw / Stalemate (X)",
@@ -4351,7 +4351,14 @@
 
     const breadcrumb = document.getElementById('footyBreadcrumbLeague');
     if (breadcrumb) {
-      breadcrumb.textContent = `${data.match_info.country || 'International'} / ${data.match_info.league_name || 'League'}`;
+      const cName = data.match_info?.country || 'International';
+      let lName = data.match_info?.league_name || 'League';
+      if (lName.endsWith(` (${cName})`)) {
+        lName = lName.slice(0, -(` (${cName})`.length));
+      } else if (lName.toLowerCase() === cName.toLowerCase()) {
+        lName = 'League';
+      }
+      breadcrumb.textContent = `${cName} • ${lName}`;
     }
 
     const footyDateTime = document.getElementById('footyMatchDateTime');
