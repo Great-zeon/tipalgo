@@ -8042,6 +8042,12 @@ async def get_match_analytics(
     )
     curr_match = match_res.scalar_one_or_none()
     
+    # Pre-fetch authentic historical matches for form (never hardcode fictitious streaks)
+    h_recent_matches = await get_team_recent_matches(db, home_team, None, 5)
+    a_recent_matches = await get_team_recent_matches(db, away_team, None, 5)
+    real_h_form = "".join([x["result"] for x in h_recent_matches]) if h_recent_matches else "N/A"
+    real_a_form = "".join([x["result"] for x in a_recent_matches]) if a_recent_matches else "N/A"
+
     # 2. Compute probabilities across all 33 endpoints using PredictorService
     try:
         probs_data = await predictor.get_probabilities(db, home_team, away_team, league_id)
@@ -8080,9 +8086,9 @@ async def get_match_analytics(
             "away_prob": away_prob,
             "all_probs": all_probs,
             "expected_goals": {"home": h_xg, "away": a_xg, "total": round(h_xg + a_xg, 2)},
-            "home_info": {"last_5_form": "W-W-D-W-L", "league_position": 4, "home_goals_avg": h_xg},
-            "away_info": {"last_5_form": "W-D-L-W-D", "league_position": 7, "away_goals_avg": a_xg},
-            "h2h_wins": {"home": 3, "away": 1, "draw": 2}
+            "home_info": {"last_5_form": real_h_form, "league_position": None, "home_goals_avg": h_xg},
+            "away_info": {"last_5_form": real_a_form, "league_position": None, "away_goals_avg": a_xg},
+            "h2h_wins": {"home": 0, "away": 0, "draw": 0}
         }
     
     home_odds = curr_match.home_odds if (curr_match and curr_match.home_odds) else round(max(1.20, 1.0 / (home_prob * 0.94)), 2)
@@ -8103,11 +8109,13 @@ async def get_match_analytics(
     away_implied = 1.0 / away_odds if away_odds > 1.0 else 0.5
     away_edge = (away_prob - away_implied) * 100.0
 
-    # Form verification: NEVER claim undefeated if any loss exists in recent form
-    home_undefeated = "L" not in home_streak and len(home_streak) >= 3
-    away_undefeated = "L" not in away_streak and len(away_streak) >= 3
-    home_form_desc = f"undefeated form ({home_streak})" if home_undefeated else f"recent form ({home_streak})"
-    away_form_desc = f"undefeated form ({away_streak})" if away_undefeated else f"recent form ({away_streak})"
+    # Form verification: NEVER claim undefeated if any loss exists or if form is unrecorded
+    home_has_real_form = bool(home_streak and home_streak != "N/A")
+    away_has_real_form = bool(away_streak and away_streak != "N/A")
+    home_undefeated = home_has_real_form and "L" not in home_streak and len(home_streak) >= 3
+    away_undefeated = away_has_real_form and "L" not in away_streak and len(away_streak) >= 3
+    home_form_desc = f"undefeated form ({home_streak})" if home_undefeated else (f"recent form ({home_streak})" if home_has_real_form else "baseline modeling expectation")
+    away_form_desc = f"undefeated form ({away_streak})" if away_undefeated else (f"recent form ({away_streak})" if away_has_real_form else "baseline modeling expectation")
 
     # Determine mathematical advantage dynamically
     if home_prob >= away_prob + 0.08:
@@ -8180,17 +8188,19 @@ async def get_match_analytics(
                 {"num": "03", "title": "Value Edge Validation", "desc": f"Away model price outclasses bookmaker break-even threshold."}
             ]
     else:
+        h_streak_disp = f"({home_streak})" if home_has_real_form else ""
+        a_streak_disp = f"({away_streak})" if away_has_real_form else ""
         if is_balanced:
             verdict_headline = f"SportyMill Model Verdict: Highly Contested Matchup ({home_team} vs {away_team})"
             verdict_tag = "BALANCED RISK PROFILE"
             narrative = (
-                f"Statistical indicators project a tightly contested fixture between {home_team} ({home_streak}) "
-                f"and {away_team} ({away_streak}), with balanced expected goals distributions ({home_xg:.2f} vs {away_xg:.2f}). "
+                f"Statistical indicators project a tightly contested fixture between {home_team} {h_streak_disp} "
+                f"and {away_team} {a_streak_disp}, with balanced expected goals distributions ({home_xg:.2f} vs {away_xg:.2f}). "
                 f"Neither side holds a decisive predictive advantage. Model advises risk mitigation."
             )
             pillars = [
                 {"num": "01", "title": "Equilibrium Modeling", "desc": f"Calibrated Poisson distributions indicate balanced output ({home_xg:.2f} vs {away_xg:.2f} xG)."},
-                {"num": "02", "title": "Form Parity", "desc": f"{home_team} ({home_streak}) and {away_team} ({away_streak}) display comparable recent metrics."},
+                {"num": "02", "title": "Form Parity", "desc": f"{home_team} {h_streak_disp} and {away_team} {a_streak_disp} display comparable baseline metrics."},
                 {"num": "03", "title": "Risk Floor Enforcement", "desc": "Mandatory +4.0% value threshold requires capital preservation."}
             ]
         elif is_home_favored:
@@ -8204,7 +8214,7 @@ async def get_match_analytics(
             )
             pillars = [
                 {"num": "01", "title": "Bivariate Poisson Modeling", "desc": f"Calibrated attacking distribution generates {home_xg:.2f} home xG vs {away_xg:.2f} concession rate."},
-                {"num": "02", "title": "Form & Pitch Advantage", "desc": f"{home_team} ({home_streak}) maintains positive trajectory against {away_team} ({away_streak})."},
+                {"num": "02", "title": "Form & Pitch Advantage", "desc": f"{home_team} {h_streak_disp} maintains positive trajectory against {away_team} {a_streak_disp}."},
                 {"num": "03", "title": "Optimal Kelly Capital Sizing", "desc": f"Guarantees capital safety via fractional Kelly formula and +4.0% value threshold."}
             ]
         else:
@@ -8217,7 +8227,7 @@ async def get_match_analytics(
             )
             pillars = [
                 {"num": "01", "title": "Visiting Attack Superiority", "desc": f"{away_team} calibrated distribution generates {away_xg:.2f} xG vs {home_xg:.2f}."},
-                {"num": "02", "title": "Form Advantage", "desc": f"{away_team} ({away_streak}) displays superior metrics over {home_team} ({home_streak})."},
+                {"num": "02", "title": "Form Advantage", "desc": f"{away_team} {a_streak_disp} displays superior metrics over {home_team} {h_streak_disp}."},
                 {"num": "03", "title": "Value Edge Capture", "desc": f"Away price provides verified mathematical advantage over bookmaker threshold."}
             ]
 

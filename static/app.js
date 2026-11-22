@@ -4405,10 +4405,9 @@
     const footyHomeSquares = document.getElementById('footyHomeSquares');
     if (footyHomeSquares) {
       const rawForm = data.form_and_h2h?.home?.form;
-      if (rawForm && rawForm.trim()) {
-        const formRun = rawForm.split('').slice(0, 5);
-        footyHomeSquares.innerHTML = formRun.map(ch => {
-          const c = ch.toUpperCase();
+      const validFormRun = (rawForm && rawForm.toUpperCase() !== 'N/A') ? rawForm.toUpperCase().split('').filter(ch => ['W', 'D', 'L'].includes(ch)).slice(0, 5) : [];
+      if (validFormRun.length > 0) {
+        footyHomeSquares.innerHTML = validFormRun.map(c => {
           const cls = c === 'W' ? 'w' : (c === 'L' ? 'l' : 'd');
           return `<span class="footy-sq ${cls}">${c}</span>`;
         }).join('');
@@ -4427,10 +4426,9 @@
     const footyAwaySquares = document.getElementById('footyAwaySquares');
     if (footyAwaySquares) {
       const rawFormAway = data.form_and_h2h?.away?.form;
-      if (rawFormAway && rawFormAway.trim()) {
-        const formRun = rawFormAway.split('').slice(0, 5);
-        footyAwaySquares.innerHTML = formRun.map(ch => {
-          const c = ch.toUpperCase();
+      const validFormRunAway = (rawFormAway && rawFormAway.toUpperCase() !== 'N/A') ? rawFormAway.toUpperCase().split('').filter(ch => ['W', 'D', 'L'].includes(ch)).slice(0, 5) : [];
+      if (validFormRunAway.length > 0) {
+        footyAwaySquares.innerHTML = validFormRunAway.map(c => {
           const cls = c === 'W' ? 'w' : (c === 'L' ? 'l' : 'd');
           return `<span class="footy-sq ${cls}">${c}</span>`;
         }).join('');
