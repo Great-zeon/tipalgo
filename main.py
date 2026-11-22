@@ -4900,11 +4900,14 @@ async def lifespan(app: FastAPI):
                     from seed_extended_standings import seed_extended_standings
                     await asyncio.to_thread(seed_extended_standings)
                     try:
+                        import glob
                         from scratch.sync_offline_provider_artifacts import ingest_raw_file
-                        if os.path.exists("reports/raw_provider_response_2026-11-22.json"):
-                            await asyncio.to_thread(ingest_raw_file, "reports/raw_provider_response_2026-11-22.json", "2026-11-22")
-                        if os.path.exists("reports/raw_provider_response_2026-11-23.json"):
-                            await asyncio.to_thread(ingest_raw_file, "reports/raw_provider_response_2026-11-23.json", "2026-11-23")
+                        raw_files = sorted(glob.glob("reports/raw_provider_response_*.json"))
+                        for rf in raw_files:
+                            bf = os.path.basename(rf)
+                            dt_str = bf.replace("raw_provider_response_", "").replace(".json", "")
+                            if len(dt_str) == 10 and dt_str.count("-") == 2:
+                                await asyncio.to_thread(ingest_raw_file, rf, dt_str)
                     except Exception as ingest_ex:
                         logger.warning(f"Provider artifact sync notice: {ingest_ex}")
                 except Exception as e:
