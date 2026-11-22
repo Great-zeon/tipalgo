@@ -6721,6 +6721,38 @@
       );
       const providerMsg = (state.calendar.data && state.calendar.data.provider_message) || '';
 
+      const isSyncPending = Boolean(
+        state.calendar.data &&
+        (state.calendar.data.provider_sync_pending || (providerMsg && (providerMsg.toLowerCase().includes('in progress') || providerMsg.toLowerCase().includes('timed out')))) &&
+        !state.calendar.searchQuery &&
+        !hasActiveFilters
+      );
+
+      if (isSyncPending) {
+        dom.calendarMatchesFeed.innerHTML = `
+          <div class="calendar-empty-state-card" style="border: 1px solid rgba(56, 189, 248, 0.35); background: rgba(15, 23, 42, 0.75); padding: 3.5rem 1.5rem; text-align: center;">
+            <div class="empty-icon-box" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; margin: 0 auto 1.25rem;">
+              <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </div>
+            <h3 class="empty-title" style="color: #38bdf8; font-size: 1.15rem; font-weight: 800;">Retrieving Verified Match Slate...</h3>
+            <p class="empty-sub" style="color: var(--text-secondary); max-width: 440px; margin: 0.5rem auto 1rem;">
+              ${isBanter
+                ? `Hold on sharp sharp! Model dey connect live sports feed to pull confirmed fixtures for <strong>${esc(dateTitle)}</strong>.`
+                : `Authenticating match fixtures for <strong>${esc(dateTitle)}</strong> directly from official data provider. Populating verified slate...`}
+            </p>
+          </div>
+        `;
+        setTimeout(() => {
+          if (state.calendar.selectedDate === currDate) {
+            loadCalendarSlate(currDate, activeEp || 'all', state.calendar.page || 1, state.calendar.limit || 100);
+          }
+        }, 2200);
+        return;
+      }
+
       let emptyTitle = isBanter ? 'No Match Dey For Here' : 'No Matches Scheduled';
       let emptyMsg = isBanter 
         ? `No match dey scheduled for <strong>${esc(dateTitle)}</strong>.` 

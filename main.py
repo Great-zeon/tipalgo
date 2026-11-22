@@ -7373,6 +7373,7 @@ async def get_calendar_daily_slate(
 
         total_fixtures_count = 0
         provider_err = None
+        provider_sync_pending = False
         if target_date in ["next-5-days", "upcoming"]:
             start_utc, _ = get_lagos_day_utc_bounds(today_str)
             _, end_utc = get_lagos_day_utc_bounds((lagos_now + timedelta(days=5)).strftime("%Y-%m-%d"))
@@ -7428,13 +7429,14 @@ async def get_calendar_daily_slate(
                         try:
                             sync_res = await asyncio.wait_for(
                                 service.sync_all_leagues_to_db(db, m_models, target_date=target_date),
-                                timeout=4.5
+                                timeout=9.0
                             )
                             if sync_res and sync_res.get("status") == "error":
                                 provider_err = sync_res.get("message")
                         except asyncio.TimeoutError:
-                            logger.info(f"Live calendar sync timed out after 4.5s for {target_date} - continuing with local database records.")
-                            provider_err = "Data Provider Notice: Live sync timed out. Operating on local verified database records."
+                            logger.info(f"Live calendar sync timed out after 9.0s for {target_date} - continuing background sync.")
+                            provider_sync_pending = True
+                            provider_err = "Data Provider Notice: Live sync in progress. Operating on verified records."
                         
                         count_res = await db.execute(
                             select(func.count(HistoricalMatch.id)).where(
@@ -7503,6 +7505,7 @@ async def get_calendar_daily_slate(
             "matches_count": len(match_cards),
             "matches": match_cards,
             "provider_status": p_status,
+            "provider_sync_pending": provider_sync_pending,
             "provider_message": p_msg
         }
         # Idempotently persist genuine pre-kickoff predictions with cache retry handling
