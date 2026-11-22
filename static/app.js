@@ -6817,8 +6817,9 @@
                 ${isBanter ? 'Clear Filters &amp; Show All' : 'Reset Filters &amp; Show All'}
               </button>
             ` : (!isProviderError ? `
-              <button class="btn-empty-today" id="btnEmptyGoToday">
-                ${isBanter ? "See Today Matches" : "View Today's Slate"}
+              <button class="btn-empty-today" id="btnEmptyViewUpcomingSlate" style="background: #00d665; color: #052e16; font-weight: 800; border: none; display: inline-flex; align-items: center; gap: 0.45rem;">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                <span>${isBanter ? 'View Next Active Matches' : 'View Verified Match Slate'}</span>
               </button>
             ` : '')}
             <button class="btn-empty-pick" id="btnEmptyPickDate">
@@ -6827,6 +6828,17 @@
           </div>
         </div>
       `;
+
+      const btnViewUpcoming = document.getElementById('btnEmptyViewUpcomingSlate');
+      if (btnViewUpcoming) {
+        btnViewUpcoming.addEventListener('click', () => {
+          const dates = state.calendar.availableDates || [];
+          const curr = state.calendar.selectedDate || getSystemTodayDateStr();
+          const future = dates.filter(d => d > curr).sort();
+          const target = future.length > 0 ? future[0] : (dates.length > 0 ? dates[dates.length - 1] : 'next-5-days');
+          selectCalendarDate(target);
+        });
+      }
 
       const btnViewLatest = document.getElementById('btnEmptyViewLatestSlate');
       if (btnViewLatest) {

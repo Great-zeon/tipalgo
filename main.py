@@ -4899,6 +4899,8 @@ async def lifespan(app: FastAPI):
                         await ensure_whitelisted_users(session)
                     from seed_extended_standings import seed_extended_standings
                     await asyncio.to_thread(seed_extended_standings)
+                    from seed_live_calendar_slates import seed_calendar_slates
+                    await asyncio.to_thread(seed_calendar_slates)
                 except Exception as e:
                     logger.warning(f"Whitelisted user setup notice: {e}")
                 break
