@@ -5404,19 +5404,6 @@
           return;
         }
 
-        // Automatic fallback: If requested date has 0 matches (e.g. today when provider is offline),
-        // seamlessly fall back to the most recent date with verified records so the user is never stranded on an error screen!
-        const sysToday = getSystemTodayDateStr();
-        if ((!data.matches || data.matches.length === 0) && (targetDate === sysToday || targetDate === 'today') && data.available_dates && data.available_dates.length > 0) {
-          const pastDates = data.available_dates.filter(d => d <= sysToday).sort();
-          const fallbackDate = pastDates.length > 0 ? pastDates[pastDates.length - 1] : data.available_dates[data.available_dates.length - 1];
-          if (fallbackDate && fallbackDate !== targetDate) {
-            console.info(`No matches recorded for ${targetDate}. Gracefully loading latest verified slate: ${fallbackDate}`);
-            loadCalendarSlate(fallbackDate, targetEndpoint);
-            return;
-          }
-        }
-
         applyCalendarSlateData(data);
       } catch (err) {
         if (!cached) {
