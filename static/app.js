@@ -5294,47 +5294,56 @@
   }
 
   function applyCalendarSlateData(data) {
-    state.calendar.data = data;
-    state.calendar.selectedDate = data.selected_date;
-    state.calendar.selectedEndpoint = data.active_endpoint;
-    state.calendar.availableDates = data.available_dates || [];
-    state.calendar.endpoints = data.endpoints || [];
+    if (!data) return;
+    try {
+      state.calendar.data = data;
+      state.calendar.selectedDate = data.selected_date;
+      state.calendar.selectedEndpoint = data.active_endpoint;
+      state.calendar.availableDates = data.available_dates || [];
+      state.calendar.endpoints = data.endpoints || [];
 
-    // Update Date Header Banner
-    if (data.selected_date === 'next-5-days') {
-      if (dom.calendarBannerTitle) {
-        dom.calendarBannerTitle.innerHTML = `<span>Top Matches Across Next 5 Days</span> <span class="cal-badge-pill live">${data.total_fixtures || data.matches_count} Fixtures</span>`;
+      // Update Date Header Banner
+      if (data.selected_date === 'next-5-days') {
+        if (dom.calendarBannerTitle) {
+          dom.calendarBannerTitle.innerHTML = `<span>Top Matches Across Next 5 Days</span> <span class="cal-badge-pill live">${data.total_fixtures || data.matches_count || (data.matches ? data.matches.length : 0)} Fixtures</span>`;
+        }
+        if (dom.calendarBannerSub) {
+          dom.calendarBannerSub.textContent = 'Vetted quantitative predictions calculated from bivariate Poisson expectancies and form indicators';
+        }
+      } else if (data.selected_date) {
+        try {
+          const parts = data.selected_date.split('-').map(Number);
+          const dObj = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+          const dayOptions = { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' };
+          const dateFormatted = dObj.toLocaleDateString('en-US', dayOptions);
+          const isToday = data.selected_date === getSystemTodayDateStr();
+          if (dom.calendarBannerTitle) {
+            dom.calendarBannerTitle.innerHTML = `<span>Betting Tips of ${isToday ? 'Today, ' : ''}${dateFormatted}</span> <span class="cal-badge-pill live">${data.total_fixtures || data.matches_count || (data.matches ? data.matches.length : 0)} Matches Available</span>`;
+          }
+          if (dom.calendarBannerSub) {
+            dom.calendarBannerSub.textContent = 'Verified probabilistic selections across all 33 quantitative model endpoints';
+          }
+        } catch(e) {
+          console.warn('Date formatting notice:', e);
+        }
       }
-      if (dom.calendarBannerSub) {
-        dom.calendarBannerSub.textContent = 'Vetted quantitative predictions calculated from bivariate Poisson expectancies and form indicators';
+
+      renderCalendarDateStrip();
+      renderCalendarEndpointsDropdown();
+      populateCalendarLeagueDropdown(data.matches);
+
+      // Auto-bind activeFixture to today's real first match
+      if (data.matches && data.matches.length > 0) {
+        if (!state.activeFixture || state.activeFixture.home_team === 'Arsenal') {
+          state.activeFixture = data.matches[0];
+          updateActiveFixtureUI();
+        }
       }
-    } else {
-      const parts = data.selected_date.split('-').map(Number);
-      const dObj = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
-      const dayOptions = { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' };
-      const dateFormatted = dObj.toLocaleDateString('en-US', dayOptions);
-      const isToday = data.selected_date === getSystemTodayDateStr();
-      if (dom.calendarBannerTitle) {
-        dom.calendarBannerTitle.innerHTML = `<span>Betting Tips of ${isToday ? 'Today, ' : ''}${dateFormatted}</span> <span class="cal-badge-pill live">${data.total_fixtures || data.matches_count} Matches Available</span>`;
-      }
-      if (dom.calendarBannerSub) {
-        dom.calendarBannerSub.textContent = 'Verified probabilistic selections across all 33 quantitative model endpoints';
-      }
+    } catch(err) {
+      console.error('Error applying calendar slate metadata:', err);
+    } finally {
+      renderCalendarMatchesFeed();
     }
-
-    renderCalendarDateStrip();
-    renderCalendarEndpointsDropdown();
-    populateCalendarLeagueDropdown(data.matches);
-
-    // Auto-bind activeFixture to today's real first match
-    if (data.matches && data.matches.length > 0) {
-      if (!state.activeFixture || state.activeFixture.home_team === 'Arsenal') {
-        state.activeFixture = data.matches[0];
-        updateActiveFixtureUI();
-      }
-    }
-
-    renderCalendarMatchesFeed();
   }
 
   async function loadCalendarSlate(dateStr, endpointId = 'all', page = 1, limit = 100) {

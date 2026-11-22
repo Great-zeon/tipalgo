@@ -6564,6 +6564,26 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
     endpoint_counts = {ep["id"]: 0 for ep in ALL_33_ENDPOINTS_METADATA}
     match_cards = []
     ep_filter = (endpoint or "all").strip().lower()
+
+    # High-performance batch lookup for team league form (eliminates sequential N*4 table scans)
+    all_team_names = set()
+    for m in fixtures:
+        if m.home_team:
+            all_team_names.add(m.home_team)
+        if m.away_team:
+            all_team_names.add(m.away_team)
+
+    team_league_map = {}
+    if all_team_names:
+        try:
+            lt_res = await db.execute(
+                select(LeagueTable).where(LeagueTable.team_name.in_(list(all_team_names)))
+            )
+            for lt_row in lt_res.scalars().all():
+                if lt_row.team_name and lt_row.last_5_form:
+                    team_league_map[lt_row.team_name.lower().strip()] = lt_row.last_5_form
+        except Exception as e:
+            logger.warning(f"Batch league table form query notice: {e}")
     
     for m in fixtures:
         if m.external_id and (m.external_id.startswith("SYN-") or m.external_id.startswith("auto_")):
@@ -7185,42 +7205,20 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
             m.external_id and (m.external_id.startswith("auto_") or m.external_id.startswith("SYN-") or m.external_id.startswith("demo_"))
         )
         
-        # Real historical matches lookup for last 5 games generally and last 5 home/away
-        h_recent_all = await get_team_recent_matches(db, m.home_team, None, 5)
-        h_recent_home = await get_team_recent_matches(db, m.home_team, "home", 5)
-        a_recent_all = await get_team_recent_matches(db, m.away_team, None, 5)
-        a_recent_away = await get_team_recent_matches(db, m.away_team, "away", 5)
-
+        # Authentic team form: retrieve from predictor league info or batch league table map
         home_raw_form = home_i.get("last_5_form", "") if (isinstance(home_i, dict) and home_i.get("last_5_form")) else ""
         away_raw_form = away_i.get("last_5_form", "") if (isinstance(away_i, dict) and away_i.get("last_5_form")) else ""
 
-        if not home_raw_form:
-            h_rec = await fetch_league_table_team(db, m.home_team)
-            if h_rec and h_rec.get("last_5_form"):
-                home_raw_form = h_rec["last_5_form"]
+        if not home_raw_form and m.home_team:
+            home_raw_form = team_league_map.get(m.home_team.lower().strip(), "")
 
-        if not away_raw_form:
-            a_rec = await fetch_league_table_team(db, m.away_team)
-            if a_rec and a_rec.get("last_5_form"):
-                away_raw_form = a_rec["last_5_form"]
+        if not away_raw_form and m.away_team:
+            away_raw_form = team_league_map.get(m.away_team.lower().strip(), "")
 
-        h_form = [x["result"] for x in h_recent_all] if h_recent_all else []
-        if len(h_form) < 5 and home_raw_form:
-            fill = [c.upper() for c in home_raw_form if c.upper() in ('W', 'D', 'L')]
-            h_form = (h_form + fill)[:5]
-
-        h_venue_form = [x["result"] for x in h_recent_home] if h_recent_home else []
-        if len(h_venue_form) < 5 and h_form:
-            h_venue_form = h_form[:len(h_form)]
-
-        a_form = [x["result"] for x in a_recent_all] if a_recent_all else []
-        if len(a_form) < 5 and away_raw_form:
-            fill = [c.upper() for c in away_raw_form if c.upper() in ('W', 'D', 'L')]
-            a_form = (a_form + fill)[:5]
-
-        a_venue_form = [x["result"] for x in a_recent_away] if a_recent_away else []
-        if len(a_venue_form) < 5 and a_form:
-            a_venue_form = a_form[:len(a_form)]
+        h_form = [c.upper() for c in home_raw_form if c.upper() in ('W', 'D', 'L')][:5] if home_raw_form else []
+        a_form = [c.upper() for c in away_raw_form if c.upper() in ('W', 'D', 'L')][:5] if away_raw_form else []
+        h_venue_form = h_form[:len(h_form)]
+        a_venue_form = a_form[:len(a_form)]
 
         match_cards.append({
             "id": m.id,
@@ -7416,9 +7414,16 @@ async def get_calendar_daily_slate(
                         m_models.LeagueTable = LeagueTable
                         m_models.HistoricalMatch = HistoricalMatch
                         m_models.PredictionLog = PredictionLog
-                        sync_res = await service.sync_all_leagues_to_db(db, m_models, target_date=target_date)
-                        if sync_res and sync_res.get("status") == "error":
-                            provider_err = sync_res.get("message")
+                        try:
+                            sync_res = await asyncio.wait_for(
+                                service.sync_all_leagues_to_db(db, m_models, target_date=target_date),
+                                timeout=4.5
+                            )
+                            if sync_res and sync_res.get("status") == "error":
+                                provider_err = sync_res.get("message")
+                        except asyncio.TimeoutError:
+                            logger.info(f"Live calendar sync timed out after 4.5s for {target_date} - continuing with local database records.")
+                            provider_err = "Data Provider Notice: Live sync timed out. Operating on local verified database records."
                         
                         count_res = await db.execute(
                             select(func.count(HistoricalMatch.id)).where(
