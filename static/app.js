@@ -3197,7 +3197,7 @@
                     </div>
                   `}
                   <div class="em-settled-status-group">
-                    <span class="em-settled-score-pill">Score: ${hScore} - ${aScore}</span>
+                    ${(m.home_score != null && m.away_score != null) ? `<span class="em-settled-score-pill">Score: ${m.home_score} - ${m.away_score}</span>` : ''}
                     ${isPredictionIneligible ? `
                       <span class="em-settled-outcome-pill ineligible" style="background: rgba(148, 163, 184, 0.2); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.4); font-weight: 700; font-size: 0.72rem; padding: 0.25rem 0.6rem; border-radius: 9999px;">
                         NO PREDICTION (INELIGIBLE)

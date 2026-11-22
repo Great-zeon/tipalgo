@@ -4899,8 +4899,14 @@ async def lifespan(app: FastAPI):
                         await ensure_whitelisted_users(session)
                     from seed_extended_standings import seed_extended_standings
                     await asyncio.to_thread(seed_extended_standings)
-                    from seed_live_calendar_slates import seed_calendar_slates
-                    await asyncio.to_thread(seed_calendar_slates)
+                    try:
+                        from scratch.sync_offline_provider_artifacts import ingest_raw_file
+                        if os.path.exists("reports/raw_provider_response_2026-11-22.json"):
+                            await asyncio.to_thread(ingest_raw_file, "reports/raw_provider_response_2026-11-22.json", "2026-11-22")
+                        if os.path.exists("reports/raw_provider_response_2026-11-23.json"):
+                            await asyncio.to_thread(ingest_raw_file, "reports/raw_provider_response_2026-11-23.json", "2026-11-23")
+                    except Exception as ingest_ex:
+                        logger.warning(f"Provider artifact sync notice: {ingest_ex}")
                 except Exception as e:
                     logger.warning(f"Whitelisted user setup notice: {e}")
                 break
