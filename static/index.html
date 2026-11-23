@@ -36,7 +36,7 @@
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet">
 
-  <link rel="stylesheet" href="/static/style.css?v=118">
+  <link rel="stylesheet" href="/static/style.css?v=119">
 </head>
 
 <body class="light-platform">
@@ -100,7 +100,7 @@
                 <a href="#" class="dropdown-link-item" data-endpoint-target="goal-both-halves">Goal in Both Halves</a>
               </div>
               <div class="dropdown-category-col">
-                <div class="dropdown-category-title">Quant &amp; Value Models</div>
+                <div class="dropdown-category-title">Predictive Models</div>
                 <a href="#" class="dropdown-link-item" data-tab-target="view-bankers">80%+ Banker Slate</a>
                 <a href="#" class="dropdown-link-item" data-tab-target="view-screener">Value Screener (+EV)</a>
                 <a href="#" class="dropdown-link-item" data-endpoint-target="super-tips">Super Tips Premium</a>
@@ -540,7 +540,7 @@
                   <input type="text" inputmode="search" id="inputCalendarSearchTeam" name="match_lookup_query"
                     class="grand-search-input calendar-team-search-input"
                     placeholder="Search teams, leagues, or matches..." autocomplete="one-time-code" data-lpignore="true"
-                    data-1p-ignore="true" data-form-type="other" readonly onfocus="this.removeAttribute('readonly');"
+                    data-1p-ignore="true" data-form-type="other"
                     autocorrect="off" autocapitalize="off" spellcheck="false">
                   <button type="button" class="btn-clear-cal-search" id="btnClearCalSearch" title="Clear search"
                     style="display: none;">
@@ -806,10 +806,10 @@
               <line x1="19" y1="12" x2="5" y2="12"></line>
               <polyline points="12 19 5 12 12 5"></polyline>
             </svg>
-            <span id="textBackOverview">&larr; Back to Matches</span>
+            <span id="textBackOverview">Back to Matches</span>
           </button>
           <div class="footy-nav-right">
-            <span class="footy-quant-audit-pill" id="analyticsModePill">QUANT MODEL AUDIT</span>
+            <span class="footy-quant-audit-pill" id="analyticsModePill">MATCH MODEL AUDIT</span>
           </div>
         </div>
 
@@ -952,14 +952,13 @@
                     <line x1="12" y1="20" x2="12" y2="4" />
                     <line x1="6" y1="20" x2="6" y2="14" />
                   </svg></span>
-                <h3 class="footy-ai-title">Mathematical Model Summary &amp; Match Context</h3>
+                <h3 class="footy-ai-title">Match Breakdown &amp; Context</h3>
               </div>
               <div class="footy-ai-narrative" id="footyAiSummaryText">
-                Running bivariate Poisson simulation &amp; quantitative model analysis...
+                Analyzing match data and model expectancy...
               </div>
               <p class="footy-trailing-note" id="footyTrailingNote">
-                * Calculated from calibrated Bivariate Poisson distributions, Dixon-Coles goal expectation, and verified
-                league data.
+                * Calibrated against verified league results and historical goal expectancy.
               </p>
             </div>
 
@@ -1019,10 +1018,9 @@
             <!-- 6. SECTION 2: TECHNICAL ALGORITHMIC AUDIT - WHY THIS PREDICTION WAS PICKED -->
             <div class="footy-stat-card footy-why-audit-card" id="footyWhyAuditSection">
               <div class="why-audit-header">
-                <div class="why-badge-pill">TECHNICAL AUDIT</div>
-                <h2 class="why-audit-title">Why This Prediction Was Picked (Algorithmic Rationale)</h2>
-                <p class="why-audit-subtitle">Comprehensive mathematical justification across expected goals (xG),
-                  probability pricing, capital sizing, and all 33 predictive models.</p>
+                <div class="why-badge-pill">MODEL AUDIT</div>
+                <h2 class="why-audit-title">Why This Prediction Was Picked</h2>
+                <p class="why-audit-subtitle">Clear breakdown of projected goals, value pricing, recommended stake, and model probability.</p>
               </div>
 
               <!-- 3 Why Pillars: Why Winner, Why Odds/Market, Why Stake -->
@@ -1073,9 +1071,8 @@
               <div class="why-endpoints-matrix-wrap">
                 <div class="why-matrix-title-row">
                   <div>
-                    <h3 class="why-matrix-title">All 33 Quantitative Endpoints Audit</h3>
-                    <p class="why-matrix-sub">Technical comparison of model probabilities, fair pricing, bookmaker odds,
-                      value edge, and decision factors.</p>
+                    <h3 class="why-matrix-title">All 33 Prediction Markets Breakdown</h3>
+                    <p class="why-matrix-sub">Side-by-side comparison of model probabilities, bookmaker odds, value edge, and verdict.</p>
                   </div>
                   <div class="why-category-filter-pills" id="auditCategoryPills">
                     <button type="button" class="why-cat-pill active" data-cat="all">All 33 Models</button>
@@ -1468,7 +1465,7 @@
                 <div class="profile-user-info-text">
                   <h3 id="profileBigName">Jonathan John</h3>
                   <span id="profileBigHandle">@demopro · Pro Subscriber</span>
-                  <span class="profile-tier-badge">VERIFIED QUANT TRADER</span>
+                  <span class="profile-tier-badge">VERIFIED PRO TRADER</span>
                 </div>
               </div>
 
@@ -2944,7 +2941,7 @@
       .then(function (data) { if (data) window.__teamForms = data; })
       .catch(function () { });
   </script>
-  <script src="/static/app.js?v=118"></script>
+  <script src="/static/app.js?v=119"></script>
 </body>
 
 </html>

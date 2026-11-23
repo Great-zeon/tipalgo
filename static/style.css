@@ -9742,10 +9742,15 @@ body,
 .calendar-limitless-dropdown-menu,
 .cal-limitless-trigger-bar,
 .club-planning-search-banner {
-  transition: background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-              border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-              color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: none !important;
+}
+
+/* Eliminate staggered multi-stage theme transitions so light & dark mode switch simultaneously */
+body.light-theme-mode,
+body.dark-theme-mode,
+body.light-theme-mode *,
+body.dark-theme-mode * {
+  transition: none !important;
 }
 
 /* WebKit Search Input Duplicate Decoration Suppression */
@@ -18602,5 +18607,280 @@ select option {
     .dash-stats-grid {
       grid-template-columns: 1fr !important;
     }
+  }
+}
+
+/* ===================================================================
+   MOBILE REFINEMENTS: NO IOS AUTO-ZOOM, NOTIFICATIONS POPOVER,
+   AND MATCH DETAILS BREAKDOWN MOBILE CARD OPTIMIZATION
+   =================================================================== */
+
+/* Prevent iOS Safari forced auto-zoom on input tap by guaranteeing 16px font-size */
+@media (max-width: 768px) {
+  input,
+  select,
+  textarea,
+  .grand-search-input,
+  .calendar-team-search-input,
+  .search-bar-input,
+  .history-search-input,
+  .filter-select {
+    font-size: 16px !important;
+  }
+
+  /* Notifications Popover: Mobile Placement (Aligned cleanly within screen bounds) */
+  .notifications-popover {
+    position: absolute !important;
+    top: calc(100% + 8px) !important;
+    right: 10px !important;
+    left: auto !important;
+    width: calc(100vw - 20px) !important;
+    max-width: 360px !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+  }
+
+  /* Match Breakdown Hub (#view-match-analytics) Mobile Refinements */
+  #view-match-analytics {
+    width: 100% !important;
+    max-width: 100vw !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  .footystats-top-nav-bar {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    justify-content: space-between !important;
+    gap: 0.5rem !important;
+  }
+
+  .btn-back-overview {
+    padding: 0.45rem 0.75rem !important;
+    font-size: 0.8rem !important;
+    flex-shrink: 0 !important;
+  }
+
+  .footystats-subnav-ribbon {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding: 0.35rem 0.5rem !important;
+    scrollbar-width: none !important;
+  }
+  .footystats-subnav-ribbon::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .footy-main-subnav {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    white-space: nowrap !important;
+    gap: 0.5rem !important;
+  }
+
+  .footystats-tag-pills-bar {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+  }
+  .footystats-tag-pills-bar::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .footy-tag-pill {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  /* Sure Prediction Hero Card on Mobile */
+  .sure-prediction-hero-card {
+    padding: 0.9rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .sure-pred-main-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.85rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .sure-pred-info {
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .sure-pred-cta-box {
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .sure-pred-title {
+    font-size: 1.15rem !important;
+    word-break: break-word !important;
+  }
+
+  .sure-pred-metrics-row {
+    gap: 0.4rem !important;
+  }
+
+  /* 3 Why Pillars on Mobile */
+  .why-pillars-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .why-pillar-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* All 33 Markets Table on Mobile: Responsive Card Architecture */
+  .why-matrix-title-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.65rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .why-category-filter-pills {
+    display: flex !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 3px !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+  }
+  .why-category-filter-pills::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .why-cat-pill {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  .why-endpoints-matrix-wrap {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  .endpoints-audit-table {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  .audit-table-header-row {
+    display: none !important;
+  }
+
+  .audit-endpoint-row {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.45rem 0.65rem !important;
+    padding: 0.85rem !important;
+    border-radius: 8px !important;
+    background: rgba(255, 255, 255, 0.02) !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    margin-bottom: 0.55rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .audit-endpoint-row .audit-col-name {
+    grid-column: 1 / -1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.15rem !important;
+  }
+
+  .audit-endpoint-row .audit-market-name {
+    font-size: 0.9rem !important;
+    font-weight: 800 !important;
+    color: #ffffff !important;
+  }
+
+  .audit-endpoint-row .audit-market-sub {
+    font-size: 0.78rem !important;
+    color: #94a3b8 !important;
+  }
+
+  .audit-endpoint-row .audit-col-odds {
+    grid-column: 1 !important;
+    text-align: left !important;
+  }
+
+  .audit-endpoint-row .audit-col-prob {
+    grid-column: 2 !important;
+    text-align: left !important;
+  }
+
+  .audit-endpoint-row .audit-col-edge {
+    grid-column: 1 !important;
+    text-align: left !important;
+  }
+
+  .audit-endpoint-row .audit-col-badge {
+    grid-column: 2 !important;
+    text-align: left !important;
+  }
+
+  .audit-endpoint-row .audit-plain-expl {
+    grid-column: 1 / -1 !important;
+    font-size: 0.78rem !important;
+    line-height: 1.45 !important;
+    color: #94a3b8 !important;
+    padding-top: 0.35rem !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+    margin-top: 0.2rem !important;
+  }
+
+  /* Standings table on Mobile */
+  .footy-standings-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .footy-standings-table-wrap {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .footy-standings-table {
+    min-width: 320px !important;
+    width: 100% !important;
   }
 }

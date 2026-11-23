@@ -1915,7 +1915,7 @@
       slipTotalOdds: "Total Odds",
       slipReturn: "Potential Return",
       slipBookBtn: "Book Bet / Generate Code",
-      slipAuditBtn: "Run Quant Model Audit",
+      slipAuditBtn: "Run Match Audit",
 
       subtabContest: "Top Banker Pick",
       subtabAnalytics: "Full Match Breakdown",
@@ -1937,8 +1937,8 @@
       pillBestEdge: "Best Edge",
       pillAllMarkets: "All Markets",
 
-      textBackOverview: "← Back to Matches",
-      analyticsModePill: "QUANT MODEL AUDIT",
+      textBackOverview: "Back to Matches",
+      analyticsModePill: "MATCH MODEL AUDIT",
       labelHomeOdds: "Home (1)",
       labelDrawOdds: "Draw (X)",
       labelAwayOdds: "Away (2)",
@@ -2022,8 +2022,8 @@
       pillBestEdge: "Best Edge",
       pillAllMarkets: "All Markets",
 
-      textBackOverview: "← Back to Matches",
-      analyticsModePill: "QUANT MODEL AUDIT",
+      textBackOverview: "Back to Matches",
+      analyticsModePill: "MATCH MODEL AUDIT",
       labelHomeOdds: "Home (1)",
       labelDrawOdds: "Draw (X)",
       labelAwayOdds: "Away (2)",
@@ -2470,7 +2470,7 @@
     const grandViewTitle = document.querySelector('.grand-view-title');
     if (grandViewTitle) grandViewTitle.textContent = isBanter ? '33 Chop Endpoints' : '33 Prediction Endpoints';
     const grandActiveModelsBadge = document.querySelector('.grand-active-models-badge');
-    if (grandActiveModelsBadge) grandActiveModelsBadge.textContent = isBanter ? '33 Chop Endpoints Active' : '33 Quantitative Endpoints';
+    if (grandActiveModelsBadge) grandActiveModelsBadge.textContent = isBanter ? '33 Chop Endpoints Active' : '33 Market Endpoints';
     const grandViewSubtitle = document.querySelector('.grand-view-subtitle');
     if (grandViewSubtitle) {
       grandViewSubtitle.textContent = isBanter
@@ -2928,7 +2928,7 @@
     {
       num: '33',
       id: 'value-screener',
-      name: 'Quant Value Screener',
+      name: 'Value Screener',
       category: 'ai',
       catLabel: 'Statistical Radar',
       icon: '+EV',
@@ -4565,7 +4565,7 @@
       else if (state.previousView === 'view-dashboard') backLabel = 'Back to Dashboard';
       
       const textSpan = backBtn.querySelector('span:last-child') || backBtn;
-      textSpan.textContent = `← ${backLabel}`;
+      textSpan.textContent = backLabel;
     }
 
     if (f) loadMatchAnalytics(f);
@@ -4581,7 +4581,7 @@
       narrativeBox.innerHTML = `
         <div style="display: flex; align-items: center; gap: 0.65rem; color: #4f46e5; font-weight: 700;">
           <div class="loader-spinner" style="width: 18px; height: 18px; border: 2px solid #e0e7ff; border-top-color: #4f46e5; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
-          <span>${state.personalityMode === 'BANTER' ? 'We dey run full analysis for this match...' : 'Running bivariate Poisson simulation & multi-market audit...'}</span>
+          <span>${state.personalityMode === 'BANTER' ? 'We dey run full analysis for this match...' : 'Analyzing match data and model expectancy...'}</span>
         </div>
       `;
     }
@@ -5156,7 +5156,7 @@
         <span style="text-align: center;">Model Prob</span>
         <span style="text-align: center;">Edge</span>
         <span style="text-align: center;">Status</span>
-        <span>Technical Reason &amp; Algorithmic Factor</span>
+        <span>Model Rationale</span>
       </div>
       ${filtered.map(row => {
         const edgeNum = parseFloat(row.value_edge) || 0;
@@ -6262,7 +6262,7 @@
     },
     {
       catId: 'ai',
-      catName: 'AI Radar & Quantitative Models',
+      catName: 'AI Radar & Statistical Models',
       endpoints: [
         { id: 'ml-predictor', num: '24', name: 'Machine Learning Ensemble' },
         { id: 'sure-bet', num: '25', name: 'Sure Bet High Probability' },
@@ -7580,7 +7580,7 @@
               <div class="banner-33-content">
                 <div class="banner-33-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg></div>
                 <div class="banner-33-text">
-                  <h3>Browse All 33 Quantitative Betting Markets</h3>
+                  <h3>Browse All 33 Betting Markets</h3>
                   <p>Inspect every model endpoint in our mathematical football engine.</p>
                 </div>
               </div>
@@ -8652,7 +8652,7 @@
 
       const dropSub = document.getElementById('dropdownUserSub');
       if (dropSub) {
-        dropSub.textContent = state.user.email || 'Quantitative Model Member';
+        dropSub.textContent = state.user.email || 'Pro Member';
       }
 
       const dropBankroll = document.getElementById('dropdownBankrollVal');
@@ -8666,7 +8666,7 @@
       const profileHandle = document.getElementById('profileBigHandle');
       if (profileName) profileName.textContent = uname;
       if (profileAvatar) profileAvatar.textContent = initials;
-      if (profileHandle) profileHandle.textContent = `@${uname} · ${isPro ? 'Pro Quantitative Tier' : 'Free Tier'}`;
+      if (profileHandle) profileHandle.textContent = `@${uname} · ${isPro ? 'Pro Tier' : 'Free Tier'}`;
 
       const statViews = document.getElementById('statPostViews');
       const statItems = document.getElementById('statItemsFound');
@@ -8682,7 +8682,7 @@
 
       if (dom.displayUserTier) {
         const ph = state.user.phone_number ? ` · ${state.user.phone_number}` : '';
-        dom.displayUserTier.textContent = `${isPro ? 'PRO QUANTITATIVE SUBSCRIBER' : 'FREE ACCOUNT'}${ph}`;
+        dom.displayUserTier.textContent = `${isPro ? 'PRO SUBSCRIBER' : 'FREE ACCOUNT'}${ph}`;
       }
     }
   }
@@ -9891,7 +9891,7 @@
       const bigName = document.getElementById('profileBigName');
       if (bigName) bigName.textContent = uname;
       const bigHandle = document.getElementById('profileBigHandle');
-      if (bigHandle) bigHandle.textContent = `@${uname} · ${isPro ? 'Pro Quantitative Tier' : 'Free Tier'}`;
+      if (bigHandle) bigHandle.textContent = `@${uname} · ${isPro ? 'Pro Tier' : 'Free Tier'}`;
       const otpPhone = document.getElementById('profOtpTargetPhone');
       if (otpPhone) otpPhone.textContent = phone;
 
