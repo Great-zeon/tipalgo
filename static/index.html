@@ -36,7 +36,7 @@
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet">
 
-  <link rel="stylesheet" href="/static/style.css?v=117">
+  <link rel="stylesheet" href="/static/style.css?v=118">
 </head>
 
 <body class="light-platform">
@@ -537,7 +537,7 @@
                     <circle cx="11" cy="11" r="8"></circle>
                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                   </svg>
-                  <input type="search" id="inputCalendarSearchTeam" name="match_lookup_query"
+                  <input type="text" inputmode="search" id="inputCalendarSearchTeam" name="match_lookup_query"
                     class="grand-search-input calendar-team-search-input"
                     placeholder="Search teams, leagues, or matches..." autocomplete="one-time-code" data-lpignore="true"
                     data-1p-ignore="true" data-form-type="other" readonly onfocus="this.removeAttribute('readonly');"
@@ -1365,7 +1365,7 @@
                   <option value="btts-yes">Both Teams to Score (BTTS)</option>
                   <option value="away-win">Away Win</option>
                 </select>
-                <input type="search" class="history-search-input" id="histSearchInput" name="history_filter_query"
+                <input type="text" inputmode="search" class="history-search-input" id="histSearchInput" name="history_filter_query"
                   placeholder="Search team or league..." autocomplete="off" data-lpignore="true" data-1p-ignore="true"
                   data-form-type="other" spellcheck="false" />
               </div>
@@ -2944,7 +2944,7 @@
       .then(function (data) { if (data) window.__teamForms = data; })
       .catch(function () { });
   </script>
-  <script src="/static/app.js?v=117"></script>
+  <script src="/static/app.js?v=118"></script>
 </body>
 
 </html>

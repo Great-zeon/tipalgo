@@ -3610,6 +3610,28 @@
     const countryFlagMini = countryInfo ? `<img src="https://flagcdn.com/w40/${countryInfo.cc}.png" alt="" aria-hidden="true" class="grid-league-flag-mini">` : '';
     const leagueDisplayName = m.league_name ? escapeHtmlUtil(m.league_name) : (m.country ? escapeHtmlUtil(m.country) : '');
 
+    let dateTagHtml = '';
+    let matchDateStr = m.display_date_wat || m.match_date_wat || '';
+    if (!matchDateStr && m.match_date) {
+      try {
+        const rawIso = String(m.match_date || '');
+        const isoWithZ = rawIso.endsWith('Z') || rawIso.includes('+') ? rawIso : (rawIso.includes('T') ? rawIso + 'Z' : rawIso.replace(' ', 'T') + 'Z');
+        const dt = new Date(isoWithZ);
+        if (!isNaN(dt.getTime())) {
+          matchDateStr = dt.toLocaleDateString('en-GB', { timeZone: 'Africa/Lagos', day: '2-digit', month: 'short' });
+        }
+      } catch (e) {}
+    } else if (matchDateStr && matchDateStr.includes('-')) {
+      try {
+        const p = matchDateStr.split('-').map(Number);
+        const dt = new Date(Date.UTC(p[0], p[1] - 1, p[2]));
+        matchDateStr = dt.toLocaleDateString('en-GB', { timeZone: 'UTC', day: '2-digit', month: 'short' });
+      } catch(e) {}
+    }
+    if (matchDateStr) {
+      dateTagHtml = `<span class="grid-date-badge" style="display:inline-flex; align-items:center; background:rgba(56, 189, 248, 0.12); color:#38bdf8; font-weight:700; font-size:0.72rem; padding:2px 7px; border-radius:4px; border:1px solid rgba(56, 189, 248, 0.25); margin-right:4px;">${escapeHtmlUtil(matchDateStr)}</span>`;
+    }
+
     return `
       <div class="grid-match-card ${isBanker ? 'is-banker' : ''} ${isFinished ? 'is-settled' : ''}" data-match-id="${m.id || cardIdx}" data-status="${m.status || ''}">
         <!-- Card Header: Clean League + Kickoff Time -->
@@ -3618,6 +3640,7 @@
             ${countryFlagMini}<span class="grid-league-title">${leagueDisplayName}</span>
           </span>
           <div class="grid-card-header-meta">
+            ${dateTagHtml}
             ${timeTagHtml}
           </div>
         </div>
@@ -7510,8 +7533,31 @@
           filterSummaryTitle = foundEp ? foundEp.name : state.calendar.selectedEndpoint;
         }
 
+        const clubPlanningBannerHtml = state.calendar.isClubSearchActive ? `
+          <div class="club-planning-search-banner">
+            <div class="planning-banner-content">
+              <div class="planning-banner-icon">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#38bdf8" stroke-width="2.2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+              </div>
+              <div class="planning-banner-text">
+                <h3 style="font-size:0.95rem; font-weight:800; color:#ffffff; margin:0 0 2px 0;">Multi-Date Fixture Planning</h3>
+                <p style="font-size:0.78rem; color:var(--text-secondary); margin:0;">
+                  Showing <strong>${matches.length} fixtures</strong> for "<strong>${esc(state.calendar.searchQuery)}</strong>" across all upcoming and past dates.
+                </p>
+              </div>
+            </div>
+            <button class="btn-clear-club-planning" onclick="if(window.clearClubSearch) window.clearClubSearch();">
+              <span>Back to Today's Slate &times;</span>
+            </button>
+          </div>
+        ` : '';
+
         html = `
           ${fallbackNoticeHtml}
+          ${clubPlanningBannerHtml}
           <div class="cards-view-container">
             <div style="margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
               <button class="btn-back-to-featured" id="btnBackToFeatured" onclick="if(window.appResetAllFilters) window.appResetAllFilters();" style="display:inline-flex; align-items:center; gap:0.4rem; padding:0.45rem 0.9rem; border-radius:var(--radius-pill); background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); color:#ffffff; font-size:0.8rem; font-weight:700; cursor:pointer;">
@@ -7524,9 +7570,9 @@
               </div>
             </div>
 
-            <!-- Responsive Cards Grid Sorted by Highest Prediction Probability -->
+            <!-- Responsive Cards Grid (Schedule order for planning, probability order for market filtering) -->
             <div class="endpoint-matches-slider" id="matchCardsGlobalGrid">
-              ${[...matches].sort((a, b) => ((b.top_prob || (b.top_tip && b.top_tip.prob_pct) || 0) - (a.top_prob || (a.top_tip && a.top_tip.prob_pct) || 0))).map((m, idx) => renderMatchCard(m, idx)).join('')}
+              ${(state.calendar.isClubSearchActive ? [...matches] : [...matches].sort((a, b) => ((b.top_prob || (b.top_tip && b.top_tip.prob_pct) || 0) - (a.top_prob || (a.top_tip && a.top_tip.prob_pct) || 0)))).map((m, idx) => renderMatchCard(m, idx)).join('')}
             </div>
 
             <!-- All 33 Endpoints CTA -->
@@ -8743,6 +8789,7 @@
       renderCalendarMatchesFeed();
     }
     window.appClearClubSearch = clearClubSearch;
+    window.clearClubSearch = clearClubSearch;
 
     if (inputCalSearch) {
       inputCalSearch.addEventListener('focus', () => {
@@ -9598,10 +9645,6 @@
         if (themeIconMoon) themeIconMoon.style.display = 'block';
         if (btnNavThemeToggle) btnNavThemeToggle.setAttribute('title', 'Switch to Dark Mode');
       }
-      const logoSrc = isDark ? '/static/img/sportymill_logo_transparent.webp' : '/static/img/sportymill_logo_light_theme.webp';
-      document.querySelectorAll('.brand-logo-img').forEach(img => {
-        img.src = logoSrc;
-      });
       try {
         localStorage.setItem('sportymill_theme_mode', isDark ? 'dark' : 'light');
       } catch (err) {}

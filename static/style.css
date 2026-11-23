@@ -9647,17 +9647,44 @@ body.light-theme-mode .notif-item-time {
 /* ===================================================================
    SMOOTH THEME TRANSITION SYSTEM & DYNAMIC BRAND LOGO
    =================================================================== */
+.platform-logo {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.brand-logo-img {
+  transition: opacity 0.25s ease-in-out, transform 0.2s ease !important;
+}
+
 .brand-logo-img.brand-logo-dark {
   display: block !important;
+  opacity: 1;
 }
+
 .brand-logo-img.brand-logo-light {
-  display: none !important;
-}
-body.light-theme-mode .brand-logo-img.brand-logo-dark {
-  display: none !important;
-}
-body.light-theme-mode .brand-logo-img.brand-logo-light {
   display: block !important;
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+body.light-theme-mode .brand-logo-img.brand-logo-dark {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+body.light-theme-mode .brand-logo-img.brand-logo-light {
+  opacity: 1 !important;
+  pointer-events: auto;
+}
+
+html,
+body {
+  transition: background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 body,
@@ -9703,15 +9730,36 @@ body,
 .modal-box,
 .header-select,
 .persona-styled-select,
-.tone-select-wrapper {
-  transition: background-color 0.25s ease,
-              border-color 0.25s ease,
-              color 0.2s ease,
-              box-shadow 0.25s ease !important;
+.tone-select-wrapper,
+.grand-endpoint-card,
+.banker-card,
+.dash-stat-card,
+.dash-launchpad-card,
+.saved-slip-card,
+.tool-module-card,
+.grand-category-pill,
+.grand-search-box,
+.calendar-limitless-dropdown-menu,
+.cal-limitless-trigger-bar,
+.club-planning-search-banner {
+  transition: background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-.brand-logo-img {
-  transition: opacity 0.2s ease;
+/* WebKit Search Input Duplicate Decoration Suppression */
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration,
+input.calendar-team-search-input::-webkit-search-decoration,
+input.calendar-team-search-input::-webkit-search-cancel-button,
+input.history-search-input::-webkit-search-decoration,
+input.history-search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none !important;
 }
 
 /* ===================================================================
@@ -18396,6 +18444,17 @@ select option {
   }
 
   /* Limitless Calendar Dropdown: Fixed Centered Native Modal with Dimmed Backdrop */
+  @keyframes calMobileModalEnter {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -48%) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+  }
+
   .calendar-limitless-dropdown-menu {
     position: fixed !important;
     top: 50% !important;
@@ -18403,6 +18462,7 @@ select option {
     right: auto !important;
     bottom: auto !important;
     transform: translate(-50%, -50%) !important;
+    animation: calMobileModalEnter 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
     width: min(380px, calc(100vw - 24px)) !important;
     max-width: 95vw !important;
     max-height: 85vh !important;
