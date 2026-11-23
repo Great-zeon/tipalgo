@@ -4238,6 +4238,7 @@ class BatchScanRequest(BaseModel):
 async def batch_scan_handler(db, user, matches, min_edge, predictor: PredictorService):
     results = []
     qualifying_count = 0
+    bankroll = user.bankroll if user and getattr(user, 'bankroll', None) else 1000000.0
     for m in matches:
         market_odds = m.get('market_odds')
         if not market_odds:
@@ -4245,18 +4246,75 @@ async def batch_scan_handler(db, user, matches, min_edge, predictor: PredictorSe
             if 'home_odds' in m: market_odds['home_win'] = float(m['home_odds'])
             if 'draw_odds' in m: market_odds['draw'] = float(m['draw_odds'])
             if 'away_odds' in m: market_odds['away_win'] = float(m['away_odds'])
+
         tip = await generate_sure_bet_tip(
             db, predictor,
             m['home_team'], m['away_team'],
             m.get('league_id', 'PL'), market_odds, min_edge,
-            m.get('bankroll', user.bankroll),
-            personality_mode=user.personality_mode, locale=user.locale
+            bankroll,
+            personality_mode=user.personality_mode if user else "PROFESSIONAL", locale=user.locale if user else "NG"
         )
+
+        if not tip.get("pattern_matched"):
+            try:
+                probs_data = await predictor.get_probabilities(db, m['home_team'], m['away_team'], m.get('league_id', 'PL'))
+                all_probs = probs_data.get('all_probs', {})
+                hp = float(probs_data.get('home_prob', 0.33))
+                dp = float(probs_data.get('draw_prob', 0.33))
+                ap = float(probs_data.get('away_prob', 0.33))
+                dc1x_p = float(all_probs.get('double_chance_1x', hp + dp))
+                dcx2_p = float(all_probs.get('double_chance_x2', ap + dp))
+                o15_p = float(all_probs.get('over_1_5', 0.70))
+
+                h_odds = float(market_odds.get('home_win', m.get('home_odds', 2.10)))
+                d_odds = float(market_odds.get('draw', m.get('draw_odds', 3.20)))
+                a_odds = float(market_odds.get('away_win', m.get('away_odds', 3.20)))
+                dc1x_odds = round(1.0 / (1.0/h_odds + 1.0/d_odds) * 1.04, 2)
+                dcx2_odds = round(1.0 / (1.0/a_odds + 1.0/d_odds) * 1.04, 2)
+                o15_odds = 1.32
+
+                candidates = [
+                    {'selection': f"{m['home_team']} Win", 'market': '1X2', 'prob': hp, 'odds': h_odds},
+                    {'selection': f"{m['home_team']} or Draw (1X)", 'market': 'Double Chance', 'prob': dc1x_p, 'odds': dc1x_odds},
+                    {'selection': f"{m['away_team']} or Draw (X2)", 'market': 'Double Chance', 'prob': dcx2_p, 'odds': dcx2_odds},
+                    {'selection': f"{m['away_team']} Win", 'market': '1X2', 'prob': ap, 'odds': a_odds},
+                    {'selection': 'Over 1.5 Goals', 'market': 'Totals', 'prob': o15_p, 'odds': o15_odds}
+                ]
+
+                for c in candidates:
+                    implied = 1.0 / c['odds']
+                    c['edge'] = c['prob'] - implied
+
+                best = max(candidates, key=lambda x: x['edge'])
+                has_edge = best['edge'] >= min_edge
+                stake = _calculate_kelly_stake(best['prob'], best['odds'], bankroll) if has_edge else 0
+
+                tip = {
+                    'pattern_matched': has_edge,
+                    'selection': best['selection'],
+                    'market': best['market'],
+                    'odds': best['odds'],
+                    'probability': best['prob'],
+                    'edge': best['edge'],
+                    'suggested_stake': stake
+                }
+            except Exception:
+                pass
+
+        if not tip.get("selection"):
+            is_insufficient = "Insufficient" in tip.get("message", "")
+            tip["selection"] = "Pass (Limited Data)" if is_insufficient else "Pass (Fair Line)"
+            tip["odds"] = round(float(market_odds.get('home_win', m.get('home_odds', 1.85))), 2)
+            tip["probability"] = 0.0
+            tip["edge"] = 0.0
+            tip["suggested_stake"] = 0
+            tip["pattern_matched"] = False
+
         if tip.get("pattern_matched"):
             qualifying_count += 1
         results.append({
             "match": f"{m['home_team']} vs {m['away_team']}",
-            "tip": tip if tip.get("pattern_matched") else None
+            "tip": tip
         })
     return {
         "results": results,

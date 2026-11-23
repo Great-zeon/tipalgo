@@ -36,7 +36,7 @@
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet">
 
-  <link rel="stylesheet" href="/static/style.css?v=109">
+  <link rel="stylesheet" href="/static/style.css?v=110">
 </head>
 
 <body class="light-platform">
@@ -1137,9 +1137,9 @@
       <section id="view-bankers" class="view-panel">
         <div class="panel-section-header">
           <div>
-            <span class="pill-badge-fire">High-Confidence Filter</span>
-            <h2>80%+ Probabilistic Bankers</h2>
-            <p>Matches with &ge; 80% model confidence and mathematically positive expected value.</p>
+            <span class="pill-badge pill-badge-fire">High Probability</span>
+            <h2>Banker Picks (80%+ Confidence)</h2>
+            <p>High-probability fixtures backed by Poisson goal models and verified market odds.</p>
           </div>
         </div>
         <div class="bankers-cards-grid" id="bankersSlateGrid"></div>
@@ -1199,9 +1199,9 @@
         <div class="screener-dribbble-card">
           <div class="screener-banner-header">
             <div>
-              <span class="pill-badge-cyan">Quantitative Market Radar</span>
+              <span class="pill-badge pill-badge-cyan">Value Radar</span>
               <h2>Side-Agnostic Value Screener</h2>
-              <p>Evaluates both home and away sides without bias to detect mispriced lines.</p>
+              <p>Unbiased probability simulation to detect mispriced lines and positive value edge (+EV).</p>
             </div>
             <button class="btn-hero-screener" id="btnExecuteScreener">Run Screener Analysis →</button>
           </div>
@@ -1230,9 +1230,9 @@
         <div class="accu-dribbble-container">
           <div class="accu-config-bar">
             <div>
-              <span class="pill-badge-gold">Multi-Match Ticket Generator</span>
-              <h2>Accu-Forge™ Ticket Engine</h2>
-              <p>Scans upcoming fixtures and combines qualifying value legs into an accumulator.</p>
+              <span class="pill-badge pill-badge-gold">Ticket Engine</span>
+              <h2>Accu-Forge™ Parlay Engine</h2>
+              <p>Scans upcoming fixtures to combine qualifying value legs into an accumulator slip.</p>
             </div>
             <button class="btn-pill-dark" id="btnGenerateAccuTicket">Forge Ticket Now →</button>
           </div>
@@ -1263,9 +1263,9 @@
         <div class="batch-scanner-container">
           <div class="panel-section-header">
             <div>
-              <span class="pill-badge-green">Executive Overview</span>
-              <h2>Full Slate Batch Scanner</h2>
-              <p>Simulates all scheduled fixtures simultaneously and highlights top positive-edge opportunities.</p>
+              <span class="pill-badge pill-badge-green">Slate Radar</span>
+              <h2>Full Slate Market Scanner</h2>
+              <p>Simulates model probabilities across all upcoming matches to identify positive value opportunities.</p>
             </div>
             <button class="btn-pill-dark" id="btnExecuteBatchScan">Scan All Fixtures Now</button>
           </div>
@@ -3741,7 +3741,7 @@
       .then(function (data) { if (data) window.__teamForms = data; })
       .catch(function () { });
   </script>
-  <script src="/static/app.js?v=109"></script>
+  <script src="/static/app.js?v=110"></script>
 </body>
 
 </html>

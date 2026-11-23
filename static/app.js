@@ -1288,13 +1288,13 @@
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
               </svg>
             </div>
-            <h3 class="tool-empty-title">No Fixtures Currently Exceed the ${(minProb * 100).toFixed(0)}% Banker Threshold</h3>
+            <h3 class="tool-empty-title">No ${(minProb * 100).toFixed(0)}%+ Bankers on Today's Board</h3>
             <p class="tool-empty-desc">
-              The mathematical engine enforces strict probabilistic certainty. Lower the threshold to discover high-conviction value picks across today's active slate.
+              No matches on today's schedule currently reach the strict ${(minProb * 100).toFixed(0)}% probability cutoff. Tap below to inspect strong 70% or 60% probability picks across today's games.
             </p>
             <div style="display: flex; gap: 0.65rem; justify-content: center; flex-wrap: wrap; margin-top: 1.25rem;">
-              <button class="btn-pill-filter" onclick="if(window.renderBankerSlate) window.renderBankerSlate(0.70)">View 70%+ Bankers</button>
-              <button class="btn-pill-filter" onclick="if(window.renderBankerSlate) window.renderBankerSlate(0.60)">View 60%+ Selections</button>
+              <button class="btn-pill-filter" onclick="if(window.renderBankerSlate) window.renderBankerSlate(0.70)">View 70%+ Picks</button>
+              <button class="btn-pill-filter" onclick="if(window.renderBankerSlate) window.renderBankerSlate(0.60)">View 60%+ Picks</button>
             </div>
           </div>
         `;
@@ -1605,14 +1605,35 @@
       if (!results.length) {
         dom.batchScanResultsTable.innerHTML = `
           <div class="tool-empty-card">
-            <h3 class="tool-empty-title">No Matches Found with Positive Value Edge</h3>
-            <p class="tool-empty-desc">All scheduled fixtures on this slate are priced within normal bookmaker bounds.</p>
+            <h3 class="tool-empty-title">No Matches Found on Today's Schedule</h3>
+            <p class="tool-empty-desc">All scheduled fixtures for this slate have already completed or are not currently open for pre-match pricing.</p>
           </div>
         `;
         return;
       }
 
+      const qualifyingCount = res.total_qualifying != null
+        ? res.total_qualifying
+        : results.filter(r => r.tip && (r.tip.pattern_matched || (r.tip.edge && r.tip.edge > 0.005))).length;
+
       dom.batchScanResultsTable.innerHTML = `
+        <div class="batch-summary-strip">
+          <div class="batch-summary-chips">
+            <div class="batch-stat-chip">
+              <span class="batch-stat-label">Scanned:</span>
+              <strong class="batch-stat-val">${results.length} Fixtures</strong>
+            </div>
+            <div class="batch-stat-chip">
+              <span class="batch-stat-label">Value Edges:</span>
+              <strong class="batch-stat-val" style="color: #34d399;">${qualifyingCount} Picks Found</strong>
+            </div>
+          </div>
+          <div class="batch-filter-pills">
+            <button class="btn-batch-filter active" id="btnFilterBatchAll">All (${results.length})</button>
+            <button class="btn-batch-filter" id="btnFilterBatchQualified">Value Picks Only (${qualifyingCount})</button>
+          </div>
+        </div>
+
         <div class="batch-table-wrap">
           <table class="batch-table">
             <thead>
@@ -1629,38 +1650,38 @@
             <tbody>
               ${results.map((r, i) => {
                 const tip = r.tip || {};
-                const hasTip = Boolean(tip && (tip.pattern_matched || tip.selection));
-                const pickName = hasTip ? (tip.selection || 'Value Pick') : 'Fair Price / Pass';
-                const odds = parseFloat(tip.odds || (hasTip ? 1.85 : 0)) || 0;
+                const isEdge = Boolean(tip && (tip.pattern_matched || (tip.edge != null && tip.edge > 0.005)));
+                const pickName = tip.selection || (isEdge ? 'Value Selection' : 'Fair Line');
+                const odds = parseFloat(tip.odds || 0) || 0;
                 const oddsText = odds > 0 ? `@${odds.toFixed(2)}` : 'Fair Line';
                 const rawProb = tip.probability != null ? tip.probability : 0;
                 const probPct = rawProb <= 1.0 && rawProb > 0 ? (rawProb * 100) : rawProb;
                 const rawEdge = tip.edge != null ? tip.edge : 0;
                 const edgePct = rawEdge <= 1.0 && rawEdge > 0 ? (rawEdge * 100) : rawEdge;
-                const stakeAmt = hasTip && edgePct > 0 
-                  ? formatNaira((state.user?.bankroll || 1000000) * Math.max(0.01, (edgePct / 100 * 0.25)))
+                const stakeAmt = isEdge && edgePct > 0 
+                  ? (tip.suggested_stake ? formatNaira(tip.suggested_stake) : formatNaira((state.user?.bankroll || 1000000) * Math.max(0.01, (edgePct / 100 * 0.25))))
                   : '₦0';
 
                 return `
-                  <tr class="${hasTip ? 'row-qualified' : 'row-pass'}">
+                  <tr class="${isEdge ? 'row-qualified' : 'row-pass'}">
                     <td><strong style="color: #f8fafc;">${esc(r.match)}</strong></td>
                     <td>
-                      ${hasTip 
+                      ${isEdge 
                         ? `<span class="badge-table-pick success">${esc(pickName)}</span>`
-                        : `<span class="badge-table-pick pass">Pass (No Edge)</span>`
+                        : `<span class="badge-table-pick pass">${esc(pickName)}</span>`
                       }
                     </td>
-                    <td><strong style="color: #38bdf8;">${oddsText}</strong></td>
-                    <td>${probPct > 0 ? `${probPct.toFixed(1)}%` : '<span style="color:#64748b;">Baseline</span>'}</td>
+                    <td><strong style="color: ${isEdge ? '#38bdf8' : '#94a3b8'};">${oddsText}</strong></td>
+                    <td>${probPct > 0 ? `${probPct.toFixed(1)}%` : '<span style="color:#64748b;">—</span>'}</td>
                     <td>
-                      ${edgePct > 0 
+                      ${isEdge && edgePct > 0 
                         ? `<strong style="color: #34d399;">+${edgePct.toFixed(1)}%</strong>` 
                         : `<span style="color: #64748b;">0.0%</span>`}
                     </td>
                     <td style="font-family: var(--font-mono);">${stakeAmt}</td>
                     <td>
-                      <button class="btn-table-analyze" data-match="${esc(r.match)}">
-                        Analyze →
+                      <button class="btn-table-analyze ${isEdge ? 'active' : 'subtle'}" data-match="${esc(r.match)}">
+                        ${isEdge ? 'Analyze →' : 'Stats'}
                       </button>
                     </td>
                   </tr>
@@ -1674,53 +1695,68 @@
         <div class="batch-mobile-card-list">
           ${results.map((r, i) => {
             const tip = r.tip || {};
-            const hasTip = Boolean(tip && (tip.pattern_matched || tip.selection));
-            const pickName = hasTip ? (tip.selection || 'Value Pick') : 'Fair Price / Pass';
-            const odds = parseFloat(tip.odds || (hasTip ? 1.85 : 0)) || 0;
+            const isEdge = Boolean(tip && (tip.pattern_matched || (tip.edge != null && tip.edge > 0.005)));
+            const pickName = tip.selection || (isEdge ? 'Value Selection' : 'Fair Line');
+            const odds = parseFloat(tip.odds || 0) || 0;
             const oddsText = odds > 0 ? `@${odds.toFixed(2)}` : 'Fair Line';
             const rawProb = tip.probability != null ? tip.probability : 0;
             const probPct = rawProb <= 1.0 && rawProb > 0 ? (rawProb * 100) : rawProb;
             const rawEdge = tip.edge != null ? tip.edge : 0;
             const edgePct = rawEdge <= 1.0 && rawEdge > 0 ? (rawEdge * 100) : rawEdge;
-            const stakeAmt = hasTip && edgePct > 0 
-              ? formatNaira((state.user?.bankroll || 1000000) * Math.max(0.01, (edgePct / 100 * 0.25)))
+            const stakeAmt = isEdge && edgePct > 0 
+              ? (tip.suggested_stake ? formatNaira(tip.suggested_stake) : formatNaira((state.user?.bankroll || 1000000) * Math.max(0.01, (edgePct / 100 * 0.25))))
               : '₦0';
 
             return `
-              <div class="batch-mobile-card ${hasTip ? 'qualified' : 'pass'}">
+              <div class="batch-mobile-card ${isEdge ? 'qualified' : 'pass'}">
                 <div class="batch-mobile-card-head">
                   <div class="batch-mobile-match-name">${esc(r.match)}</div>
-                  ${hasTip 
+                  ${isEdge 
                     ? `<span class="badge-table-pick success">${esc(pickName)}</span>`
-                    : `<span class="badge-table-pick pass">Pass</span>`
+                    : `<span class="badge-table-pick pass">${esc(pickName)}</span>`
                   }
                 </div>
                 <div class="batch-mobile-metrics">
                   <div>
                     <span class="batch-mobile-label">Odds</span>
-                    <strong style="color: #38bdf8;">${oddsText}</strong>
+                    <strong style="color: ${isEdge ? '#38bdf8' : '#94a3b8'};">${oddsText}</strong>
                   </div>
                   <div>
                     <span class="batch-mobile-label">Model Prob</span>
-                    <span style="color: #e2e8f0;">${probPct > 0 ? probPct.toFixed(1) + '%' : 'Baseline'}</span>
+                    <span style="color: #e2e8f0;">${probPct > 0 ? probPct.toFixed(1) + '%' : '—'}</span>
                   </div>
                   <div>
                     <span class="batch-mobile-label">Value Edge</span>
-                    <strong style="color: ${edgePct > 0 ? '#34d399' : '#64748b'};">${edgePct > 0 ? '+' + edgePct.toFixed(1) + '%' : '0.0%'}</strong>
+                    <strong style="color: ${isEdge && edgePct > 0 ? '#34d399' : '#64748b'};">${isEdge && edgePct > 0 ? '+' + edgePct.toFixed(1) + '%' : '0.0%'}</strong>
                   </div>
                   <div>
                     <span class="batch-mobile-label">Kelly Stake</span>
                     <strong style="color: #f8fafc; font-family: var(--font-mono);">${stakeAmt}</strong>
                   </div>
                 </div>
-                <button class="btn-table-analyze" data-match="${esc(r.match)}" style="width: 100%; margin-top: 0.75rem; padding: 0.55rem; justify-content: center;">
-                  Analyze Match Breakdown →
+                <button class="btn-table-analyze ${isEdge ? 'active' : 'subtle'}" data-match="${esc(r.match)}" style="width: 100%; margin-top: 0.75rem; padding: 0.55rem; justify-content: center;">
+                  ${isEdge ? 'Analyze Match Breakdown →' : 'View Match Stats →'}
                 </button>
               </div>
             `;
           }).join('')}
         </div>
       `;
+
+      const btnAll = dom.batchScanResultsTable.querySelector('#btnFilterBatchAll');
+      const btnQual = dom.batchScanResultsTable.querySelector('#btnFilterBatchQualified');
+      if (btnAll && btnQual) {
+        btnAll.addEventListener('click', () => {
+          btnAll.classList.add('active');
+          btnQual.classList.remove('active');
+          dom.batchScanResultsTable.querySelectorAll('.row-pass, .batch-mobile-card.pass').forEach(el => el.style.display = '');
+        });
+        btnQual.addEventListener('click', () => {
+          btnQual.classList.add('active');
+          btnAll.classList.remove('active');
+          dom.batchScanResultsTable.querySelectorAll('.row-pass, .batch-mobile-card.pass').forEach(el => el.style.display = 'none');
+        });
+      }
 
       dom.batchScanResultsTable.querySelectorAll('.btn-table-analyze').forEach(btn => {
         btn.addEventListener('click', () => {

@@ -17250,6 +17250,73 @@ body.light-theme-mode .settled-narrative-text {
    SPORTYMILL INSTITUTIONAL TOOLS & VALUE ENGINES (DARK THEME & MOBILE)
    =================================================================== */
 
+/* Tool Section Headers */
+.panel-section-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.75rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-wrap: wrap;
+}
+
+.panel-section-header h2 {
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: #f8fafc;
+  letter-spacing: -0.025em;
+  margin: 0.35rem 0 0.35rem 0;
+  line-height: 1.25;
+}
+
+.panel-section-header p {
+  font-size: 0.88rem;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.5;
+  max-width: 620px;
+}
+
+/* Category & Tool Status Badges */
+.pill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.25rem;
+}
+
+.pill-badge-fire {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.pill-badge-green {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.pill-badge-cyan {
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.pill-badge-gold {
+  background: rgba(234, 179, 8, 0.12);
+  color: #facc15;
+  border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
 /* Shared Tool Empty Cards */
 .tool-empty-card {
   background: #0b1329;
@@ -17732,9 +17799,75 @@ body.light-theme-mode .settled-narrative-text {
   border: 1px solid rgba(148, 163, 184, 0.25);
 }
 
+/* Batch Scanner Summary Bar & Filters */
+.batch-summary-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: #080e1f;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.batch-summary-chips {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.batch-stat-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+}
+
+.batch-stat-label {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.batch-stat-val {
+  color: #f8fafc;
+  font-weight: 700;
+}
+
+.batch-filter-pills {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-batch-filter {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-batch-filter:hover {
+  color: #f8fafc;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.btn-batch-filter.active {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: #10b981;
+  color: #34d399;
+  font-weight: 700;
+}
+
 .btn-table-analyze {
-  background: #2563eb;
-  color: #ffffff;
   border: none;
   padding: 0.4rem 0.85rem;
   border-radius: 6px;
@@ -17745,8 +17878,28 @@ body.light-theme-mode .settled-narrative-text {
   white-space: nowrap;
 }
 
-.btn-table-analyze:hover {
-  background: #1d4ed8;
+.btn-table-analyze.active {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+}
+
+.btn-table-analyze.active:hover {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+}
+
+.btn-table-analyze.subtle {
+  background: rgba(255, 255, 255, 0.04);
+  color: #94a3b8;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.btn-table-analyze.subtle:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f1f5f9;
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .batch-mobile-card-list {
