@@ -13378,33 +13378,17 @@ body.light-theme-mode .btn-validate-print-slip[disabled] {
    SPORTYMILL QUANT DASHBOARD & VALUE SCREENER ENGINE STYLES (Mockup Faithful)
    ========================================================================== */
 
-/* Full-Screen Standalone Layout for Dashboard */
-body.in-dashboard-view .top-navbar {
-  display: none !important;
-}
-
-body.in-dashboard-view .content-area {
-  padding: 0 !important;
-  max-width: 100% !important;
-  width: 100% !important;
-}
-
-body.in-dashboard-view .content-header {
-  display: none !important;
-}
-
-body.in-dashboard-view .app-wrapper {
-  padding: 0 !important;
-  max-width: 100% !important;
-  width: 100% !important;
-  border-radius: 0 !important;
-  border: none !important;
-  box-shadow: none !important;
-  background: #090d12 !important;
-}
-
-body.in-dashboard-view .mobile-bottom-nav {
-  display: none !important;
+/* Clean Unified Layout for Quant Dashboard */
+.dashboard-page-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  animation: fadeInPane 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .dash-shell {

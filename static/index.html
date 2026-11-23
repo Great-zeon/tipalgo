@@ -36,7 +36,7 @@
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet">
 
-  <link rel="stylesheet" href="/static/style.css?v=113">
+  <link rel="stylesheet" href="/static/style.css?v=115">
 </head>
 
 <body class="light-platform">
@@ -1868,743 +1868,132 @@
       </section>
 
       <!-- ===================================================================
-           VIEW: DEDICATED SPORTYMILL QUANT DASHBOARD (Mockup & Screen 1-4 Faithful)
+           VIEW: DEDICATED SPORTYMILL QUANT DASHBOARD
            =================================================================== -->
       <section id="view-dashboard" class="view-panel">
-        <div class="dash-shell">
-          <!-- Desktop Sidebar Navigation (Faithful to Mockup & User Spec) -->
-          <aside class="dash-sidebar" id="dashSidebar">
-            <div class="dash-sidebar-header">
-              <a href="/" class="dash-sidebar-brand" id="dashBrandLogoHome" role="button" tabindex="0"
-                title="Return to SportyMill Homepage" style="text-decoration:none;">
-                <div class="dash-logo-icon">
-                  <svg viewBox="0 0 36 36" width="26" height="26" fill="none" class="sportymill-logo-svg"
-                    xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                      <linearGradient id="smDashGradEmerald" x1="0%" y1="100%" x2="100%" y2="0%">
-                        <stop offset="0%" stop-color="#047857" />
-                        <stop offset="45%" stop-color="#10b981" />
-                        <stop offset="100%" stop-color="#34d399" />
-                      </linearGradient>
-                      <linearGradient id="smDashGradCyan" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stop-color="#38bdf8" />
-                        <stop offset="55%" stop-color="#0284c7" />
-                        <stop offset="100%" stop-color="#0369a1" />
-                      </linearGradient>
-                    </defs>
-
-                    <!-- Central Football Pentagon Core -->
-                    <polygon points="18,10 25.5,15.5 22.5,24.5 13.5,24.5 10.5,15.5" fill="#090f1d"
-                      stroke="url(#smDashGradCyan)" stroke-width="1.8" stroke-linejoin="round" />
-                    <circle cx="18" cy="18.5" r="1.8" fill="#38bdf8" />
-
-                    <!-- Top-Right Ascending Quant Predictive Arrow (+EV Edge Vector) -->
-                    <path d="M26.5 13 L34 5 L34 18 L24.5 21.5 Z" fill="url(#smDashGradEmerald)" />
-                    <circle cx="34" cy="5" r="2.2" fill="#34d399" />
-
-                    <!-- Top-Left Dynamic Pitch Facet -->
-                    <path d="M15.5 8 L8.5 2.5 L2 10 L8.5 14 Z" fill="url(#smDashGradEmerald)" />
-
-                    <!-- Left Flank Defense Facet -->
-                    <path d="M8.5 17.5 L1 14 L1 24.5 L10.5 25 Z" fill="url(#smDashGradCyan)" />
-
-                    <!-- Bottom-Left Trajectory Facet -->
-                    <path d="M11.5 26.5 L4.5 28 L9.5 35 L17 32 Z" fill="url(#smDashGradEmerald)" />
-
-                    <!-- Bottom-Right Quant Engine Facet -->
-                    <path d="M19 32 L26.5 35 L31.5 28 L24.5 26.5 Z" fill="url(#smDashGradCyan)" />
-                  </svg>
-                </div>
-                <div class="dash-brand-meta">
-                  <span class="dash-title-brand">Sporty<span class="dash-brand-accent">Mill</span></span>
-                  <span class="dash-subtitle-brand">QUANT PREDICTOR</span>
-                </div>
+        <div class="dashboard-page-container">
+          <!-- Executive Header -->
+          <div class="dash-pane-header">
+            <div>
+              <h1 class="dash-pane-title">Quantitative Model Telemetry</h1>
+              <p class="dash-pane-subtitle">Live system statistics, playable match counts, and predictive model architecture.</p>
             </div>
-        </div>
-
-        <!-- Sidebar Navigation Links (Clean, No-Icon Quant Terminal Layout) -->
-        <nav class="dash-menu-nav">
-          <button type="button" class="dash-menu-item active" data-dash-pane="dash-pane-overview"
-            id="btnDashNavOverview">
-            <span>Dashboard</span>
-          </button>
-          <button type="button" class="dash-menu-item" data-dash-pane="dash-pane-screener" id="btnDashNavScreener">
-            <span>Markets</span>
-            <span class="dash-chip-lime">HOT</span>
-          </button>
-          <button type="button" class="dash-menu-item" data-dash-pane="dash-pane-batch" id="btnDashNavBatch">
-            <span>Match Scan</span>
-          </button>
-          <button type="button" class="dash-menu-item" data-dash-pane="dash-pane-accu" id="btnDashNavAccu">
-            <span>Accu-Forge</span>
-          </button>
-          <button type="button" class="dash-menu-item" data-dash-pane="dash-pane-account" id="btnDashNavAccount">
-            <span>Account</span>
-          </button>
-          <button type="button" class="dash-menu-item dash-admin-nav" id="btnDashNavAdmin"
-            data-dash-pane="dash-pane-admin" style="display:none;">
-            <span>Admin</span>
-            <span class="dash-chip-amber">SECURE</span>
-          </button>
-
-          <div class="dash-menu-divider"></div>
-
-          <button type="button" class="dash-menu-item dash-return-home-btn" id="btnDashReturnHome"
-            title="Return to SportyMill Homepage">
-            <span class="dash-return-icon">←</span>
-            <span>Return to Homepage</span>
-          </button>
-        </nav>
-
-        <div class="dash-sidebar-bottom">
-          <p class="dash-disclaimer">Betting involves risk. Tips are probabilistic, not guaranteed.</p>
-        </div>
-        </aside>
-
-        <!-- Main Dashboard Stage -->
-        <div class="dash-stage">
-          <!-- Mobile Top Bar for Dedicated Dashboard Layout -->
-          <div class="dash-mobile-top-bar" id="dashMobileTopBar">
-            <div class="dash-mobile-brand" id="dashMobileBrandHome" role="button" tabindex="0">
-              <span class="dash-mobile-title">Sporty<span class="dash-brand-accent">Mill</span></span>
+            <div class="dash-header-actions">
+              <button type="button" class="btn-dash-outline btn-sm" id="btnRefreshDashStats">↻ Refresh Stats</button>
+              <button type="button" class="btn-dash-lime btn-sm" id="btnDashQuickScreener" data-tab-target="view-screener">Open Value Screener →</button>
             </div>
-            <button type="button" class="btn-dash-mobile-return" id="btnDashMobileReturn">
-              ← Return to Home
-            </button>
           </div>
 
-          <!-- Mobile Sticky Tab Bar (Transforms Sidebar into Bottom/Top Tabs on Phone) -->
-          <div class="dash-mobile-tabs-bar" id="dashMobileTabsBar">
-            <button type="button" class="dash-m-tab-btn active" data-dash-pane="dash-pane-overview">
-              <span>Dashboard</span>
-            </button>
-            <button type="button" class="dash-m-tab-btn" data-dash-pane="dash-pane-screener">
-              <span>Markets</span>
-            </button>
-            <button type="button" class="dash-m-tab-btn" data-dash-pane="dash-pane-accu">
-              <span>Accu-Forge</span>
-            </button>
-            <button type="button" class="dash-m-tab-btn" data-dash-pane="dash-pane-batch">
-              <span>Scan</span>
-            </button>
-            <button type="button" class="dash-m-tab-btn" data-dash-pane="dash-pane-account">
-              <span>Account</span>
-            </button>
+          <!-- Top Telemetry Cards Grid -->
+          <div class="dash-stats-grid">
+            <div class="dash-stat-card">
+              <div class="dash-stat-top">
+                <span class="dash-stat-lbl">Playable Matches Today</span>
+                <span class="dash-stat-badge live">● LIVE</span>
+              </div>
+              <div class="dash-stat-number" id="dashStatPlayableToday">--</div>
+              <div class="dash-stat-footer">Positive +EV edge ≥ 4% across leagues</div>
+            </div>
+
+            <div class="dash-stat-card">
+              <div class="dash-stat-top">
+                <span class="dash-stat-lbl">Total Predictions All-Time</span>
+                <span class="dash-stat-badge gold">18 LEAGUES</span>
+              </div>
+              <div class="dash-stat-number" id="dashStatTotalPredictions">--</div>
+              <div class="dash-stat-footer">Logged &amp; tracked across global football</div>
+            </div>
+
+            <div class="dash-stat-card">
+              <div class="dash-stat-top">
+                <span class="dash-stat-lbl">Model Precision &amp; Win Rate</span>
+                <span class="dash-stat-badge green">78.4%</span>
+              </div>
+              <div class="dash-stat-number" id="dashStatPrecision">78.4%</div>
+              <div class="dash-stat-footer">Verified Kelly criterion backtest rate</div>
+            </div>
+
+            <div class="dash-stat-card">
+              <div class="dash-stat-top">
+                <span class="dash-stat-lbl">Active Architecture</span>
+                <span class="dash-stat-badge cyan">LOGISTIC</span>
+              </div>
+              <div class="dash-stat-number" id="dashStatModelArch">v2.1 ML</div>
+              <div class="dash-stat-footer">Side-agnostic Poisson &amp; ML Ensemble</div>
+            </div>
           </div>
 
-          <!-- ========================================== -->
-          <!-- PANE 1: DASHBOARD OVERVIEW & STATISTICS    -->
-          <!-- ========================================== -->
-          <div class="dash-pane active" id="dash-pane-overview">
-            <div class="dash-pane-header">
+          <!-- Quick Launchpad Banners (Refined, Institutional) -->
+          <div class="dash-launchpad-row">
+            <div class="dash-launchpad-card" data-tab-target="view-screener" role="button" tabindex="0">
+              <div class="launch-content">
+                <div class="launch-meta-tag">QUANT ENGINE 01</div>
+                <h3>Value Screener</h3>
+                <p>Detect mispriced lines and strong sides with asymmetric +EV edge.</p>
+              </div>
+              <div class="launch-arrow-pill" title="Open Value Screener">→</div>
+            </div>
+            <div class="dash-launchpad-card" data-tab-target="view-accumulator" role="button" tabindex="0">
+              <div class="launch-content">
+                <div class="launch-meta-tag">QUANT ENGINE 02</div>
+                <h3>Accu-Forge Engine</h3>
+                <p>Assemble 3-leg to 5-leg parlay tickets with target odds and verified probabilities.</p>
+              </div>
+              <div class="launch-arrow-pill" title="Launch Accu-Forge">→</div>
+            </div>
+            <div class="dash-launchpad-card" data-tab-target="view-batch" role="button" tabindex="0">
+              <div class="launch-content">
+                <div class="launch-meta-tag">QUANT ENGINE 03</div>
+                <h3>Batch Match Scanner</h3>
+                <p>Simulate upcoming fixture cards simultaneously and find bankers.</p>
+              </div>
+              <div class="launch-arrow-pill" title="Open Batch Scanner">→</div>
+            </div>
+          </div>
+
+          <!-- Today's Top Playable Candidates Table / Card Grid -->
+          <div class="dash-section-box">
+            <div class="dash-box-head">
               <div>
-                <h1 class="dash-pane-title">Quantitative Model Telemetry</h1>
-                <p class="dash-pane-subtitle">Live system statistics, playable match counts, and all-time predictive
-                  analytics.</p>
-              </div>
-              <div class="dash-header-actions">
-                <button type="button" class="btn-dash-lime btn-sm" id="btnDashQuickScreener">Run Screener →</button>
+                <h3 class="dash-box-title">Today's Model-Qualified Fixtures</h3>
+                <p class="dash-box-sub">Upcoming fixtures available in system database. Tap any match to evaluate in Value Screener.</p>
               </div>
             </div>
-
-            <!-- Top Telemetry Cards Grid -->
-            <div class="dash-stats-grid">
-              <div class="dash-stat-card">
-                <div class="dash-stat-top">
-                  <span class="dash-stat-lbl">Playable Matches Today</span>
-                  <span class="dash-stat-badge live">● LIVE</span>
-                </div>
-                <div class="dash-stat-number" id="dashStatPlayableToday">--</div>
-                <div class="dash-stat-footer">Positive +EV edge >= 4% across leagues</div>
-              </div>
-
-              <div class="dash-stat-card">
-                <div class="dash-stat-top">
-                  <span class="dash-stat-lbl">Total Predictions All-Time</span>
-                  <span class="dash-stat-badge gold">18 LEAGUES</span>
-                </div>
-                <div class="dash-stat-number" id="dashStatTotalPredictions">--</div>
-                <div class="dash-stat-footer">Logged &amp; tracked across global football</div>
-              </div>
-
-              <div class="dash-stat-card">
-                <div class="dash-stat-top">
-                  <span class="dash-stat-lbl">Model Precision &amp; Win Rate</span>
-                  <span class="dash-stat-badge green">78.4%</span>
-                </div>
-                <div class="dash-stat-number" id="dashStatPrecision">78.4%</div>
-                <div class="dash-stat-footer">Verified Kelly criterion backtest rate</div>
-              </div>
-
-              <div class="dash-stat-card">
-                <div class="dash-stat-top">
-                  <span class="dash-stat-lbl">Active Architecture</span>
-                  <span class="dash-stat-badge cyan">LOGISTIC</span>
-                </div>
-                <div class="dash-stat-number" id="dashStatModelArch">v2.1 ML</div>
-                <div class="dash-stat-footer">Side-agnostic Poisson &amp; ML Ensemble</div>
-              </div>
-            </div>
-
-            <!-- Quick Launchpad Banners (Refined, Institutional, No Tacky Emojis) -->
-            <div class="dash-launchpad-row">
-              <div class="dash-launchpad-card" data-dash-target="dash-pane-screener">
-                <div class="launch-content">
-                  <div class="launch-meta-tag">QUANT ENGINE 01</div>
-                  <h3>Value Screener</h3>
-                  <p>Detect mispriced lines and strong sides with asymmetric +EV edge.</p>
-                </div>
-                <div class="launch-arrow-pill" title="Open Value Screener">→</div>
-              </div>
-              <div class="dash-launchpad-card" data-dash-target="dash-pane-accu">
-                <div class="launch-content">
-                  <div class="launch-meta-tag">QUANT ENGINE 02</div>
-                  <h3>Accu-Forge Engine</h3>
-                  <p>Assemble 3-leg to 5-leg parlay tickets with target odds and verified probabilities.</p>
-                </div>
-                <div class="launch-arrow-pill" title="Launch Accu-Forge">→</div>
-              </div>
-              <div class="dash-launchpad-card" data-dash-target="dash-pane-batch">
-                <div class="launch-content">
-                  <div class="launch-meta-tag">QUANT ENGINE 03</div>
-                  <h3>Batch Match Scanner</h3>
-                  <p>Simulate upcoming fixture cards simultaneously and find bankers.</p>
-                </div>
-                <div class="launch-arrow-pill" title="Open Batch Scanner">→</div>
-              </div>
-            </div>
-
-            <!-- Today's Top Playable Candidates Table / Card Grid -->
-            <div class="dash-section-box">
-              <div class="dash-box-head">
-                <div>
-                  <h3 class="dash-box-title">Today's Model-Qualified Fixtures</h3>
-                  <p class="dash-box-sub">Upcoming fixtures available in system database. Tap any match to evaluate in
-                    Value Screener.</p>
-                </div>
-                <button type="button" class="btn-dash-outline btn-sm" id="btnRefreshDashStats">↻ Refresh Stats</button>
-              </div>
-              <div class="dash-fixtures-list" id="dashFixturesList">
-                <div class="dash-loading-card">Loading live daily fixtures and system telemetry...</div>
-              </div>
+            <div class="dash-fixtures-list" id="dashFixturesList">
+              <div class="dash-loading-card">Loading live daily fixtures and system telemetry...</div>
             </div>
           </div>
 
-          <!-- ========================================== -->
-          <!-- PANE 2: VALUE SCREENER (Screenshots 1 & 2) -->
-          <!-- ========================================== -->
-          <div class="dash-pane" id="dash-pane-screener">
-            <div class="dash-pane-header">
+          <!-- Administrator Controls (Rendered if Admin) -->
+          <div class="dash-section-box" id="dashAdminSection" style="display: none;">
+            <div class="dash-box-head">
               <div>
-                <h1 class="dash-pane-title">Value Screener</h1>
-                <p class="dash-pane-subtitle">Side-agnostic quantitative model identifying high-edge value picks.</p>
-              </div>
-            </div>
-
-            <div class="screener-two-col-layout" id="screenerTwoColLayout">
-              <!-- Left: Screener Form Card -->
-              <div class="screener-form-card">
-                <div class="card-head-compact">
-                  <h2>Value Screener</h2>
-                  <p>Finds the strong side (home or away) at any price.</p>
-                </div>
-
-                <form id="formValueScreener" class="screener-form-body">
-                  <div class="dash-form-row two-col">
-                    <div class="dash-field-group">
-                      <label for="screenerInputHome">Home team</label>
-                      <input type="text" id="screenerInputHome" class="dash-input" placeholder="e.g. Real Madrid"
-                        required>
-                    </div>
-                    <div class="dash-field-group">
-                      <label for="screenerInputAway">Away team</label>
-                      <input type="text" id="screenerInputAway" class="dash-input" placeholder="e.g. Barcelona"
-                        required>
-                    </div>
-                  </div>
-
-                  <div class="dash-field-group">
-                    <label for="screenerSelectLeague">League</label>
-                    <select id="screenerSelectLeague" class="dash-select">
-                      <option value="PL" selected>Premier League (PL)</option>
-                      <option value="PD">La Liga (PD)</option>
-                      <option value="SA">Serie A (SA)</option>
-                      <option value="BL1">Bundesliga (BL1)</option>
-                      <option value="FL1">Ligue 1 (FL1)</option>
-                      <option value="DED">Eredivisie (DED)</option>
-                      <option value="CL">UEFA Champions League (CL)</option>
-                      <option value="UEL">UEFA Europa League (UEL)</option>
-                    </select>
-                  </div>
-
-                  <div class="dash-form-row three-col">
-                    <div class="dash-field-group">
-                      <label for="screenerInputHomeOdds">Home odds</label>
-                      <input type="number" id="screenerInputHomeOdds" class="dash-input" value="1.85" step="0.01"
-                        min="1.01" inputmode="decimal" required>
-                    </div>
-                    <div class="dash-field-group">
-                      <label for="screenerInputDrawOdds">Draw odds</label>
-                      <input type="number" id="screenerInputDrawOdds" class="dash-input" value="3.60" step="0.01"
-                        min="1.01" inputmode="decimal" required>
-                    </div>
-                    <div class="dash-field-group">
-                      <label for="screenerInputAwayOdds">Away odds</label>
-                      <input type="number" id="screenerInputAwayOdds" class="dash-input" value="4.40" step="0.01"
-                        min="1.01" inputmode="decimal" required>
-                    </div>
-                  </div>
-
-                  <div class="dash-form-row two-col">
-                    <div class="dash-field-group">
-                      <div class="dash-lbl-with-help">
-                        <label for="screenerInputMinEdge">Min edge (0 - 20%)</label>
-                        <button type="button" class="dash-help-trigger" data-tip="edge"
-                          title="Edge Explanation">?</button>
-                      </div>
-                      <input type="text" id="screenerInputMinEdge" class="dash-input" value="4%" inputmode="decimal">
-                    </div>
-                    <div class="dash-field-group">
-                      <div class="dash-lbl-with-help">
-                        <label for="screenerInputBankroll">Bankroll (optional)</label>
-                        <button type="button" class="dash-help-trigger" data-tip="bankroll"
-                          title="Kelly Staking">?</button>
-                      </div>
-                      <div class="dash-input-prefix-box">
-                        <span class="dash-prefix">₦</span>
-                        <input type="text" id="screenerInputBankroll" class="dash-input prefix-padding"
-                          value="1,000,000" inputmode="numeric">
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Presets strip -->
-                  <div class="screener-presets-row">
-                    <span class="presets-lbl">Quick Presets:</span>
-                    <button type="button" class="btn-preset-chip" data-home="Arsenal" data-away="Brentford"
-                      data-league="PL" data-h="1.85" data-d="3.60" data-a="4.40">Arsenal vs Brentford</button>
-                    <button type="button" class="btn-preset-chip" data-home="Inter" data-away="Genoa" data-league="SA"
-                      data-h="1.60" data-d="4.10" data-a="5.75">Inter vs Genoa</button>
-                    <button type="button" class="btn-preset-chip" data-home="Ajax" data-away="Utrecht" data-league="DED"
-                      data-h="1.73" data-d="3.90" data-a="4.80">Ajax vs Utrecht</button>
-                  </div>
-
-                  <button type="button" class="btn-dash-lime btn-block" id="btnGetTip">Get tip</button>
-
-                  <!-- Real States Container: Loading, 401, 403, 429, errors -->
-                  <div id="screenerStatusState" class="dash-state-msg">
-                    <span>Loading, 401, 403 (renew), 429 and error states appear here.</span>
-                  </div>
-                </form>
-              </div>
-
-              <!-- Right: Result Card (Faithful to Screenshot 1 & 2) -->
-              <div class="screener-result-card" id="screenerResultCard">
-                <div class="result-card-inner">
-                  <!-- Top Match Title & Badges -->
-                  <div class="result-header-row">
-                    <div>
-                      <span class="result-fixture-tag" id="resMatchFixture">Select or Configure Fixture</span>
-                      <h2 class="result-selection-title" id="resSelectionTitle">Awaiting Evaluation</h2>
-                      <p class="result-highlight-text" id="resHighlightText">Configure match odds on the left and click
-                        "Run Model &amp; Screener" to compute live value edge and Kelly stake.</p>
-                    </div>
-                    <div class="result-badges-col">
-                      <span class="badge-confidence" id="resConfidenceBadge"
-                        style="background:rgba(255,255,255,0.06); color:var(--dash-text-muted);">READY</span>
-                      <span class="badge-engine-pill" id="resEngineSource">SportyMill v21 ML</span>
-                    </div>
-                  </div>
-
-                  <!-- 4-Metric Key Strip -->
-                  <div class="result-metrics-strip">
-                    <div class="metric-cell">
-                      <span class="metric-label">Probability</span>
-                      <span class="metric-val" id="resProbVal">--</span>
-                    </div>
-                    <div class="metric-cell">
-                      <span class="metric-label">Edge</span>
-                      <span class="metric-val text-lime" id="resEdgeVal">--</span>
-                    </div>
-                    <div class="metric-cell">
-                      <span class="metric-label">Odds</span>
-                      <span class="metric-val" id="resOddsVal">--</span>
-                    </div>
-                    <div class="metric-cell">
-                      <span class="metric-label">Stake</span>
-                      <span class="metric-val" id="resStakeVal">₦0</span>
-                    </div>
-                  </div>
-
-                  <!-- Pattern & 1X2 Probabilities Bar -->
-                  <div class="result-pattern-box">
-                    <div class="pattern-header-line">
-                      <span class="pattern-title">Pattern: <strong id="resPatternStrength">--</strong></span>
-                    </div>
-                    <div class="prob-bar-label">1X2 probabilities</div>
-                    <div class="segmented-prob-bar">
-                      <div class="seg-home" id="segHome" style="width: 33.3%;" title="Home: --"></div>
-                      <div class="seg-draw" id="segDraw" style="width: 33.3%;" title="Draw: --"></div>
-                      <div class="seg-away" id="segAway" style="width: 33.4%;" title="Away: --"></div>
-                    </div>
-                    <div class="prob-bar-legend">
-                      <span>Home <strong id="legendHomeProb">--</strong></span>
-                      <span>Draw <strong id="legendDrawProb">--</strong></span>
-                      <span>Away <strong id="legendAwayProb">--</strong></span>
-                    </div>
-                  </div>
-
-                  <!-- Draw Edge / Market Warning Box -->
-                  <div class="result-warning-card" id="resWarningCard">
-                    <div class="warn-head">
-                      <span class="warn-title" id="resDrawEdgeTitle">Market Signals &amp; Alerts</span>
-                    </div>
-                    <p class="warn-desc" id="resMarketWarning">Market cautions, underdog signals, and value alerts will
-                      display here after model execution.</p>
-                  </div>
-
-                  <!-- Drivers & Risks Collapsible / Nested Grid -->
-                  <div class="result-drivers-risks-grid">
-                    <div class="intel-card drivers-card">
-                      <span class="intel-card-title">Drivers</span>
-                      <div class="intel-card-content" id="resDriversContent">
-                        Awaiting quantitative evaluation.
-                      </div>
-                    </div>
-                    <div class="intel-card risks-card">
-                      <span class="intel-card-title">Risks</span>
-                      <div class="intel-card-content" id="resRisksContent">
-                        Awaiting quantitative evaluation.
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Recent Matches Section with Responsive Phone Cards -->
-                  <div class="result-recent-matches-box">
-                    <div class="recent-matches-head">
-                      <span class="recent-title">Recent matches</span>
-                      <div class="recent-filter-tabs">
-                        <button type="button" class="recent-tab-btn active" data-filter="all">All</button>
-                        <button type="button" class="recent-tab-btn" data-filter="home">Home</button>
-                        <button type="button" class="recent-tab-btn" data-filter="away">Away</button>
-                      </div>
-                    </div>
-                    <div class="recent-matches-container" id="resRecentMatchesContainer">
-                      <!-- Desktop Table View -->
-                      <table class="recent-matches-table desktop-only">
-                        <thead>
-                          <tr>
-                            <th>Team</th>
-                            <th>Opponent</th>
-                            <th>Venue</th>
-                            <th>Score</th>
-                            <th>Result</th>
-                            <th>Date</th>
-                          </tr>
-                        </thead>
-                        <tbody id="resRecentMatchesTbody">
-                          <tr>
-                            <td colspan="6" style="text-align:center; padding: 1.5rem; color: var(--dash-text-muted);">
-                              Run evaluation to load verified match history.
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                      <!-- Mobile Responsive Cards View (Phones) -->
-                      <div class="recent-matches-cards-mobile phone-only" id="resRecentMatchesMobileCards">
-                        <!-- Populated dynamically -->
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Pro Subscription Lock Overlay (For Free Users) -->
-                  <div class="pro-lock-blur-overlay" id="screenerProLockOverlay" style="display:none;">
-                    <div class="pro-lock-card">
-                      <div class="lock-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none"
-                          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                        </svg></div>
-                      <h3>Pro Quant Model Locked</h3>
-                      <p>Upgrade to SportyMill Pro to unlock unlimited real-time side-agnostic value screening.</p>
-                      <button type="button" class="btn-dash-lime btn-open-paystack-modal">Upgrade to Pro (₦15,000/mo)
-                        →</button>
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- ========================================== -->
-          <!-- PANE 3: ACCU-FORGE & BATCH SCAN (Mockup 3&4) -->
-          <!-- ========================================== -->
-          <div class="dash-pane" id="dash-pane-accu">
-            <div class="dash-pane-header">
-              <div>
-                <h1 class="dash-pane-title">Accu-Forge and Batch Scan</h1>
-                <p class="dash-pane-subtitle">Multi-leg accumulator synthesizer and full fixture slate scanner.</p>
-              </div>
-            </div>
-
-            <!-- Top KPI Metric Strip (Matches Screenshot 3) -->
-            <div class="accu-summary-strip">
-              <div class="accu-kpi-cell">
-                <span class="accu-kpi-lbl">Target</span>
-                <span class="accu-kpi-val" id="accuKpiTarget">5.00</span>
-              </div>
-              <div class="accu-kpi-cell">
-                <span class="accu-kpi-lbl">Achieved</span>
-                <span class="accu-kpi-val text-lime" id="accuKpiAchieved">--</span>
-              </div>
-              <div class="accu-kpi-cell">
-                <span class="accu-kpi-lbl">Overall probability</span>
-                <span class="accu-kpi-val" id="accuKpiProb">--</span>
-              </div>
-              <div class="accu-kpi-cell">
-                <span class="accu-kpi-lbl">Legs / scanned</span>
-                <span class="accu-kpi-val" id="accuKpiLegsScanned">0 / 0</span>
-              </div>
-            </div>
-
-            <div class="accu-two-col-layout">
-              <!-- Left Column: Accu-Forge Form -->
-              <div class="accu-form-card">
-                <div class="card-head-compact">
-                  <h2>Accu-Forge</h2>
-                </div>
-
-                <form id="formAccuForge" class="accu-form-body">
-                  <div class="dash-form-row two-col">
-                    <div class="dash-field-group">
-                      <label for="accuInputTarget">Target odds</label>
-                      <input type="number" id="accuInputTarget" class="dash-input" value="5.00" step="0.5" min="1.5"
-                        inputmode="decimal" required>
-                    </div>
-                    <div class="dash-field-group">
-                      <label for="accuInputMaxLegs">Max legs</label>
-                      <input type="number" id="accuInputMaxLegs" class="dash-input" value="4" min="2" max="10"
-                        inputmode="numeric" required>
-                    </div>
-                  </div>
-
-                  <div class="dash-form-row two-col">
-                    <div class="dash-field-group">
-                      <div class="dash-lbl-with-help">
-                        <label for="accuInputMinProb">Min probability</label>
-                        <button type="button" class="dash-help-trigger" data-tip="prob">?</button>
-                      </div>
-                      <input type="text" id="accuInputMinProb" class="dash-input" value="55%" inputmode="numeric">
-                    </div>
-                    <div class="dash-field-group">
-                      <div class="dash-lbl-with-help">
-                        <label for="accuInputMinEdge">Min edge</label>
-                        <button type="button" class="dash-help-trigger" data-tip="edge">?</button>
-                      </div>
-                      <input type="text" id="accuInputMinEdge" class="dash-input" value="1%" inputmode="decimal">
-                    </div>
-                  </div>
-
-                  <div class="dash-form-row two-col">
-                    <div class="dash-field-group">
-                      <div class="dash-lbl-with-help">
-                        <label for="accuInputTolerance">Tolerance</label>
-                        <button type="button" class="dash-help-trigger" data-tip="tolerance">?</button>
-                      </div>
-                      <input type="text" id="accuInputTolerance" class="dash-input" value="10%" inputmode="decimal">
-                    </div>
-                    <div class="dash-field-group">
-                      <div class="dash-lbl-with-help">
-                        <label for="accuInputSeed">Seed (optional)</label>
-                        <button type="button" class="dash-help-trigger" data-tip="seed">?</button>
-                      </div>
-                      <input type="number" id="accuInputSeed" class="dash-input" value="42" inputmode="numeric">
-                    </div>
-                  </div>
-
-                  <div class="dash-field-group">
-                    <div class="dash-lbl-with-help">
-                      <label for="accuSelectRandomise">Randomise candidates</label>
-                      <button type="button" class="dash-help-trigger" data-tip="randomise">?</button>
-                    </div>
-                    <select id="accuSelectRandomise" class="dash-select">
-                      <option value="false" selected>Off</option>
-                      <option value="true">On</option>
-                    </select>
-                  </div>
-
-                  <button type="button" class="btn-dash-lime btn-block" id="btnBuildAccumulator">Build
-                    accumulator</button>
-
-                  <div id="accuStatusMsg" class="dash-state-msg" style="display:none;"></div>
-                </form>
-              </div>
-
-              <!-- Right Column: Legs Table & Cards (Matches Screenshot 3) -->
-              <div class="accu-legs-card" id="accuLegsCard">
-                <div class="card-head-compact">
-                  <h2>Legs</h2>
-                </div>
-
-                <!-- Desktop Legs Table -->
-                <div class="accu-table-wrap desktop-only">
-                  <table class="dash-legs-table">
-                    <thead>
-                      <tr>
-                        <th>Match</th>
-                        <th>Selection</th>
-                        <th>Odds</th>
-                        <th>Prob</th>
-                        <th>Edge</th>
-                      </tr>
-                    </thead>
-                    <tbody id="accuLegsTbody">
-                      <tr>
-                        <td colspan="5" style="text-align:center; padding: 24px; color: var(--dash-text-muted);">
-                          Configure parameters on the left and click "Build accumulator" to synthesize live candidates.
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                <!-- Mobile Responsive Legs Cards (Phones) -->
-                <div class="accu-cards-wrap phone-only" id="accuLegsMobileCards">
-                  <!-- Populated dynamically -->
-                </div>
-
-                <!-- Action Row for Legs -->
-                <div class="accu-legs-actions">
-                  <button type="button" class="btn-dash-outline btn-sm" id="btnCopyAccuSlip">Copy Accumulator
-                    Slip</button>
-                  <button type="button" class="btn-dash-lime btn-sm" id="btnSendAccuToBetSlip">Add to SportyBet Slip
-                    →</button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Batch Scan Card Below (Matches Screenshot 3) -->
-            <div class="dash-batch-scan-section">
-              <div class="batch-section-head">
-                <div>
-                  <h2>Batch Scan</h2>
-                  <p>Add match rows or paste CSV: teams, league, market odds. Results list each match with a tip or no
-                    tip.</p>
-                </div>
-                <div class="batch-head-btns">
-                  <button type="button" class="btn-dash-outline btn-sm" id="btnBatchAddMatch">+ Add match</button>
-                  <button type="button" class="btn-dash-outline btn-sm" id="btnBatchPasteCsv">Paste CSV</button>
-                  <button type="button" class="btn-dash-pill-filter active" id="btnBatchMinEdgeFilter">Min edge
-                    1%</button>
-                  <button type="button" class="btn-dash-lime btn-sm" id="btnExecuteBatchScanNow">Run Batch Scan
-                    →</button>
-                </div>
-              </div>
-
-              <!-- CSV / Multi-Match Input Box (collapsible) -->
-              <div class="batch-input-area" id="batchInputArea" style="display:none;">
-                <textarea id="batchCsvTextarea" class="dash-textarea" rows="4"
-                  placeholder="home_team,away_team,league,home_odds,draw_odds,away_odds&#10;Arsenal,Brentford,PL,1.85,3.60,4.40&#10;Inter,Genoa,SA,1.60,4.10,5.75&#10;Ajax,Utrecht,DED,1.73,3.90,4.80"></textarea>
-                <div class="batch-csv-actions">
-                  <button type="button" class="btn-dash-lime btn-sm" id="btnBatchParseRun">Parse &amp; Scan
-                    Batch</button>
-                  <button type="button" class="btn-dash-outline btn-sm" id="btnBatchCloseCsv">Cancel</button>
-                </div>
-              </div>
-
-              <!-- Batch Scan Results Container -->
-              <div class="batch-results-wrap" id="batchResultsContainer">
-                <div class="batch-empty-msg">No batch scan run yet. Click "Run Batch Scan" or paste match data to
-                  analyze candidates simultaneously.</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- ========================================== -->
-          <!-- PANE 4: STANDALONE BATCH SCANNER           -->
-          <!-- ========================================== -->
-          <div class="dash-pane" id="dash-pane-batch">
-            <div class="dash-pane-header">
-              <div>
-                <h1 class="dash-pane-title">Full Slate Batch Scanner</h1>
-                <p class="dash-pane-subtitle">Scan all scheduled fixtures across major leagues simultaneously to
-                  pinpoint positive edge bankers.</p>
-              </div>
-              <button type="button" class="btn-dash-lime" id="btnRunFullSlateBatch">Scan All Today's Fixtures →</button>
-            </div>
-            <div id="fullSlateResultsDisplay">
-              <div class="batch-empty-msg">Tap "Scan All Today's Fixtures" to execute real-time slate analysis.</div>
-            </div>
-          </div>
-
-          <!-- ========================================== -->
-          <!-- PANE 5: ACCOUNT & SETTINGS SHORTCUT        -->
-          <!-- ========================================== -->
-          <div class="dash-pane" id="dash-pane-account">
-            <div class="dash-pane-header">
-              <div>
-                <h1 class="dash-pane-title">User Account &amp; Capital Settings</h1>
-                <p class="dash-pane-subtitle">Manage username, password, Kelly staking bankroll, and Pro subscription.
-                </p>
-              </div>
-            </div>
-            <div class="dash-account-card">
-              <div class="account-profile-summary">
-                <div class="acc-avatar" id="dashAccAvatar">JJ</div>
-                <div>
-                  <h3 id="dashAccName">Jonathan John</h3>
-                  <p id="dashAccEmail">demo@sportymill.com · <span class="dash-chip-lime" id="dashAccTier">PRO
-                      ACTIVE</span></p>
-                </div>
-              </div>
-              <div class="dash-account-quick-actions">
-                <button type="button" class="btn-dash-lime" id="btnGoToFullProfile">Open Full Profile &amp; Capital
-                  Management →</button>
-                <button type="button" class="btn-dash-outline btn-open-paystack-modal">Manage Subscription /
-                  Paystack</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- ========================================== -->
-          <!-- PANE 6: ADMIN ENGINE (Hidden unless admin)  -->
-          <!-- ========================================== -->
-          <div class="dash-pane" id="dash-pane-admin">
-            <div class="dash-pane-header">
-              <div>
-                <h1 class="dash-pane-title">Administrator Controls</h1>
-                <p class="dash-pane-subtitle">Train machine learning models, settle predictions, and synchronize live
-                  football feeds.</p>
+                <h3 class="dash-box-title">Administrator Controls</h3>
+                <p class="dash-box-sub">Train machine learning models, settle predictions, and synchronize live football feeds.</p>
               </div>
             </div>
             <div class="dash-admin-grid">
               <div class="admin-action-card">
                 <h3>Model Retraining</h3>
-                <p>Execute Poisson &amp; Logistic regression training on 45,000+ historical match outcomes.</p>
-                <button type="button" class="btn-dash-lime btn-sm" id="btnAdminTrainModel">Trigger Retrain
-                  (/admin/train) →</button>
+                <p>Execute Poisson &amp; Logistic regression training on historical match outcomes.</p>
+                <button type="button" class="btn-dash-lime btn-sm" id="btnAdminTrainModel">Trigger Retrain (/admin/train) →</button>
               </div>
               <div class="admin-action-card">
                 <h3>Settle Predictions</h3>
                 <p>Cross-reference finished match scores and settle prediction win/loss logs.</p>
-                <button type="button" class="btn-dash-outline btn-sm" id="btnAdminSettle">Settle Predictions
-                  (/admin/settle) →</button>
+                <button type="button" class="btn-dash-outline btn-sm" id="btnAdminSettle">Settle Predictions (/admin/settle) →</button>
               </div>
               <div class="admin-action-card">
                 <h3>Live Data Ingestion</h3>
                 <p>Fetch the latest fixture odds and league tables from football-data API.</p>
-                <button type="button" class="btn-dash-outline btn-sm" id="btnAdminSyncLive">Sync Live Data
-                  (/api/sync-live-data) →</button>
+                <button type="button" class="btn-dash-outline btn-sm" id="btnAdminSyncLive">Sync Live Data (/api/sync-live-data) →</button>
               </div>
             </div>
           </div>
-
         </div>
-  </div>
-  </section>
+      </section>
 
-  </main>
+      </main>
 
   <!-- Floating Bet Slip Popup for Mobile Phone View Faithful to User Mockup -->
   <div class="mobile-floating-slip-popup" id="mobileFloatingSlipPopup">
@@ -3596,7 +2985,7 @@
       .then(function (data) { if (data) window.__teamForms = data; })
       .catch(function () { });
   </script>
-  <script src="/static/app.js?v=113"></script>
+  <script src="/static/app.js?v=115"></script>
 </body>
 
 </html>

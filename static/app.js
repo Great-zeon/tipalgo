@@ -1705,13 +1705,17 @@
               ${results.map((r, i) => {
                 const tip = r.tip || {};
                 const isEdge = Boolean(tip && (tip.pattern_matched || (tip.edge != null && tip.edge > 0.005)));
-                const pickName = tip.selection || (isEdge ? 'Value Selection' : 'Fair Line');
-                const odds = parseFloat(tip.odds || 0) || 0;
+                const rawPick = tip.selection || r.pick || r.selection;
+                const pickName = (rawPick && rawPick !== 'undefined') ? rawPick : (isEdge ? 'Value Selection' : 'Fair Line');
+                const rawOdds = parseFloat(tip.odds || r.odds || 0);
+                const odds = (!isNaN(rawOdds) && rawOdds > 1.0) ? rawOdds : 0;
                 const oddsText = odds > 0 ? `@${odds.toFixed(2)}` : 'Fair Line';
-                const rawProb = tip.probability != null ? tip.probability : 0;
-                const probPct = rawProb <= 1.0 && rawProb > 0 ? (rawProb * 100) : rawProb;
-                const rawEdge = tip.edge != null ? tip.edge : 0;
-                const edgePct = rawEdge <= 1.0 && rawEdge > 0 ? (rawEdge * 100) : rawEdge;
+                const rawProb = tip.probability != null ? tip.probability : (r.probability != null ? r.probability : 0);
+                const rawProbNum = Number(rawProb);
+                const probPct = (!isNaN(rawProbNum) && rawProbNum > 0) ? (rawProbNum <= 1.0 ? rawProbNum * 100 : rawProbNum) : 0;
+                const rawEdge = tip.edge != null ? tip.edge : (r.edge != null ? r.edge : 0);
+                const rawEdgeNum = Number(rawEdge);
+                const edgePct = (!isNaN(rawEdgeNum) && rawEdgeNum > 0) ? (rawEdgeNum <= 1.0 ? rawEdgeNum * 100 : rawEdgeNum) : 0;
                 const stakeAmt = isEdge && edgePct > 0 
                   ? (tip.suggested_stake ? formatNaira(tip.suggested_stake) : formatNaira((state.user?.bankroll || 1000000) * Math.max(0.01, (edgePct / 100 * 0.25))))
                   : '₦0';
@@ -1750,13 +1754,17 @@
           ${results.map((r, i) => {
             const tip = r.tip || {};
             const isEdge = Boolean(tip && (tip.pattern_matched || (tip.edge != null && tip.edge > 0.005)));
-            const pickName = tip.selection || (isEdge ? 'Value Selection' : 'Fair Line');
-            const odds = parseFloat(tip.odds || 0) || 0;
+            const rawPick = tip.selection || r.pick || r.selection;
+            const pickName = (rawPick && rawPick !== 'undefined') ? rawPick : (isEdge ? 'Value Selection' : 'Fair Line');
+            const rawOdds = parseFloat(tip.odds || r.odds || 0);
+            const odds = (!isNaN(rawOdds) && rawOdds > 1.0) ? rawOdds : 0;
             const oddsText = odds > 0 ? `@${odds.toFixed(2)}` : 'Fair Line';
-            const rawProb = tip.probability != null ? tip.probability : 0;
-            const probPct = rawProb <= 1.0 && rawProb > 0 ? (rawProb * 100) : rawProb;
-            const rawEdge = tip.edge != null ? tip.edge : 0;
-            const edgePct = rawEdge <= 1.0 && rawEdge > 0 ? (rawEdge * 100) : rawEdge;
+            const rawProb = tip.probability != null ? tip.probability : (r.probability != null ? r.probability : 0);
+            const rawProbNum = Number(rawProb);
+            const probPct = (!isNaN(rawProbNum) && rawProbNum > 0) ? (rawProbNum <= 1.0 ? rawProbNum * 100 : rawProbNum) : 0;
+            const rawEdge = tip.edge != null ? tip.edge : (r.edge != null ? r.edge : 0);
+            const rawEdgeNum = Number(rawEdge);
+            const edgePct = (!isNaN(rawEdgeNum) && rawEdgeNum > 0) ? (rawEdgeNum <= 1.0 ? rawEdgeNum * 100 : rawEdgeNum) : 0;
             const stakeAmt = isEdge && edgePct > 0 
               ? (tip.suggested_stake ? formatNaira(tip.suggested_stake) : formatNaira((state.user?.bankroll || 1000000) * Math.max(0.01, (edgePct / 100 * 0.25))))
               : '₦0';
@@ -4390,18 +4398,12 @@
     const targetView = document.getElementById(viewId);
     if (targetView) targetView.classList.add('active');
 
-    // Standalone Dashboard Layout Mode Toggle (Separate layout from homepage)
+    // Ensure top navbar and mobile bottom nav are always visible across all views
     const siteTopNav = document.getElementById('siteTopNavbar');
     const bottomNav = document.querySelector('.mobile-bottom-nav');
-    if (viewId === 'view-dashboard') {
-      document.body.classList.add('in-dashboard-view');
-      if (siteTopNav) siteTopNav.style.display = 'none';
-      if (bottomNav) bottomNav.style.display = 'none';
-    } else {
-      document.body.classList.remove('in-dashboard-view');
-      if (siteTopNav) siteTopNav.style.display = '';
-      if (bottomNav) bottomNav.style.display = '';
-    }
+    document.body.classList.remove('in-dashboard-view');
+    if (siteTopNav) siteTopNav.style.display = '';
+    if (bottomNav) bottomNav.style.display = '';
 
     // 2. Subtabs Bar
     document.querySelectorAll('.subtab-btn').forEach(b => {
@@ -8261,39 +8263,11 @@
     }
   }
 
-  async function loadSlipHistory() {
-    switchView('view-slip-history');
+  function renderSlipHistoryList(slips) {
     const container = document.getElementById('slipHistoryFeed');
     if (!container) return;
 
-    container.innerHTML = `
-      <div class="tool-empty-card">
-        <div style="font-weight: 700; color: #38bdf8;">Loading Bet Slip History...</div>
-      </div>
-    `;
-
-    let serverSlips = [];
-    try {
-      const res = await api('/api/slips/history');
-      if (res && res.slips) serverSlips = res.slips;
-    } catch (e) {
-      console.warn('Server slip fetch notice:', e);
-    }
-
-    let localSlips = [];
-    try {
-      const saved = localStorage.getItem('sportymill_saved_slips');
-      if (saved) localSlips = JSON.parse(saved);
-    } catch (e) {}
-
-    const combined = [...serverSlips];
-    localSlips.forEach(ls => {
-      if (!combined.some(cs => cs.booking_code === ls.booking_code)) {
-        combined.push(ls);
-      }
-    });
-
-    if (!combined.length) {
+    if (!slips || !slips.length) {
       container.innerHTML = `
         <div class="tool-empty-card">
           <h3 class="tool-empty-title">No Saved Bet Slips Yet</h3>
@@ -8310,7 +8284,7 @@
 
     container.innerHTML = `
       <div class="slips-cards-grid">
-        ${combined.map((s, idx) => {
+        ${slips.map((s, idx) => {
           const legs = Array.isArray(s.items) ? s.items : [];
           const totalOdds = parseFloat(s.total_odds || 1.0).toFixed(2);
           const stake = parseFloat(s.stake || 1000);
@@ -8395,6 +8369,38 @@
         }
       };
     }
+  }
+
+  function loadSlipHistory() {
+    const container = document.getElementById('slipHistoryFeed');
+    if (!container) return;
+
+    let localSlips = [];
+    try {
+      const saved = localStorage.getItem('sportymill_saved_slips');
+      if (saved) localSlips = JSON.parse(saved);
+    } catch (e) {}
+
+    // 1. Instant optimistic render (0ms response time, zero spinner lag)
+    renderSlipHistoryList(localSlips);
+
+    // 2. Background non-blocking sync with server
+    api('/api/slips/history').then(res => {
+      if (res && res.slips && Array.isArray(res.slips)) {
+        const serverSlips = res.slips;
+        const combined = [...serverSlips];
+        localSlips.forEach(ls => {
+          if (!combined.some(cs => cs.booking_code === ls.booking_code)) {
+            combined.push(ls);
+          }
+        });
+        if (combined.length !== localSlips.length) {
+          renderSlipHistoryList(combined);
+        }
+      }
+    }).catch(e => {
+      console.warn('Server slip fetch notice:', e);
+    });
   }
 
   // ===================================================================
@@ -9229,11 +9235,6 @@
     if (dom.btnCloseHistoryModal) dom.btnCloseHistoryModal.addEventListener('click', () => dom.modalSlipHistory.classList.remove('open'));
     const btnOpenSlipHistory = document.getElementById('btnOpenSlipHistory');
     if (btnOpenSlipHistory) btnOpenSlipHistory.addEventListener('click', loadSlipHistory);
-    const topNavSlipHistory = document.getElementById('topNavSlipHistory');
-    if (topNavSlipHistory) topNavSlipHistory.addEventListener('click', (e) => {
-      e.preventDefault();
-      loadSlipHistory();
-    });
     // Fixture Dropdown
     if (dom.fixtureSelect) {
       dom.fixtureSelect.addEventListener('change', (e) => {
@@ -10208,53 +10209,14 @@
     setupDashboardInteractions();
 
     // Check Admin status
-    const btnAdmin = document.getElementById('btnDashNavAdmin');
-    if (btnAdmin) {
+    const adminSec = document.getElementById('dashAdminSection');
+    if (adminSec) {
       if (state.user && state.user.is_admin) {
-        btnAdmin.style.display = 'flex';
+        adminSec.style.display = 'block';
       } else {
-        btnAdmin.style.display = 'none';
+        adminSec.style.display = 'none';
       }
     }
-
-    // Update Account Pane Summary
-    const accName = document.getElementById('dashAccName');
-    const accEmail = document.getElementById('dashAccEmail');
-    const accAvatar = document.getElementById('dashAccAvatar');
-    const accTier = document.getElementById('dashAccTier');
-
-    if (accName && state.user) accName.textContent = state.user.username || 'Trader';
-    if (accEmail && state.user) {
-      accEmail.innerHTML = `${state.user.email || 'demo@sportymill.com'} · <span class="dash-chip-lime" id="dashAccTier">${(state.user.tier || 'PRO').toUpperCase()} ACTIVE</span>`;
-    }
-    if (accAvatar && state.user) {
-      accAvatar.textContent = (state.user.username || 'JJ').substring(0, 2).toUpperCase();
-    }
-
-    // Restore saved form values
-    try {
-      const savedHome = localStorage.getItem('tipalgo_screener_home');
-      const savedAway = localStorage.getItem('tipalgo_screener_away');
-      const savedLeague = localStorage.getItem('tipalgo_screener_league');
-      const savedEdge = localStorage.getItem('tipalgo_screener_min_edge');
-
-      if (savedHome) {
-        const inH = document.getElementById('screenerInputHome');
-        if (inH) inH.value = savedHome;
-      }
-      if (savedAway) {
-        const inA = document.getElementById('screenerInputAway');
-        if (inA) inA.value = savedAway;
-      }
-      if (savedLeague) {
-        const inL = document.getElementById('screenerSelectLeague');
-        if (inL) inL.value = savedLeague;
-      }
-      if (savedEdge) {
-        const inE = document.getElementById('screenerInputMinEdge');
-        if (inE) inE.value = savedEdge;
-      }
-    } catch (e) {}
 
     // Load stats from API
     loadDashboardStats();
@@ -10321,8 +10283,19 @@
               const do_ = card.getAttribute('data-d');
               const ao = card.getAttribute('data-a');
               populateScreenerForm(h, a, l, ho, do_, ao);
-              switchDashPane('dash-pane-screener');
-              runValueScreenerLive();
+              switchView('view-screener');
+              if (dom.fixtureSelect && state.fixtures) {
+                const matchIdx = state.fixtures.findIndex(fx => 
+                  (fx.home_team && fx.home_team.toLowerCase() === h.toLowerCase()) || 
+                  (fx.away_team && fx.away_team.toLowerCase() === a.toLowerCase())
+                );
+                if (matchIdx !== -1) {
+                  dom.fixtureSelect.value = matchIdx;
+                  state.activeFixture = state.fixtures[matchIdx];
+                  updateActiveFixtureUI();
+                }
+              }
+              runValueScreener();
             });
           });
         }
@@ -11216,16 +11189,16 @@
     });
 
     // Quick Launchpad Cards
-    document.querySelectorAll('.dash-launchpad-card[data-dash-target]').forEach(card => {
+    document.querySelectorAll('.dash-launchpad-card[data-tab-target]').forEach(card => {
       card.addEventListener('click', () => {
-        const target = card.getAttribute('data-dash-target');
-        switchDashPane(target);
+        const target = card.getAttribute('data-tab-target');
+        if (target) switchView(target);
       });
     });
 
     const btnQuickScreener = document.getElementById('btnDashQuickScreener');
     if (btnQuickScreener) {
-      btnQuickScreener.addEventListener('click', () => switchDashPane('dash-pane-screener'));
+      btnQuickScreener.addEventListener('click', () => switchView('view-screener'));
     }
 
     const btnRefreshDashStats = document.getElementById('btnRefreshDashStats');
