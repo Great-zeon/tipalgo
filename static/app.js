@@ -1282,9 +1282,20 @@
 
       if (!candidates || !candidates.length) {
         dom.bankerCardsGrid.innerHTML = `
-          <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0;">
-            <div style="font-size: 1.1rem; font-weight: 800; color: #0f172a;">No fixtures currently match the ${(minProb * 100).toFixed(0)}% banker threshold</div>
-            <div style="font-size: 0.82rem; color: #64748b; margin-top: 0.35rem;">Lower the filter to 70% or 60% to view more positive-edge value selections across the weekend slate.</div>
+          <div class="tool-empty-card" style="grid-column: 1 / -1;">
+            <div class="tool-empty-icon" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b;">
+              <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+              </svg>
+            </div>
+            <h3 class="tool-empty-title">No Fixtures Currently Exceed the ${(minProb * 100).toFixed(0)}% Banker Threshold</h3>
+            <p class="tool-empty-desc">
+              The mathematical engine enforces strict probabilistic certainty. Lower the threshold to discover high-conviction value picks across today's active slate.
+            </p>
+            <div style="display: flex; gap: 0.65rem; justify-content: center; flex-wrap: wrap; margin-top: 1.25rem;">
+              <button class="btn-pill-filter" onclick="if(window.renderBankerSlate) window.renderBankerSlate(0.70)">View 70%+ Bankers</button>
+              <button class="btn-pill-filter" onclick="if(window.renderBankerSlate) window.renderBankerSlate(0.60)">View 60%+ Selections</button>
+            </div>
           </div>
         `;
         return;
@@ -1353,19 +1364,28 @@
     } catch (e) {
       console.warn('Banker slate fallback:', e);
       dom.bankerCardsGrid.innerHTML = `
-        <div style="grid-column: 1 / -1; text-align: center; padding: 2rem;">
-          <div style="color: #ef4444; font-weight: 700;">Could not load live slate: ${e.message}</div>
+        <div class="tool-empty-card" style="grid-column: 1 / -1; border-color: rgba(244, 63, 94, 0.3);">
+          <div style="color: #f43f5e; font-weight: 700;">Could not load live banker slate: ${esc(e.message)}</div>
         </div>
       `;
     }
   }
 
+  // Attach Banker Slate to window for interactive threshold buttons
+  window.renderBankerSlate = renderBankerSlate;
+
   // Execute Value Screener
   async function runValueScreener() {
+    if (!dom.screenerResultDisplay) return;
     dom.screenerResultDisplay.innerHTML = `
-      <div class="empty-dribbble-state">
-        <div class="spinner-dot" style="margin-bottom: 0.75rem;"></div>
-        Evaluating both sides without bias for market mispricing...
+      <div class="tool-empty-card">
+        <div class="tool-empty-icon" style="background: rgba(56, 189, 248, 0.12); color: #38bdf8;">
+          <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" class="spin-slow">
+            <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="12"></circle>
+          </svg>
+        </div>
+        <div style="font-weight: 700; color: #38bdf8;">Evaluating Both Sides Without Bias...</div>
+        <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.35rem;">Scanning form trajectories and computing machine learning value edge...</p>
       </div>
     `;
 
@@ -1377,43 +1397,51 @@
       });
 
       const isBanter = state.personalityMode === 'BANTER';
+      const edgeNum = parseFloat(res.edge || 0);
+      const probNum = parseFloat(res.probability || 0);
+      const isPatternMatched = Boolean(res.pattern_matched);
+      const isPositiveEdge = edgeNum > 0;
+      const matchTitle = res.match || (state.activeFixture ? `${state.activeFixture.home_team} vs ${state.activeFixture.away_team}` : 'Selected Fixture');
+
       dom.screenerResultDisplay.innerHTML = `
         <div class="outcome-clean-card" style="margin-top: 1rem;">
           <div class="outcome-head">
             <div>
-              <div class="outcome-title">${res.match}</div>
-              <div style="font-size: 0.8rem; color: #0284c7; font-weight: 800; margin-top: 0.2rem;">Quantitative Value Detection ${isBanter ? '· (Naija Radar)' : ''}</div>
+              <div class="outcome-title">${esc(matchTitle)}</div>
+              <div style="font-size: 0.8rem; color: #38bdf8; font-weight: 700; margin-top: 0.2rem;">
+                Quantitative Value Detection ${isBanter ? '· (Naija Radar)' : '· Institutional ML'}
+              </div>
             </div>
-            <span class="outcome-status-badge ${res.pattern_matched ? 'success' : 'neutral'}">
-              ${res.pattern_matched ? (isBanter ? 'VALUE DEY HERE' : 'VALUE EDGE IDENTIFIED') : (isBanter ? 'NO VALUE / PASS' : 'FAIR PRICE / PASS')}
+            <span class="outcome-status-badge ${isPatternMatched ? 'success' : 'neutral'}">
+              ${isPatternMatched ? (isBanter ? 'VALUE DEY HERE' : 'VALUE EDGE IDENTIFIED') : (isBanter ? 'NO VALUE / PASS' : 'FAIR PRICE / PASS')}
             </span>
           </div>
 
           <div class="outcome-metrics-row">
             <div class="outcome-metric-cell">
               <div class="cell-label">${isBanter ? 'Qualified Pick' : 'Qualified Side'}</div>
-              <div class="cell-value green">${res.selection || (isBanter ? 'No Edge Found' : 'No Edge')}</div>
+              <div class="cell-value ${isPatternMatched ? 'green' : ''}">${esc(res.selection || (isBanter ? 'Pass (No Edge)' : 'Pass (Fair Price)'))}</div>
             </div>
             <div class="outcome-metric-cell">
               <div class="cell-label">${isBanter ? 'Win Likelihood' : 'Win Likelihood'}</div>
-              <div class="cell-value">${res.probability || 0}%</div>
+              <div class="cell-value">${probNum > 0 ? probNum.toFixed(1) + '%' : 'N/A'}</div>
             </div>
             <div class="outcome-metric-cell">
               <div class="cell-label">${isBanter ? 'Calculated Edge' : 'Calculated Edge'}</div>
-              <div class="cell-value green">${res.edge || 0}%</div>
+              <div class="cell-value ${isPositiveEdge ? 'green' : ''}">${isPositiveEdge ? '+' + edgeNum.toFixed(1) + '%' : edgeNum.toFixed(1) + '%'}</div>
             </div>
             <div class="outcome-metric-cell">
               <div class="cell-label">${isBanter ? 'Recommended Stake' : 'Suggested Stake'}</div>
-              <div class="cell-value">${res.stake_suggestion || 'N/A'}</div>
+              <div class="cell-value">${esc(res.stake_suggestion || '₦0')}</div>
             </div>
           </div>
 
           <div class="outcome-narrative">
-            <strong style="color: #0f172a;">${res.explanation?.headline || (res.pattern_matched ? (isBanter ? 'Oga! Screener don catch value!' : 'Screener Assessment') : (isBanter ? 'No value edge for this match, drop am!' : 'Fair Price / Pass'))}</strong>
-            <p style="margin-top: 0.4rem; color: #475569;">${res.explanation?.rule || (res.pattern_matched ? (isBanter ? 'AI model scan both sides and confirm say value dey this selection.' : res.message) : (isBanter ? 'Both sides priced fair by bookie. No edge found, protect your bankroll!' : res.message))}</p>
+            <strong>${esc(res.explanation?.headline || (isPatternMatched ? (isBanter ? 'Oga! Screener don catch value!' : 'Screener Assessment') : (isBanter ? 'No value edge for this match, drop am!' : 'Fair Price / Pass')))}</strong>
+            <p>${esc(res.explanation?.rule || (isPatternMatched ? (isBanter ? 'AI model scan both sides and confirm say value dey this selection.' : res.message) : (isBanter ? 'Both sides priced fair by bookie. No edge found, protect your bankroll!' : res.message)))}</p>
           </div>
 
-          <button class="btn-pill-dark" id="btnAnalyzeScreenerMatch" style="width: 100%; padding: 0.85rem;">
+          <button class="btn-pill-dark" id="btnAnalyzeScreenerMatch" style="width: 100%; padding: 0.85rem; margin-top: 1rem;">
             Analyze Full Match Breakdown →
           </button>
         </div>
@@ -1427,16 +1455,26 @@
       }
 
     } catch (e) {
-      dom.screenerResultDisplay.innerHTML = `<div class="empty-dribbble-state" style="color: #ef4444;">${e.message}</div>`;
+      dom.screenerResultDisplay.innerHTML = `
+        <div class="tool-empty-card" style="border-color: rgba(244, 63, 94, 0.3);">
+          <div style="color: #f43f5e; font-weight: 700;">Could not evaluate value screener: ${esc(e.message)}</div>
+        </div>
+      `;
     }
   }
 
   // Accu-Forge Parlay Generator
   async function runAccuForgeTicket() {
+    if (!dom.accuTicketDisplay) return;
     dom.accuTicketDisplay.innerHTML = `
-      <div class="empty-dribbble-state">
-        <div class="spinner-dot" style="margin-bottom: 0.75rem;"></div>
-        Scanning scheduled database fixtures and forging parlay ticket...
+      <div class="tool-empty-card">
+        <div class="tool-empty-icon" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b;">
+          <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" class="spin-slow">
+            <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="12"></circle>
+          </svg>
+        </div>
+        <div style="font-weight: 700; color: #f59e0b;">Scanning Scheduled Database Fixtures...</div>
+        <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.35rem;">Combining mathematically qualifying value legs into an accumulator...</p>
       </div>
     `;
 
@@ -1456,62 +1494,86 @@
       });
 
       if (!res.pattern_matched || !res.legs || !res.legs.length) {
-        dom.accuTicketDisplay.innerHTML = `<div class="empty-dribbble-state">${res.message || 'No qualifying legs for this target odds. Try adjusting thresholds.'}</div>`;
+        dom.accuTicketDisplay.innerHTML = `
+          <div class="tool-empty-card">
+            <div class="tool-empty-icon" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b;">
+              <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+            </div>
+            <h3 class="tool-empty-title">${esc(res.message || 'No Qualifying Accu-Forge Legs Found')}</h3>
+            <p class="tool-empty-desc">
+              Current mathematical thresholds are too restrictive for today's market odds. Try lowering target odds or min probability.
+            </p>
+          </div>
+        `;
         return;
       }
 
       const stake = 10000;
-      const potentialPayout = formatNaira(stake * res.achieved_odds);
+      const potentialPayout = formatNaira(stake * (res.achieved_odds || 1.0));
 
       dom.accuTicketDisplay.innerHTML = `
         <div class="outcome-clean-card" style="margin-top: 1rem;">
           <div class="outcome-head">
             <div>
               <div class="outcome-title">Accu-Forge™ Verified Ticket (${res.number_of_legs} Legs)</div>
-              <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.2rem;">Multi-Match Parlay from Database Slate</div>
+              <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.2rem;">Multi-Match Parlay from Database Slate</div>
             </div>
-            <div style="display: flex; gap: 0.5rem;">
-              <span class="outcome-status-badge success">Combined Odds: @${res.achieved_odds}</span>
-              <span class="outcome-status-badge neutral">Ticket Prob: ${res.overall_probability}</span>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <span class="outcome-status-badge success">Combined Odds: @${Number(res.achieved_odds || 0).toFixed(2)}</span>
+              <span class="outcome-status-badge neutral">Ticket Prob: ${esc(res.overall_probability || 'N/A')}</span>
             </div>
           </div>
 
           <div style="display: flex; flex-direction: column; gap: 0.65rem; margin: 1.25rem 0;">
             ${res.legs.map((leg, idx) => `
-              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.85rem 1rem; display: flex; justify-content: space-between; align-items: center;">
+              <div class="accu-leg-card">
                 <div>
-                  <div style="font-weight: 800; font-size: 0.88rem; color: #0f172a;">Leg ${idx+1}: ${leg.match}</div>
-                  <div style="font-size: 0.78rem; color: #059669; font-weight: 700; margin-top: 0.15rem;">
-                    Pick: ${leg.selection} (${leg.probability_percentage} prob · ${leg.edge_percentage} edge)
+                  <div style="font-weight: 800; font-size: 0.88rem; color: #f8fafc;">Leg ${idx+1}: ${esc(leg.match)}</div>
+                  <div style="font-size: 0.78rem; color: #34d399; font-weight: 700; margin-top: 0.15rem;">
+                    Pick: ${esc(leg.selection)} (${esc(leg.probability_percentage || '')} prob · ${esc(leg.edge_percentage || '')} edge)
                   </div>
                 </div>
-                <div style="font-weight: 900; font-size: 1.15rem; color: #4f46e5;">@${leg.odds}</div>
+                <div style="font-weight: 900; font-size: 1.15rem; color: #38bdf8;">@${Number(leg.odds || 0).toFixed(2)}</div>
               </div>
             `).join('')}
           </div>
 
-          <div style="background: #f1f5f9; padding: 0.85rem 1rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <span>Est. Payout on ₦10,000 Stake:</span>
-            <strong style="font-size: 1.2rem; color: #059669;">${potentialPayout}</strong>
+          <div class="accu-payout-banner">
+            <span style="color: #94a3b8; font-size: 0.85rem;">Est. Payout on ₦10,000 Stake:</span>
+            <strong style="font-size: 1.25rem; color: #34d399; font-family: var(--font-mono);">${potentialPayout}</strong>
           </div>
 
-          <div style="text-align: center; padding: 0.75rem; background: #e0e7ff; color: #4338ca; border-radius: 8px; font-weight: 700; font-size: 0.85rem;">
-            Accu-Forge Parlay Verified · ${res.number_of_legs} Legs Combined (@${res.achieved_odds})
+          <div style="text-align: center; padding: 0.75rem; background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; font-weight: 700; font-size: 0.85rem; margin-top: 0.75rem;">
+            Accu-Forge Parlay Verified · ${res.number_of_legs} Legs Combined (@${Number(res.achieved_odds || 0).toFixed(2)})
           </div>
         </div>
       `;
 
     } catch (e) {
-      dom.accuTicketDisplay.innerHTML = `<div class="empty-dribbble-state" style="color: #ef4444;">${e.message}</div>`;
+      dom.accuTicketDisplay.innerHTML = `
+        <div class="tool-empty-card" style="border-color: rgba(244, 63, 94, 0.3);">
+          <div style="color: #f43f5e; font-weight: 700;">Could not build Accu-Forge ticket: ${esc(e.message)}</div>
+        </div>
+      `;
     }
   }
 
   // Execute Full Slate Batch Scanner
   async function runBatchScanner() {
+    if (!dom.batchScanResultsTable) return;
     dom.batchScanResultsTable.innerHTML = `
-      <div class="empty-dribbble-state">
-        <div class="spinner-dot" style="margin-bottom: 0.75rem;"></div>
-        Simulating all scheduled fixtures from today's active match slate...
+      <div class="tool-empty-card">
+        <div class="tool-empty-icon" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
+          <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" class="spin-slow">
+            <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="12"></circle>
+          </svg>
+        </div>
+        <div style="font-weight: 700; color: #10b981;">Simulating All Scheduled Fixtures...</div>
+        <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.35rem;">Calculating Poisson probability distributions and value edges for today's active match slate...</p>
       </div>
     `;
 
@@ -1541,54 +1603,129 @@
 
       const results = res.results || [];
       if (!results.length) {
-        dom.batchScanResultsTable.innerHTML = `<div class="empty-dribbble-state">No matches found with positive value edge on this slate.</div>`;
+        dom.batchScanResultsTable.innerHTML = `
+          <div class="tool-empty-card">
+            <h3 class="tool-empty-title">No Matches Found with Positive Value Edge</h3>
+            <p class="tool-empty-desc">All scheduled fixtures on this slate are priced within normal bookmaker bounds.</p>
+          </div>
+        `;
         return;
       }
 
       dom.batchScanResultsTable.innerHTML = `
-        <table class="batch-table">
-          <thead>
-            <tr>
-              <th>Match</th>
-              <th>Top Pick</th>
-              <th>Odds</th>
-              <th>True Prob</th>
-              <th>Value Edge</th>
-              <th>Kelly Stake</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${results.map((r, i) => {
-              const edgePct = (r.edge * 100);
-              const probPct = (r.probability * 100);
-              const odds = r.odds || 1.65;
-              const stakeAmt = formatNaira((state.user?.bankroll || 1000000) * Math.max(0.01, (r.edge * 0.25)));
+        <div class="batch-table-wrap">
+          <table class="batch-table">
+            <thead>
+              <tr>
+                <th>Match</th>
+                <th>Top Pick</th>
+                <th>Odds</th>
+                <th>True Prob</th>
+                <th>Value Edge</th>
+                <th>Kelly Stake</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${results.map((r, i) => {
+                const tip = r.tip || {};
+                const hasTip = Boolean(tip && (tip.pattern_matched || tip.selection));
+                const pickName = hasTip ? (tip.selection || 'Value Pick') : 'Fair Price / Pass';
+                const odds = parseFloat(tip.odds || (hasTip ? 1.85 : 0)) || 0;
+                const oddsText = odds > 0 ? `@${odds.toFixed(2)}` : 'Fair Line';
+                const rawProb = tip.probability != null ? tip.probability : 0;
+                const probPct = rawProb <= 1.0 && rawProb > 0 ? (rawProb * 100) : rawProb;
+                const rawEdge = tip.edge != null ? tip.edge : 0;
+                const edgePct = rawEdge <= 1.0 && rawEdge > 0 ? (rawEdge * 100) : rawEdge;
+                const stakeAmt = hasTip && edgePct > 0 
+                  ? formatNaira((state.user?.bankroll || 1000000) * Math.max(0.01, (edgePct / 100 * 0.25)))
+                  : '₦0';
 
-              return `
-                <tr>
-                  <td><strong>${r.match}</strong></td>
-                  <td><span style="color: #059669; font-weight: 700;">${r.selection}</span></td>
-                  <td><strong>@${odds.toFixed(2)}</strong></td>
-                  <td>${probPct.toFixed(1)}%</td>
-                  <td><strong style="color: #059669;">+${edgePct.toFixed(1)}%</strong></td>
-                  <td>${stakeAmt}</td>
-                  <td>
-                    <button class="btn-table-analyze" data-match="${r.match}" style="background: #4f46e5; color: #fff; border: none; padding: 0.35rem 0.75rem; border-radius: 6px; font-weight: 700; font-size: 0.75rem; cursor: pointer;">
-                      Analyze Match →
-                    </button>
-                  </td>
-                </tr>
-              `;
-            }).join('')}
-          </tbody>
-        </table>
+                return `
+                  <tr class="${hasTip ? 'row-qualified' : 'row-pass'}">
+                    <td><strong style="color: #f8fafc;">${esc(r.match)}</strong></td>
+                    <td>
+                      ${hasTip 
+                        ? `<span class="badge-table-pick success">${esc(pickName)}</span>`
+                        : `<span class="badge-table-pick pass">Pass (No Edge)</span>`
+                      }
+                    </td>
+                    <td><strong style="color: #38bdf8;">${oddsText}</strong></td>
+                    <td>${probPct > 0 ? `${probPct.toFixed(1)}%` : '<span style="color:#64748b;">Baseline</span>'}</td>
+                    <td>
+                      ${edgePct > 0 
+                        ? `<strong style="color: #34d399;">+${edgePct.toFixed(1)}%</strong>` 
+                        : `<span style="color: #64748b;">0.0%</span>`}
+                    </td>
+                    <td style="font-family: var(--font-mono);">${stakeAmt}</td>
+                    <td>
+                      <button class="btn-table-analyze" data-match="${esc(r.match)}">
+                        Analyze →
+                      </button>
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Mobile Card List for screens < 768px -->
+        <div class="batch-mobile-card-list">
+          ${results.map((r, i) => {
+            const tip = r.tip || {};
+            const hasTip = Boolean(tip && (tip.pattern_matched || tip.selection));
+            const pickName = hasTip ? (tip.selection || 'Value Pick') : 'Fair Price / Pass';
+            const odds = parseFloat(tip.odds || (hasTip ? 1.85 : 0)) || 0;
+            const oddsText = odds > 0 ? `@${odds.toFixed(2)}` : 'Fair Line';
+            const rawProb = tip.probability != null ? tip.probability : 0;
+            const probPct = rawProb <= 1.0 && rawProb > 0 ? (rawProb * 100) : rawProb;
+            const rawEdge = tip.edge != null ? tip.edge : 0;
+            const edgePct = rawEdge <= 1.0 && rawEdge > 0 ? (rawEdge * 100) : rawEdge;
+            const stakeAmt = hasTip && edgePct > 0 
+              ? formatNaira((state.user?.bankroll || 1000000) * Math.max(0.01, (edgePct / 100 * 0.25)))
+              : '₦0';
+
+            return `
+              <div class="batch-mobile-card ${hasTip ? 'qualified' : 'pass'}">
+                <div class="batch-mobile-card-head">
+                  <div class="batch-mobile-match-name">${esc(r.match)}</div>
+                  ${hasTip 
+                    ? `<span class="badge-table-pick success">${esc(pickName)}</span>`
+                    : `<span class="badge-table-pick pass">Pass</span>`
+                  }
+                </div>
+                <div class="batch-mobile-metrics">
+                  <div>
+                    <span class="batch-mobile-label">Odds</span>
+                    <strong style="color: #38bdf8;">${oddsText}</strong>
+                  </div>
+                  <div>
+                    <span class="batch-mobile-label">Model Prob</span>
+                    <span style="color: #e2e8f0;">${probPct > 0 ? probPct.toFixed(1) + '%' : 'Baseline'}</span>
+                  </div>
+                  <div>
+                    <span class="batch-mobile-label">Value Edge</span>
+                    <strong style="color: ${edgePct > 0 ? '#34d399' : '#64748b'};">${edgePct > 0 ? '+' + edgePct.toFixed(1) + '%' : '0.0%'}</strong>
+                  </div>
+                  <div>
+                    <span class="batch-mobile-label">Kelly Stake</span>
+                    <strong style="color: #f8fafc; font-family: var(--font-mono);">${stakeAmt}</strong>
+                  </div>
+                </div>
+                <button class="btn-table-analyze" data-match="${esc(r.match)}" style="width: 100%; margin-top: 0.75rem; padding: 0.55rem; justify-content: center;">
+                  Analyze Match Breakdown →
+                </button>
+              </div>
+            `;
+          }).join('')}
+        </div>
       `;
 
       dom.batchScanResultsTable.querySelectorAll('.btn-table-analyze').forEach(btn => {
         btn.addEventListener('click', () => {
           const match = btn.getAttribute('data-match');
-          const matched = state.fixtures.find(f => `${f.home_team} vs ${f.away_team}`.toLowerCase() === match.toLowerCase()) || {
+          const matched = (state.fixtures && state.fixtures.find(f => `${f.home_team} vs ${f.away_team}`.toLowerCase() === match.toLowerCase())) || {
             home_team: match.split(' vs ')[0] || 'Home',
             away_team: match.split(' vs ')[1] || 'Away',
             league: 'Premier League',
@@ -1601,7 +1738,11 @@
       });
 
     } catch (e) {
-      dom.batchScanResultsTable.innerHTML = `<div class="empty-dribbble-state" style="color: #ef4444;">${e.message}</div>`;
+      dom.batchScanResultsTable.innerHTML = `
+        <div class="tool-empty-card" style="border-color: rgba(244, 63, 94, 0.3);">
+          <div style="color: #f43f5e; font-weight: 700;">Batch scan execution failed: ${esc(e.message)}</div>
+        </div>
+      `;
     }
   }
 
