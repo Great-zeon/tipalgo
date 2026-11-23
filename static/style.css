@@ -15167,7 +15167,7 @@ body.light-theme-mode .btn-validate-print-slip[disabled] {
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
-    overflow: hidden !important;
+    overflow: visible !important;
     gap: 0.35rem !important;
     padding-bottom: 0 !important;
   }
@@ -18351,3 +18351,196 @@ select option {
 
 
 
+
+
+/* ===================================================================
+   UNIFIED MOBILE REFINEMENT & RESPONSIVE POLISH (PHONE / IPHONE X)
+   Zero Horizontal Screen Bleed, Fixed Centered Calendar Modal,
+   and Clean Single-Row Header
+   =================================================================== */
+
+@media (max-width: 768px) {
+  /* Viewport & Body Horizontal Bleed Elimination */
+  html, body {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .app-wrapper,
+  .content-area,
+  .view-panel,
+  .calendar-tool-container,
+  .grand-header-strip,
+  .slip-history-page-container,
+  .prediction-history-container,
+  .dashboard-page-container {
+    max-width: 100vw !important;
+    width: 100% !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Single-Row Clean Top Navbar: Hide wrapped center menu (Bottom nav & drawer handle tabs) */
+  .top-navbar .nav-center-menu {
+    display: none !important;
+  }
+
+  .top-navbar {
+    flex-wrap: nowrap !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 0.5rem 0.75rem !important;
+    min-height: 52px !important;
+  }
+
+  /* Limitless Calendar Dropdown: Fixed Centered Native Modal with Dimmed Backdrop */
+  .calendar-limitless-dropdown-menu {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: translate(-50%, -50%) !important;
+    width: min(380px, calc(100vw - 24px)) !important;
+    max-width: 95vw !important;
+    max-height: 85vh !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    z-index: 999999 !important;
+    margin: 0 !important;
+    padding: 1.15rem 1rem !important;
+    border-radius: 16px !important;
+    background: #0b1329 !important;
+    border: 1px solid rgba(56, 189, 248, 0.35) !important;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95), 0 0 0 100vmax rgba(0, 0, 0, 0.75) !important;
+  }
+
+  /* Grids: Override minmax to single-column to eliminate horizontal screen overflow */
+  .grand-endpoints-grid,
+  .match-cards-global-grid,
+  .bankers-cards-grid,
+  .slips-cards-grid,
+  .about-grid-two-col,
+  .pillars-container,
+  .about-categories-grid,
+  .dash-launchpad-row {
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Containers & Cards Safety */
+  .grand-endpoint-card,
+  .banker-card,
+  .saved-slip-card,
+  .about-card,
+  .dash-launchpad-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Responsive Ribbon Bars */
+  .grand-category-ribbon-bar,
+  .grand-category-pills {
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Declutter Topbar on Phones (iPhone X: 375px) */
+  .calendar-controls-card.unified-top-bar {
+    padding: 0.5rem !important;
+    gap: 0.5rem !important;
+  }
+
+  /* Ensure calendar trigger box has generous width and never squishes */
+  .cal-dropdown-trigger-box {
+    padding: 0 0.5rem !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+  }
+
+  .cal-dropdown-date-text {
+    font-size: 0.8rem !important;
+    font-weight: 700 !important;
+  }
+
+  .cal-dropdown-date-sub {
+    font-size: 0.65rem !important;
+  }
+
+  /* Full Slate Scanner Table: ensure desktop table is hidden on phone, mobile cards used */
+  .batch-table-wrap {
+    display: none !important;
+  }
+
+  .batch-mobile-card-list {
+    display: flex !important;
+    width: 100% !important;
+  }
+
+  /* Tool Cards Mobile Spacing */
+  .screener-dribbble-card,
+  .accu-dribbble-container,
+  .batch-scanner-container {
+    padding: 1rem 0.85rem !important;
+    margin-top: 1rem !important;
+    border-radius: 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .screener-controls-strip,
+  .accu-params-strip {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+
+  .clean-select,
+  .clean-input {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Dashboard Stats Grid: 2 columns on mobile */
+  .dash-stats-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.65rem !important;
+  }
+}
+
+@media (max-width: 420px) {
+  /* On iPhone X (375px) and smaller: collapse date pills to give full breathing room to date trigger */
+  .cal-dates-list.desktop-dates-strip.compact-strip {
+    display: none !important;
+  }
+
+  .calendar-dropdown-bar-wrap.topbar-left-calendar {
+    gap: 0.45rem !important;
+    justify-content: space-between !important;
+  }
+
+  .cal-step-day-btn {
+    width: 32px !important;
+    min-width: 32px !important;
+    height: 38px !important;
+  }
+
+  .cal-dropdown-trigger-box {
+    flex: 1 1 auto !important;
+    height: 38px !important;
+  }
+
+  /* Dashboard Stats Grid: 1 column on ultra-compact phones (<= 360px) */
+  @media (max-width: 360px) {
+    .dash-stats-grid {
+      grid-template-columns: 1fr !important;
+    }
+  }
+}
