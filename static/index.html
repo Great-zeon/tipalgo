@@ -36,7 +36,7 @@
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet">
 
-  <link rel="stylesheet" href="/static/style.css?v=110">
+  <link rel="stylesheet" href="/static/style.css?v=111">
 </head>
 
 <body class="light-platform">
@@ -140,7 +140,7 @@
               <span class="item-title">Full Slate Scanner</span>
               <span class="item-desc">High-throughput multi-match quantitative scan</span>
             </a>
-            <a href="#" class="dropdown-menu-item" id="topNavSlipHistory">
+            <a href="#" class="dropdown-menu-item" data-tab-target="view-slip-history" id="topNavSlipHistory">
               <span class="item-title">Bet Slip History</span>
               <span class="item-desc">Review and re-load past validated betting slips</span>
             </a>
@@ -1138,8 +1138,13 @@
         <div class="panel-section-header">
           <div>
             <span class="pill-badge pill-badge-fire">High Probability</span>
-            <h2>Banker Picks (80%+ Confidence)</h2>
+            <h2>Banker Picks &amp; High-Conviction Slate</h2>
             <p>High-probability fixtures backed by Poisson goal models and verified market odds.</p>
+          </div>
+          <div class="banker-threshold-pills" id="bankerThresholdPills">
+            <button class="btn-pill-filter active" data-prob="0.80">80%+ Bankers</button>
+            <button class="btn-pill-filter" data-prob="0.70">70%+ High Conviction</button>
+            <button class="btn-pill-filter" data-prob="0.60">60%+ Balanced Value</button>
           </div>
         </div>
         <div class="bankers-cards-grid" id="bankersSlateGrid"></div>
@@ -1207,6 +1212,10 @@
           </div>
           <div class="screener-controls-strip">
             <div class="strip-item">
+              <label>Select Match</label>
+              <select id="screenerFixtureSelect" class="clean-select"></select>
+            </div>
+            <div class="strip-item">
               <label>Min Edge Required</label>
               <select id="screenerEdgeSelect" class="clean-select">
                 <option value="0.02">2% Minimum Edge (Aggressive)</option>
@@ -1220,7 +1229,7 @@
             </div>
           </div>
           <div id="screenerResultDisplay" class="screener-result-display">
-            <div class="empty-dribbble-state">Click "Run Screener Analysis" to evaluate the current fixture.</div>
+            <div class="empty-dribbble-state">Click "Run Screener Analysis" to evaluate the selected fixture.</div>
           </div>
         </div>
       </section>
@@ -1450,6 +1459,43 @@
             </div>
           </div> <!-- End #histBacktestSection -->
 
+        </div>
+      </section>
+
+      <!-- View: Bet Slip History & Booking Codes Screen -->
+      <section id="view-slip-history" class="view-panel">
+        <div class="slip-history-page-container">
+          <div class="panel-section-header">
+            <div>
+              <span class="pill-badge pill-badge-cyan">Ticket Archive</span>
+              <h2>Bet Slip History &amp; Booking Codes</h2>
+              <p>Audit your saved tickets, copy SportyBet booking codes, and reload previous accumulators.</p>
+            </div>
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+              <button class="btn-pill-filter" id="btnClearSlipHistory">Clear History</button>
+              <button class="btn-hero-screener" data-tab-target="view-calendar">Build New Slip +</button>
+            </div>
+          </div>
+
+          <div id="slipHistoryFeed" class="slip-history-feed">
+            <div class="tool-empty-card">
+              <div class="tool-empty-icon" style="background: rgba(56, 189, 248, 0.12); color: #38bdf8;">
+                <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                </svg>
+              </div>
+              <h3 class="tool-empty-title">No Saved Bet Slips Yet</h3>
+              <p class="tool-empty-desc">
+                Select picks from any match to load your Chop Slip, then tap "Save Slip" to archive your booking codes and odds.
+              </p>
+              <button class="btn-hero-screener" style="margin-top: 1.25rem;" data-tab-target="view-calendar">
+                Browse Active Matches →
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -2627,107 +2673,6 @@
   </div>
   </section>
 
-
-  <!-- ===================================================================
-           INSTITUTIONAL SITE FOOTER
-           =================================================================== -->
-  <footer class="site-footer" id="siteFooter">
-    <div class="footer-inner">
-      <div class="footer-top-grid">
-        <!-- Col 1: Brand & Description -->
-        <div class="footer-brand-col">
-          <a href="/" class="footer-logo-row" data-tab-target="view-calendar">
-            <img src="/static/img/sportymill_logo_transparent.webp" alt="SportyMill"
-              class="brand-logo-img brand-logo-dark" width="160" height="38">
-            <img src="/static/img/sportymill_logo_light_theme.webp" alt="SportyMill"
-              class="brand-logo-img brand-logo-light" width="160" height="38">
-          </a>
-          <p class="footer-brand-desc">
-            Institutional-grade sports betting analytics powered by authentic Poisson goal distributions, mathematical
-            +EV detection, and Kelly bankroll optimization.
-          </p>
-          <div class="footer-status-chip">
-            <span class="status-chip-dot"></span>
-            <span>Deterministic Models Active • Zero Synthetic Metrics</span>
-          </div>
-        </div>
-
-        <!-- Col 2: Platform Navigation -->
-        <div class="footer-col">
-          <div class="footer-col-title">Platform</div>
-          <ul class="footer-links-list">
-            <li><a href="#" class="footer-link" data-tab-target="view-calendar">Matches Slate</a></li>
-            <li><a href="#" class="footer-link" data-tab-target="view-grand">33 Endpoints Matrix</a></li>
-            <li><a href="#" class="footer-link" data-tab-target="view-bankers">80%+ Bankers</a></li>
-            <li><a href="#" class="footer-link" data-tab-target="view-screener">Value Screener (+EV)</a></li>
-            <li><a href="#" class="footer-link" data-tab-target="view-accumulator">Accu-Forge Parlay</a></li>
-            <li><a href="#" class="footer-link" data-tab-target="view-history">Prediction History</a></li>
-          </ul>
-        </div>
-
-        <!-- Col 3: Legal & Regulatory -->
-        <div class="footer-col">
-          <div class="footer-col-title">Compliance</div>
-          <ul class="footer-links-list">
-            <li><a href="/privacy" class="footer-link">Privacy Policy</a></li>
-            <li><a href="/terms" class="footer-link">Terms &amp; Conditions</a></li>
-            <li><a href="#" class="footer-link" id="footerLinkResponsible">Responsible Wagering (18+)</a></li>
-            <li><a href="#" class="footer-link" data-tab-target="view-about">About Methodology</a></li>
-            <li><a href="/status" class="footer-link">System Status</a></li>
-          </ul>
-        </div>
-
-        <!-- Col 4: Contact & Verification (Clickable Phone and Email) -->
-        <div class="footer-col footer-support-col">
-          <div class="footer-col-title">Client Support Desk</div>
-          <div class="footer-contact-item">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#10b981" stroke-width="2.2"
-              stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
-              <path
-                d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-            </svg>
-            <span>Call Desk: <a href="tel:+2348008472546" class="footer-contact-link">+234 (0) 800 TIP ALGO</a></span>
-          </div>
-          <div class="footer-contact-item">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#38bdf8" stroke-width="2.2"
-              stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-              <polyline points="22,6 12,13 2,6" />
-            </svg>
-            <span>Support: <a href="mailto:support@sportymill.com"
-                class="footer-contact-link">support@sportymill.com</a></span>
-          </div>
-          <div class="footer-hours-badge">
-            <span>Mon – Sun: 07:00 – 23:00 GMT+1 • Live Escalation</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Responsible Gaming Notice Banner -->
-      <div class="footer-disclaimer-strip">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#f59e0b" stroke-width="2"
-          stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="8" x2="12" y2="12"></line>
-          <line x1="12" y1="16" x2="12.01" y2="16"></line>
-        </svg>
-        <span>SportyMill provides statistical expectancy models and quantitative betting intelligence for analytical
-          purposes. No mathematical model can eliminate inherent match variance. Please gamble responsibly (18+).</span>
-      </div>
-
-      <div class="footer-bottom-row">
-        <div>
-          &copy; <span id="footerCopyrightYear">2026</span> SportyMill (TipAlgo Platform). All rights reserved.
-        </div>
-        <div class="footer-bottom-links">
-          <a href="/privacy" class="footer-link">Privacy Policy</a>
-          <a href="/terms" class="footer-link">Terms of Service</a>
-          <a href="#" class="footer-link" id="footerBtnHelpModal">Support Desk</a>
-        </div>
-      </div>
-    </div>
-  </footer>
-
   </main>
 
   <!-- Floating Bet Slip Popup for Mobile Phone View Faithful to User Mockup -->
@@ -3181,26 +3126,6 @@
           <button class="btn-pill-light" id="btnCloseValidateModalBtn">Close</button>
         </div>
 
-      </div>
-    </div>
-  </div>
-
-  <!-- ===================================================================
-       MODAL 4: Bet Slip History Modal
-       =================================================================== -->
-  <div class="modal-overlay" id="modalSlipHistory">
-    <div class="modal-box slip-history-modal-box">
-      <div class="modal-header">
-        <div>
-          <h3>Past Saved Slips &amp; Booking Codes</h3>
-          <p>Review your previous accumulators, odds, and track potential payouts.</p>
-        </div>
-        <button class="btn-close-modal" id="btnCloseHistoryModal">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="history-list-container" id="historyListContainer">
-          <div class="history-empty-state">No saved bet slips found yet. Save your first slip from the sidebar!</div>
-        </div>
       </div>
     </div>
   </div>
@@ -3741,7 +3666,7 @@
       .then(function (data) { if (data) window.__teamForms = data; })
       .catch(function () { });
   </script>
-  <script src="/static/app.js?v=110"></script>
+  <script src="/static/app.js?v=111"></script>
 </body>
 
 </html>

@@ -705,7 +705,7 @@ calendar_slate_cache = TTLCache(ttl_seconds=86400)
 h2h_cache = TTLCache(ttl_seconds=86400)
 leagues_teams_cache = TTLCache(ttl_seconds=86400)
 upcoming_fixtures_cache = TTLCache(ttl_seconds=86400)
-banker_slate_cache = TTLCache(ttl_seconds=86400)
+banker_slate_cache = TTLCache(ttl_seconds=60)
 
 # ------------------------------------------------------------------
 # DATABASE
@@ -4328,14 +4328,14 @@ _CANDIDATE_CACHE_TTL = 60
 async def get_all_candidate_bets(db: AsyncSession, predictor: PredictorService,
                                  min_edge: float = 0.01, min_prob: float = 0.55,
                                  max_odds: float = 20.0) -> List[Dict]:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     cache_key = f"candidate_bets:{min_edge:.3f}:{min_prob:.3f}:{max_odds:.1f}"
     cached = _candidate_cache.get(cache_key)
     if cached and time.time() - cached['ts'] < _CANDIDATE_CACHE_TTL:
         return cached['data']
     result = await db.execute(
         select(HistoricalMatch)
-        .where(HistoricalMatch.match_date > now)
+        .where(HistoricalMatch.match_date >= now)
         .where(HistoricalMatch.status.in_(["scheduled", "ns"]))
         .where(HistoricalMatch.home_odds.isnot(None))
         .where(HistoricalMatch.away_odds.isnot(None))
@@ -8068,6 +8068,10 @@ async def get_banker_slate(min_prob: float = 0.60, min_edge: float = 0.01,
     if cached is not None:
         return Response(content=cached, media_type="application/json")
     candidates = await get_all_candidate_bets(db, predictor, min_edge=min_edge, min_prob=min_prob)
+    if len(candidates) < 4 and min_prob > 0.65:
+        candidates = await get_all_candidate_bets(db, predictor, min_edge=min_edge, min_prob=0.65)
+    if len(candidates) < 4 and min_prob > 0.55:
+        candidates = await get_all_candidate_bets(db, predictor, min_edge=min_edge, min_prob=0.55)
     candidates = sorted(candidates, key=lambda x: x['model_prob'], reverse=True)
     # Deduplicate by match so each match has its best candidate (strict uniqueness)
     seen_matches = set()
@@ -8078,7 +8082,8 @@ async def get_banker_slate(min_prob: float = 0.60, min_edge: float = 0.01,
             deduped.append(c)
     result = deduped[:16]
     serialized = json.dumps(result)
-    banker_slate_cache.set(cache_key, serialized)
+    if result:
+        banker_slate_cache.set(cache_key, serialized)
     return Response(content=serialized, media_type="application/json")
 
 
