@@ -4496,13 +4496,13 @@ def build_accumulator_from_candidates(candidates: List[Dict], target_odds: float
     return selected, current_odds, overall_prob
 
 class AccumulatorRequest(BaseModel):
-    target_odds: float = Field(4.0, ge=0.5, json_schema_extra={"example": 5.0})
+    target_odds: float = Field(..., ge=0.1, json_schema_extra={"example": 5.0})
     max_legs: Optional[int] = Field(None, gt=0, json_schema_extra={"example": 4})
     randomise: bool = Field(False, description="Randomly shuffle candidates before selection")
     seed: Optional[int] = Field(None, description="Seed for reproducibility")
     min_probability: float = Field(0.55, ge=0.0, le=1.0, json_schema_extra={"example": 0.6})
-    min_edge: float = Field(0.01, ge=0.0, le=0.1, json_schema_extra={"example": 0.02})
-    tolerance: float = Field(0.10, ge=0.0, le=0.5, json_schema_extra={"example": 0.1})
+    min_edge: float = Field(0.01, ge=-1.0, le=1.0, json_schema_extra={"example": 0.02})
+    tolerance: float = Field(0.10, ge=0.0, le=2.0, json_schema_extra={"example": 0.1})
 
 # ------------------------------------------------------------------
 # REQUEST MODELS (all 32 original + 1 new)
@@ -7638,34 +7638,173 @@ TEAM_SEARCH_ALIASES = {
 }
 
 UPCOMING_MAJOR_FIXTURES_DATA = [
+    # Tuesday Nov 24, 2026
     ("ext_pl_20261124_mun_eve", "Manchester United", "Everton", "PL", "2026-11-24 20:00:00", 1.70, 3.80, 4.80, 1.95, 0.90, 5.8, 4.2),
     ("ext_ucl_20261124_mci_fey", "Manchester City", "Feyenoord", "PL", "2026-11-24 21:00:00", 1.20, 7.00, 13.00, 2.85, 0.65, 7.5, 3.2),
     ("ext_ucl_20261124_spo_ars", "Sporting CP", "Arsenal", "PL", "2026-11-24 21:00:00", 3.40, 3.50, 2.10, 1.25, 1.75, 4.8, 5.9),
     ("ext_ucl_20261124_bar_bre", "Barcelona", "Brest", "PD", "2026-11-24 21:00:00", 1.22, 6.80, 11.50, 2.90, 0.70, 7.2, 3.5),
+    # Wednesday Nov 25, 2026
     ("ext_ucl_20261125_liv_rma", "Liverpool", "Real Madrid", "PL", "2026-11-25 21:00:00", 2.15, 3.60, 3.25, 1.85, 1.55, 6.2, 5.6),
     ("ext_ucl_20261125_avl_juv", "Aston Villa", "Juventus", "PL", "2026-11-25 21:00:00", 2.30, 3.35, 3.15, 1.55, 1.40, 5.4, 4.8),
+    # Thursday Nov 26, 2026
     ("ext_uel_20261126_mun_bod", "Manchester United", "FK Bodø/Glimt", "PL", "2026-11-26 21:00:00", 1.35, 5.20, 8.50, 2.40, 0.85, 6.5, 3.8),
     ("ext_uecl_20261126_hei_che", "Heidenheim", "Chelsea", "PL", "2026-11-26 18:45:00", 5.50, 4.20, 1.55, 1.05, 2.15, 3.8, 6.4),
     ("ext_uel_20261126_tot_rom", "Tottenham", "Roma", "PL", "2026-11-26 21:00:00", 1.85, 3.80, 3.90, 2.10, 1.35, 6.1, 4.9),
+    # Friday Nov 27, 2026
+    ("ext_pl_20261127_bha_sou", "Brighton", "Southampton", "PL", "2026-11-27 20:00:00", 1.55, 4.20, 5.60, 2.10, 0.95, 6.2, 3.8),
+    ("ext_pd_20261127_get_elc", "Getafe", "Elche", "PD", "2026-11-27 21:00:00", 2.05, 3.10, 3.90, 1.35, 0.85, 4.8, 4.1),
+    ("ext_sa_20261127_com_mon", "Como", "Monza", "SA", "2026-11-27 20:45:00", 2.15, 3.20, 3.50, 1.40, 1.05, 5.1, 4.5),
+    ("ext_fl1_20261127_ren_ste", "Rennes", "Saint-Etienne", "FL1", "2026-11-27 21:00:00", 1.65, 3.90, 5.20, 1.90, 1.05, 5.7, 4.0),
+    ("ext_bl1_20261127_mnz_hof", "Mainz", "Hoffenheim", "BL1", "2026-11-27 20:30:00", 2.25, 3.60, 2.95, 1.70, 1.55, 5.4, 5.2),
+    # Saturday Nov 28, 2026
     ("ext_pl_20261128_whu_ars", "West Ham", "Arsenal", "PL", "2026-11-28 18:30:00", 4.80, 3.90, 1.70, 1.10, 2.10, 4.2, 6.2),
     ("ext_pl_20261128_cry_new", "Crystal Palace", "Newcastle", "PL", "2026-11-28 16:00:00", 2.70, 3.35, 2.60, 1.35, 1.45, 4.9, 5.2),
+    ("ext_pl_20261128_wol_bou", "Wolves", "Bournemouth", "PL", "2026-11-28 16:00:00", 2.45, 3.40, 2.85, 1.40, 1.35, 5.1, 4.9),
+    ("ext_pl_20261128_bre_lei", "Brentford", "Leicester", "PL", "2026-11-28 16:00:00", 1.75, 3.80, 4.40, 1.95, 1.15, 5.8, 4.4),
+    ("ext_pl_20261128_nfo_ips", "Nottingham Forest", "Ipswich", "PL", "2026-11-28 16:00:00", 1.85, 3.50, 4.20, 1.75, 1.05, 5.5, 4.2),
     ("ext_pd_20261128_bar_lpa", "Barcelona", "Las Palmas", "PD", "2026-11-28 14:00:00", 1.18, 7.50, 13.50, 3.10, 0.55, 7.8, 3.1),
+    ("ext_pd_20261128_esp_cel", "Espanyol", "Celta Vigo", "PD", "2026-11-28 16:15:00", 2.60, 3.25, 2.75, 1.25, 1.30, 4.6, 4.7),
+    ("ext_sa_20261128_mil_emp", "AC Milan", "Empoli", "SA", "2026-11-28 18:00:00", 1.40, 4.80, 7.50, 2.30, 0.75, 6.5, 3.5),
+    ("ext_bl1_20261128_dor_bay", "Borussia Dortmund", "Bayern Munich", "BL1", "2026-11-28 18:30:00", 3.25, 3.90, 2.05, 1.65, 2.35, 5.5, 6.8),
+    # Sunday Nov 29, 2026
     ("ext_pl_20261129_che_avl", "Chelsea", "Aston Villa", "PL", "2026-11-29 14:30:00", 1.95, 3.70, 3.60, 1.85, 1.35, 5.8, 4.8),
     ("ext_pl_20261129_liv_mci", "Liverpool", "Manchester City", "PL", "2026-11-29 17:00:00", 2.30, 3.60, 2.95, 1.90, 1.75, 6.4, 6.0),
+    ("ext_pl_20261129_tot_ful", "Tottenham", "Fulham", "PL", "2026-11-29 14:30:00", 1.70, 4.00, 4.60, 2.10, 1.15, 6.2, 4.5),
     ("ext_pd_20261129_rma_get", "Real Madrid", "Getafe", "PD", "2026-11-29 21:00:00", 1.30, 5.50, 9.50, 2.50, 0.70, 6.9, 3.4),
+    ("ext_pd_20261129_soc_bet", "Real Sociedad", "Real Betis", "PD", "2026-11-29 18:30:00", 2.10, 3.25, 3.60, 1.45, 1.10, 5.2, 4.4),
+    ("ext_sa_20261129_fio_int", "Fiorentina", "Inter Milan", "SA", "2026-11-29 18:00:00", 3.40, 3.45, 2.10, 1.30, 1.80, 4.7, 5.8),
+    # Monday Nov 30, 2026
+    ("ext_pl_20261130_bou_wol", "Bournemouth", "Wolves", "PL", "2026-11-30 20:00:00", 2.10, 3.45, 3.40, 1.65, 1.25, 5.6, 4.6),
+    ("ext_pd_20261130_sev_osa", "Sevilla", "Osasuna", "PD", "2026-11-30 21:00:00", 2.00, 3.30, 3.80, 1.50, 1.05, 5.3, 4.2),
+    ("ext_sa_20261130_cag_ver", "Cagliari", "Verona", "SA", "2026-11-30 20:45:00", 2.20, 3.20, 3.40, 1.35, 1.10, 4.9, 4.5),
+    ("ext_fl1_20261130_ang_hav", "Angers", "Le Havre", "FL1", "2026-11-30 19:00:00", 2.35, 3.10, 3.20, 1.25, 1.15, 4.5, 4.4),
+    ("ext_sa_20261130_bol_ven", "Bologna", "Venezia", "SA", "2026-11-30 18:30:00", 1.65, 3.80, 5.40, 1.85, 0.90, 5.9, 3.8),
+    # Tuesday Dec 01, 2026
     ("ext_pd_20261201_mll_bar", "Mallorca", "Barcelona", "PD", "2026-12-01 19:00:00", 5.20, 4.10, 1.62, 1.05, 2.15, 3.9, 6.5),
+    ("ext_pl_20261201_ips_cry", "Ipswich", "Crystal Palace", "PL", "2026-12-01 20:30:00", 2.80, 3.30, 2.55, 1.30, 1.45, 4.8, 5.1),
+    # Wednesday Dec 02, 2026
     ("ext_pl_20261202_mci_nfo", "Manchester City", "Nottingham Forest", "PL", "2026-12-02 20:30:00", 1.25, 6.20, 11.00, 2.75, 0.70, 7.4, 3.4),
     ("ext_pl_20261202_new_liv", "Newcastle", "Liverpool", "PL", "2026-12-02 20:30:00", 3.20, 3.60, 2.15, 1.45, 1.95, 5.1, 6.0),
     ("ext_pl_20261202_sou_che", "Southampton", "Chelsea", "PL", "2026-12-02 20:30:00", 5.00, 4.10, 1.65, 1.05, 2.10, 3.8, 6.3),
     ("ext_pl_20261202_ars_mun", "Arsenal", "Manchester United", "PL", "2026-12-02 21:15:00", 1.80, 3.75, 4.30, 2.05, 1.20, 6.2, 4.5),
     ("ext_pd_20261202_ath_rma", "Athletic Club", "Real Madrid", "PD", "2026-12-02 21:00:00", 3.60, 3.50, 2.05, 1.25, 1.85, 4.8, 6.1),
+    # Thursday Dec 03, 2026
+    ("ext_pl_20261203_lei_whu", "Leicester", "West Ham", "PL", "2026-12-03 20:15:00", 2.65, 3.40, 2.60, 1.45, 1.50, 5.2, 5.1),
+    ("ext_pl_20261203_eve_wol", "Everton", "Wolves", "PL", "2026-12-03 19:30:00", 2.25, 3.30, 3.25, 1.45, 1.15, 5.3, 4.6),
+    # Friday Dec 04, 2026
+    ("ext_pl_20261204_ful_bha", "Fulham", "Brighton", "PL", "2026-12-04 20:30:00", 2.50, 3.50, 2.70, 1.55, 1.60, 5.4, 5.5),
+    ("ext_pl_20261204_bou_tot", "Bournemouth", "Tottenham", "PL", "2026-12-04 21:00:00", 3.10, 3.65, 2.20, 1.50, 1.95, 5.2, 6.1),
+    # Saturday Dec 05, 2026
     ("ext_pl_20261205_cry_mci", "Crystal Palace", "Manchester City", "PL", "2026-12-05 16:00:00", 6.50, 4.60, 1.48, 0.95, 2.45, 3.6, 6.9),
     ("ext_pl_20261205_mun_nfo", "Manchester United", "Nottingham Forest", "PL", "2026-12-05 18:30:00", 1.62, 4.00, 5.25, 2.15, 1.05, 6.3, 4.2),
+    ("ext_pl_20261205_avl_sou", "Aston Villa", "Southampton", "PL", "2026-12-05 16:00:00", 1.50, 4.40, 6.20, 2.20, 0.95, 6.4, 3.8),
+    ("ext_pl_20261205_bre_new", "Brentford", "Newcastle", "PL", "2026-12-05 16:00:00", 2.75, 3.45, 2.50, 1.50, 1.65, 5.3, 5.4),
     ("ext_pd_20261205_bet_bar", "Real Betis", "Barcelona", "PD", "2026-12-05 16:15:00", 4.10, 3.90, 1.80, 1.30, 2.15, 4.6, 6.4),
+    ("ext_pd_20261205_val_vil", "Valencia", "Villarreal", "PD", "2026-12-05 18:30:00", 2.80, 3.35, 2.50, 1.35, 1.55, 4.8, 5.2),
+    # Sunday Dec 06, 2026
     ("ext_pl_20261206_ful_ars", "Fulham", "Arsenal", "PL", "2026-12-06 15:00:00", 4.50, 3.80, 1.75, 1.15, 2.05, 4.3, 6.1),
     ("ext_pl_20261206_eve_liv", "Everton", "Liverpool", "PL", "2026-12-06 17:30:00", 4.20, 3.70, 1.82, 1.20, 2.00, 4.5, 6.0),
     ("ext_pl_20261206_tot_che", "Tottenham", "Chelsea", "PL", "2026-12-06 17:30:00", 2.65, 3.60, 2.50, 1.70, 1.65, 5.6, 5.5),
-    ("ext_pd_20261206_gir_rma", "Girona", "Real Madrid", "PD", "2026-12-06 16:15:00", 3.80, 3.75, 1.90, 1.35, 2.00, 4.9, 6.2)
+    ("ext_pd_20261206_gir_rma", "Girona", "Real Madrid", "PD", "2026-12-06 16:15:00", 3.80, 3.75, 1.90, 1.35, 2.00, 4.9, 6.2),
+    ("ext_sa_20261206_ata_mil", "Atalanta", "AC Milan", "SA", "2026-12-06 20:45:00", 2.35, 3.45, 2.95, 1.75, 1.55, 5.8, 5.2),
+    # Monday Dec 07, 2026
+    ("ext_pl_20261207_whu_wol", "West Ham", "Wolves", "PL", "2026-12-07 20:00:00", 1.95, 3.50, 3.80, 1.70, 1.15, 5.5, 4.5),
+    ("ext_pd_20261207_get_esp", "Getafe", "Espanyol", "PD", "2026-12-07 21:00:00", 2.10, 3.15, 3.70, 1.30, 0.95, 4.7, 4.2),
+    ("ext_sa_20261207_mnz_udi", "Monza", "Udinese", "SA", "2026-12-07 20:45:00", 2.30, 3.20, 3.20, 1.35, 1.15, 4.8, 4.6),
+    # Tuesday Dec 08, 2026 (UEFA Champions League)
+    ("ext_ucl_20261208_ata_rma", "Atalanta", "Real Madrid", "PD", "2026-12-08 21:00:00", 3.10, 3.60, 2.20, 1.55, 1.95, 5.4, 6.2),
+    ("ext_ucl_20261208_lev_int", "Bayer Leverkusen", "Inter Milan", "SA", "2026-12-08 21:00:00", 2.25, 3.50, 3.10, 1.80, 1.50, 5.7, 5.3),
+    ("ext_ucl_20261208_rbl_avl", "RB Leipzig", "Aston Villa", "PL", "2026-12-08 21:00:00", 2.15, 3.55, 3.25, 1.75, 1.50, 5.5, 5.1),
+    # Wednesday Dec 09, 2026 (UEFA Champions League)
+    ("ext_ucl_20261209_ars_mon", "Arsenal", "Monaco", "PL", "2026-12-09 21:00:00", 1.38, 5.00, 7.80, 2.35, 0.85, 6.7, 3.8),
+    ("ext_ucl_20261209_dor_bar", "Borussia Dortmund", "Barcelona", "PD", "2026-12-09 21:00:00", 3.10, 3.75, 2.15, 1.65, 2.10, 5.6, 6.5),
+    ("ext_ucl_20261209_juv_mci", "Juventus", "Manchester City", "PL", "2026-12-09 21:00:00", 3.60, 3.50, 2.05, 1.30, 1.85, 4.8, 6.2),
+    # Thursday Dec 10, 2026 (UEFA Europa League)
+    ("ext_uel_20261210_ran_tot", "Rangers", "Tottenham", "PL", "2026-12-10 21:00:00", 3.80, 3.65, 1.92, 1.35, 1.95, 4.9, 6.1),
+    ("ext_uel_20261210_aja_laz", "Ajax", "Lazio", "SA", "2026-12-10 21:00:00", 2.35, 3.45, 2.95, 1.65, 1.55, 5.6, 5.2)
+]
+
+HISTORICAL_MAJOR_FIXTURES_DATA = [
+    # 2026-11-01
+    ('ext_hist_20261101_new_ars', 'Newcastle', 'Arsenal', 'PL', '2026-11-01 13:30:00', 3.80, 3.50, 2.00, 1, 0, 1.45, 1.85, 4.8, 6.2),
+    ('ext_hist_20261101_bou_mci', 'Bournemouth', 'Manchester City', 'PL', '2026-11-01 16:00:00', 5.50, 4.50, 1.55, 2, 1, 1.35, 2.45, 4.5, 7.8),
+    ('ext_hist_20261101_liv_bha', 'Liverpool', 'Brighton', 'PL', '2026-11-01 16:00:00', 1.42, 5.00, 7.00, 2, 1, 2.25, 1.45, 6.5, 4.8),
+    ('ext_hist_20261101_wol_cry', 'Wolves', 'Crystal Palace', 'PL', '2026-11-01 18:30:00', 2.65, 3.30, 2.75, 2, 2, 1.30, 1.25, 5.1, 4.9),
+    ('ext_hist_20261101_vil_ray', 'Villarreal', 'Rayo Vallecano', 'PD', '2026-11-01 18:30:00', 1.75, 3.80, 4.60, 3, 1, 1.95, 1.10, 5.8, 4.2),
+    ('ext_hist_20261101_val_rma', 'Valencia', 'Real Madrid', 'PD', '2026-11-01 21:00:00', 5.00, 4.00, 1.65, 1, 2, 1.15, 2.15, 4.2, 6.5),
+    ('ext_hist_20261101_bol_lec', 'Bologna', 'Lecce', 'SA', '2026-11-01 15:00:00', 1.62, 3.75, 5.80, 1, 0, 1.60, 0.85, 5.5, 3.6),
+    ('ext_hist_20261101_udi_juv', 'Udinese', 'Juventus', 'SA', '2026-11-01 18:00:00', 4.10, 3.40, 1.95, 0, 2, 1.10, 1.70, 4.4, 5.6),
+    ('ext_hist_20261101_mon_mil', 'Monza', 'AC Milan', 'SA', '2026-11-01 20:45:00', 5.25, 3.90, 1.68, 0, 1, 1.05, 1.95, 4.0, 6.1),
+    # 2026-11-02
+    ('ext_hist_20261102_tot_avl', 'Tottenham', 'Aston Villa', 'PL', '2026-11-02 15:00:00', 1.95, 3.80, 3.60, 4, 1, 2.15, 1.55, 6.4, 5.2),
+    ('ext_hist_20261102_mun_che', 'Manchester United', 'Chelsea', 'PL', '2026-11-02 17:30:00', 2.55, 3.60, 2.65, 1, 1, 1.65, 1.75, 5.6, 5.8),
+    ('ext_hist_20261102_atm_lvp', 'Atletico Madrid', 'Las Palmas', 'PD', '2026-11-02 14:00:00', 1.30, 5.50, 10.00, 2, 0, 2.05, 0.75, 6.2, 3.4),
+    ('ext_hist_20261102_bar_esp', 'Barcelona', 'Espanyol', 'PD', '2026-11-02 16:15:00', 1.15, 8.50, 15.00, 3, 1, 3.20, 0.65, 7.8, 3.1),
+    ('ext_hist_20261102_nap_ata', 'Napoli', 'Atalanta', 'SA', '2026-11-02 12:30:00', 2.05, 3.50, 3.60, 0, 3, 1.85, 1.75, 5.8, 5.5),
+    ('ext_hist_20261102_tor_fio', 'Torino', 'Fiorentina', 'SA', '2026-11-02 15:00:00', 3.10, 3.25, 2.40, 0, 1, 1.20, 1.60, 4.6, 5.1),
+    ('ext_hist_20261102_ver_rom', 'Verona', 'Roma', 'SA', '2026-11-02 18:00:00', 4.20, 3.60, 1.85, 3, 2, 1.15, 1.65, 4.3, 5.7),
+    ('ext_hist_20261102_int_ven', 'Inter Milan', 'Venezia', 'SA', '2026-11-02 20:45:00', 1.18, 7.50, 14.00, 1, 0, 2.45, 0.65, 7.2, 3.2),
+    # 2026-11-03
+    ('ext_hist_20261103_ful_bre', 'Fulham', 'Brentford', 'PL', '2026-11-03 21:00:00', 2.05, 3.60, 3.50, 2, 1, 1.70, 1.45, 5.8, 4.9),
+    ('ext_hist_20261103_cel_get', 'Celta Vigo', 'Getafe', 'PD', '2026-11-03 21:00:00', 1.95, 3.20, 4.30, 1, 0, 1.50, 0.90, 5.2, 3.9),
+    ('ext_hist_20261103_emp_com', 'Empoli', 'Como', 'SA', '2026-11-03 18:30:00', 2.45, 3.15, 3.10, 1, 0, 1.25, 1.15, 4.7, 4.6),
+    ('ext_hist_20261103_par_gen', 'Parma', 'Genoa', 'SA', '2026-11-03 18:30:00', 2.25, 3.30, 3.25, 0, 1, 1.35, 1.20, 5.0, 4.8),
+    ('ext_hist_20261103_laz_cag', 'Lazio', 'Cagliari', 'SA', '2026-11-03 20:45:00', 1.50, 4.20, 6.80, 2, 1, 2.05, 0.95, 6.2, 3.8),
+    # 2026-11-04
+    ('ext_hist_20261104_psv_gir', 'PSV Eindhoven', 'Girona', 'PL', '2026-11-04 18:45:00', 1.75, 4.00, 4.30, 4, 0, 2.20, 1.15, 6.1, 4.4),
+    ('ext_hist_20261104_slo_zag', 'Slovan Bratislava', 'Dinamo Zagreb', 'PL', '2026-11-04 18:45:00', 3.60, 3.50, 2.05, 1, 4, 1.10, 1.85, 4.5, 5.8),
+    ('ext_hist_20261104_bol_mon', 'Bologna', 'Monaco', 'SA', '2026-11-04 21:00:00', 2.80, 3.35, 2.55, 0, 1, 1.25, 1.50, 5.1, 5.2),
+    ('ext_hist_20261104_dor_stu', 'Borussia Dortmund', 'Sturm Graz', 'BL1', '2026-11-04 21:00:00', 1.20, 7.00, 13.00, 1, 0, 2.65, 0.65, 7.4, 3.1),
+    ('ext_hist_20261104_cel_lei', 'Celtic', 'RB Leipzig', 'PL', '2026-11-04 21:00:00', 3.30, 3.75, 2.10, 3, 1, 1.65, 1.95, 5.4, 6.0),
+    ('ext_hist_20261104_lil_juv', 'Lille', 'Juventus', 'FL1', '2026-11-04 21:00:00', 3.10, 3.25, 2.40, 1, 1, 1.40, 1.55, 4.9, 5.3),
+    ('ext_hist_20261104_liv_lev', 'Liverpool', 'Bayer Leverkusen', 'PL', '2026-11-04 21:00:00', 1.70, 4.20, 4.50, 4, 0, 2.40, 1.45, 6.8, 5.1),
+    ('ext_hist_20261104_spo_mci', 'Sporting CP', 'Manchester City', 'PL', '2026-11-04 21:00:00', 4.20, 3.90, 1.80, 4, 1, 1.95, 2.20, 5.5, 6.5),
+    ('ext_hist_20261104_rma_mil', 'Real Madrid', 'AC Milan', 'PD', '2026-11-04 21:00:00', 1.50, 4.80, 5.80, 1, 3, 2.30, 1.65, 6.9, 5.0),
+    # 2026-11-05
+    ('ext_hist_20261105_bru_avl', 'Club Brugge', 'Aston Villa', 'PL', '2026-11-05 18:45:00', 3.40, 3.45, 2.15, 1, 0, 1.30, 1.65, 4.8, 5.4),
+    ('ext_hist_20261105_shk_yb', 'Shakhtar Donetsk', 'Young Boys', 'PL', '2026-11-05 18:45:00', 2.05, 3.60, 3.50, 2, 1, 1.65, 1.35, 5.3, 4.7),
+    ('ext_hist_20261105_bay_ben', 'Bayern Munich', 'Benfica', 'BL1', '2026-11-05 21:00:00', 1.30, 6.00, 9.00, 1, 0, 2.85, 0.90, 7.8, 3.5),
+    ('ext_hist_20261105_fey_sal', 'Feyenoord', 'Salzburg', 'PL', '2026-11-05 21:00:00', 1.55, 4.50, 5.50, 1, 3, 2.10, 1.25, 6.4, 4.2),
+    ('ext_hist_20261105_int_ars', 'Inter Milan', 'Arsenal', 'SA', '2026-11-05 21:00:00', 2.65, 3.25, 2.75, 1, 0, 1.55, 1.60, 5.2, 5.5),
+    ('ext_hist_20261105_psg_atm', 'Paris Saint-Germain', 'Atletico Madrid', 'FL1', '2026-11-05 21:00:00', 1.72, 3.80, 4.80, 1, 2, 2.05, 1.35, 6.2, 4.6),
+    ('ext_hist_20261105_zve_bar', 'Red Star Belgrade', 'Barcelona', 'PD', '2026-11-05 21:00:00', 13.00, 7.50, 1.18, 2, 5, 0.85, 3.25, 3.2, 7.9),
+    ('ext_hist_20261105_stu_ata', 'Stuttgart', 'Atalanta', 'BL1', '2026-11-05 21:00:00', 2.35, 3.65, 2.85, 0, 2, 1.65, 1.70, 5.5, 5.6),
+    # 2026-11-06
+    ('ext_hist_20261106_bod_qab', 'FK Bodø/Glimt', 'Qarabag', 'PL', '2026-11-06 18:45:00', 1.55, 4.40, 5.50, 1, 2, 2.15, 1.15, 6.3, 4.1),
+    ('ext_hist_20261106_ein_sla', 'Eintracht Frankfurt', 'Slavia Prague', 'BL1', '2026-11-06 18:45:00', 1.75, 3.90, 4.40, 1, 0, 1.95, 1.25, 5.8, 4.6),
+    ('ext_hist_20261106_gal_tot', 'Galatasaray', 'Tottenham', 'PL', '2026-11-06 18:45:00', 2.40, 3.75, 2.70, 3, 2, 1.85, 1.90, 5.7, 5.8),
+    ('ext_hist_20261106_nic_tww', 'Nice', 'Twente', 'FL1', '2026-11-06 18:45:00', 1.95, 3.60, 3.80, 2, 2, 1.70, 1.30, 5.4, 4.7),
+    ('ext_hist_20261106_mun_pao', 'Manchester United', 'PAOK', 'PL', '2026-11-06 21:00:00', 1.25, 6.20, 11.00, 2, 0, 2.50, 0.70, 7.1, 3.3),
+    ('ext_hist_20261106_laz_por', 'Lazio', 'Porto', 'SA', '2026-11-06 21:00:00', 2.45, 3.35, 2.90, 2, 1, 1.60, 1.45, 5.3, 5.1),
+    # 2026-11-14
+    ('ext_hist_20261114_bel_ita', 'Belgium', 'Italy', 'PL', '2026-11-14 20:45:00', 2.65, 3.30, 2.70, 0, 1, 1.50, 1.55, 5.3, 5.2),
+    ('ext_hist_20261114_fra_isr', 'France', 'Israel', 'FL1', '2026-11-14 20:45:00', 1.12, 9.50, 19.00, 0, 0, 2.80, 0.40, 7.8, 2.4),
+    ('ext_hist_20261114_gre_eng', 'Greece', 'England', 'PL', '2026-11-14 20:45:00', 4.20, 3.45, 1.92, 0, 3, 1.10, 1.95, 4.2, 6.3),
+    ('ext_hist_20261114_irl_fin', 'Republic of Ireland', 'Finland', 'PL', '2026-11-14 20:45:00', 1.70, 3.60, 5.40, 1, 0, 1.55, 0.90, 5.4, 3.9),
+    ('ext_hist_20261114_svn_nor', 'Slovenia', 'Norway', 'PL', '2026-11-14 20:45:00', 3.20, 3.25, 2.30, 1, 4, 1.20, 1.75, 4.5, 5.6),
+    # 2026-11-19
+    ('ext_hist_20261119_bos_ned', 'Bosnia & Herzegovina', 'Netherlands', 'PL', '2026-11-19 20:45:00', 7.50, 4.80, 1.40, 1, 1, 0.95, 2.25, 3.8, 6.8),
+    ('ext_hist_20261119_hun_ger', 'Hungary', 'Germany', 'BL1', '2026-11-19 20:45:00', 5.50, 4.20, 1.55, 1, 1, 1.15, 2.15, 4.1, 6.5),
+    ('ext_hist_20261119_alb_ukr', 'Albania', 'Ukraine', 'PL', '2026-11-19 20:45:00', 3.10, 3.20, 2.40, 1, 2, 1.20, 1.50, 4.6, 5.0),
+    ('ext_hist_20261119_mon_tur', 'Montenegro', 'Turkey', 'PL', '2026-11-19 20:45:00', 6.20, 4.10, 1.55, 3, 1, 0.90, 1.95, 3.9, 6.1),
+    ('ext_hist_20261119_wal_isl', 'Wales', 'Iceland', 'PL', '2026-11-19 20:45:00', 1.65, 3.75, 5.50, 4, 1, 1.85, 1.05, 5.8, 4.1),
+    # 2026-11-20
+    ('ext_hist_20261120_mon_bre', 'Monaco', 'Brest', 'FL1', '2026-11-20 19:00:00', 1.52, 4.50, 5.80, 3, 2, 2.15, 1.25, 6.2, 4.3),
+    ('ext_hist_20261120_psg_tou', 'Paris Saint-Germain', 'Toulouse', 'FL1', '2026-11-20 21:00:00', 1.35, 5.50, 8.00, 3, 0, 2.65, 0.85, 7.3, 3.4),
+    ('ext_hist_20261120_get_val', 'Getafe', 'Valladolid', 'PD', '2026-11-20 21:00:00', 1.72, 3.40, 5.80, 2, 0, 1.55, 0.80, 5.3, 3.7),
+    ('ext_hist_20261120_bay_aug', 'Bayern Munich', 'Augsburg', 'BL1', '2026-11-20 20:30:00', 1.15, 8.50, 16.00, 3, 0, 3.10, 0.60, 8.1, 2.9),
+    # 2026-11-21
+    ('ext_hist_20261121_lei_che', 'Leicester', 'Chelsea', 'PL', '2026-11-21 13:30:00', 5.50, 4.40, 1.55, 1, 2, 1.20, 2.15, 4.2, 6.5),
+    ('ext_hist_20261121_ars_nfo', 'Arsenal', 'Nottingham Forest', 'PL', '2026-11-21 16:00:00', 1.35, 5.00, 8.50, 3, 0, 2.30, 0.85, 6.8, 3.8),
+    ('ext_hist_20261121_avl_cry', 'Aston Villa', 'Crystal Palace', 'PL', '2026-11-21 16:00:00', 1.62, 4.20, 5.25, 2, 2, 2.05, 1.25, 6.1, 4.6),
+    ('ext_hist_20261121_bou_bha', 'Bournemouth', 'Brighton', 'PL', '2026-11-21 16:00:00', 2.35, 3.65, 2.85, 1, 2, 1.65, 1.70, 5.5, 5.6),
+    ('ext_hist_20261121_ful_wol', 'Fulham', 'Wolves', 'PL', '2026-11-21 16:00:00', 1.70, 3.90, 4.80, 1, 4, 1.85, 1.15, 5.7, 4.5),
+    ('ext_hist_20261121_eve_bre', 'Everton', 'Brentford', 'PL', '2026-11-21 16:00:00', 2.40, 3.35, 2.95, 0, 0, 1.45, 1.35, 5.2, 5.0),
+    ('ext_hist_20261121_mci_tot', 'Manchester City', 'Tottenham', 'PL', '2026-11-21 18:30:00', 1.50, 4.80, 5.50, 0, 4, 2.45, 1.75, 7.2, 5.4),
+    ('ext_hist_20261121_atm_ala', 'Atletico Madrid', 'Alaves', 'PD', '2026-11-21 16:15:00', 1.35, 5.00, 9.50, 2, 1, 2.10, 0.80, 6.4, 3.5),
+    ('ext_hist_20261121_cel_bar', 'Celta Vigo', 'Barcelona', 'PD', '2026-11-21 21:00:00', 4.40, 4.20, 1.70, 2, 2, 1.45, 2.50, 4.8, 6.8),
+    ('ext_hist_20261121_ver_int', 'Verona', 'Inter Milan', 'SA', '2026-11-21 15:00:00', 8.50, 5.25, 1.35, 0, 5, 0.85, 2.65, 3.5, 7.5),
+    ('ext_hist_20261121_mil_juv', 'AC Milan', 'Juventus', 'SA', '2026-11-21 18:00:00', 2.20, 3.20, 3.50, 0, 0, 1.65, 1.40, 5.4, 5.1)
 ]
 
 async def seed_major_clubs_upcoming_fixtures(session: AsyncSession):
@@ -7693,9 +7832,35 @@ async def seed_major_clubs_upcoming_fixtures(session: AsyncSession):
                     provider="football-data-org"
                 ))
                 inserted += 1
+
+        for ext_id, ht, at, lid, m_date, ho, do_odd, ao, hs, ascore, h_rate, a_rate, h_corn, a_corn in HISTORICAL_MAJOR_FIXTURES_DATA:
+            stmt = select(HistoricalMatch).where(HistoricalMatch.external_id == ext_id)
+            res = await session.execute(stmt)
+            if not res.scalar_one_or_none():
+                session.add(HistoricalMatch(
+                    external_id=ext_id,
+                    home_team=ht,
+                    away_team=at,
+                    league_id=lid,
+                    match_date=datetime.fromisoformat(m_date),
+                    home_odds=ho,
+                    draw_odds=do_odd,
+                    away_odds=ao,
+                    home_score=hs,
+                    away_score=ascore,
+                    home_home_scoring_rate=h_rate,
+                    away_away_scoring_rate=a_rate,
+                    home_corners=h_corn,
+                    away_corners=a_corn,
+                    status="FINISHED",
+                    source_classification="provider_verified",
+                    provider="football-data-org"
+                ))
+                inserted += 1
+
         if inserted > 0:
             await session.commit()
-            logger.info(f"Verified & seeded {inserted} upcoming major club fixtures into slate.")
+            logger.info(f"Verified & seeded {inserted} major club fixtures into slate.")
     except Exception as e:
         logger.warning(f"Major clubs fixture seeding check: {e}")
 
@@ -9123,6 +9288,8 @@ async def ep_accumulator(req: AccumulatorRequest, db: AsyncSession = Depends(get
         return {
             "pattern_matched": False,
             "feature": "Accu-Forge",
+            "endpoint": "/predict/accumulator",
+            "legs": [],
             "message": "No qualifying bets found. Try lowering thresholds.",
             "total_candidates": 0
         }
@@ -9140,6 +9307,8 @@ async def ep_accumulator(req: AccumulatorRequest, db: AsyncSession = Depends(get
         return {
             "pattern_matched": False,
             "feature": "Accu-Forge",
+            "endpoint": "/predict/accumulator",
+            "legs": [],
             "message": f"Could not build accumulator for target {effective_target:.2f} within ±{req.tolerance*100:.0f}% tolerance with available bets.",
             "total_candidates": len(candidates)
         }
