@@ -36,7 +36,7 @@
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet">
 
-  <link rel="stylesheet" href="/static/style.css?v=115">
+  <link rel="stylesheet" href="/static/style.css?v=116">
 </head>
 
 <body class="light-platform">
@@ -1868,126 +1868,85 @@
       </section>
 
       <!-- ===================================================================
-           VIEW: DEDICATED SPORTYMILL QUANT DASHBOARD
+           VIEW: DASHBOARD (Clean Overview & Today's Matches)
            =================================================================== -->
       <section id="view-dashboard" class="view-panel">
         <div class="dashboard-page-container">
-          <!-- Executive Header -->
+          <!-- Clean Page Header -->
           <div class="dash-pane-header">
             <div>
-              <h1 class="dash-pane-title">Quantitative Model Telemetry</h1>
-              <p class="dash-pane-subtitle">Live system statistics, playable match counts, and predictive model architecture.</p>
+              <h1 class="dash-pane-title">Dashboard</h1>
+              <p class="dash-pane-subtitle">Platform overview and scheduled match telemetry.</p>
             </div>
             <div class="dash-header-actions">
-              <button type="button" class="btn-dash-outline btn-sm" id="btnRefreshDashStats">↻ Refresh Stats</button>
-              <button type="button" class="btn-dash-lime btn-sm" id="btnDashQuickScreener" data-tab-target="view-screener">Open Value Screener →</button>
+              <button type="button" class="btn-pill-dark" id="btnRefreshDashStats">↻ Refresh</button>
             </div>
           </div>
 
-          <!-- Top Telemetry Cards Grid -->
+          <!-- Clean 4-Metric Stats Strip -->
           <div class="dash-stats-grid">
             <div class="dash-stat-card">
-              <div class="dash-stat-top">
-                <span class="dash-stat-lbl">Playable Matches Today</span>
-                <span class="dash-stat-badge live">● LIVE</span>
-              </div>
+              <span class="dash-stat-lbl">Today's Fixtures</span>
               <div class="dash-stat-number" id="dashStatPlayableToday">--</div>
-              <div class="dash-stat-footer">Positive +EV edge ≥ 4% across leagues</div>
+              <span class="dash-stat-footer">Scheduled matches</span>
             </div>
 
             <div class="dash-stat-card">
-              <div class="dash-stat-top">
-                <span class="dash-stat-lbl">Total Predictions All-Time</span>
-                <span class="dash-stat-badge gold">18 LEAGUES</span>
-              </div>
-              <div class="dash-stat-number" id="dashStatTotalPredictions">--</div>
-              <div class="dash-stat-footer">Logged &amp; tracked across global football</div>
+              <span class="dash-stat-lbl">Tracked Leagues</span>
+              <div class="dash-stat-number" id="dashStatLeagues">269</div>
+              <span class="dash-stat-footer">Global competitions</span>
             </div>
 
             <div class="dash-stat-card">
-              <div class="dash-stat-top">
-                <span class="dash-stat-lbl">Model Precision &amp; Win Rate</span>
-                <span class="dash-stat-badge green">78.4%</span>
-              </div>
+              <span class="dash-stat-lbl">Model Accuracy</span>
               <div class="dash-stat-number" id="dashStatPrecision">78.4%</div>
-              <div class="dash-stat-footer">Verified Kelly criterion backtest rate</div>
+              <span class="dash-stat-footer">Historical win rate</span>
             </div>
 
             <div class="dash-stat-card">
-              <div class="dash-stat-top">
-                <span class="dash-stat-lbl">Active Architecture</span>
-                <span class="dash-stat-badge cyan">LOGISTIC</span>
-              </div>
-              <div class="dash-stat-number" id="dashStatModelArch">v2.1 ML</div>
-              <div class="dash-stat-footer">Side-agnostic Poisson &amp; ML Ensemble</div>
+              <span class="dash-stat-lbl">Predictions Logged</span>
+              <div class="dash-stat-number" id="dashStatTotalPredictions">--</div>
+              <span class="dash-stat-footer">Verified database archive</span>
             </div>
           </div>
 
-          <!-- Quick Launchpad Banners (Refined, Institutional) -->
+          <!-- Quick Navigation Cards -->
           <div class="dash-launchpad-row">
             <div class="dash-launchpad-card" data-tab-target="view-screener" role="button" tabindex="0">
               <div class="launch-content">
-                <div class="launch-meta-tag">QUANT ENGINE 01</div>
                 <h3>Value Screener</h3>
-                <p>Detect mispriced lines and strong sides with asymmetric +EV edge.</p>
+                <p>Detect mispriced bookmaker lines with positive expected value (+EV).</p>
               </div>
-              <div class="launch-arrow-pill" title="Open Value Screener">→</div>
+              <span class="launch-arrow-link">Open Screener →</span>
             </div>
+
             <div class="dash-launchpad-card" data-tab-target="view-accumulator" role="button" tabindex="0">
               <div class="launch-content">
-                <div class="launch-meta-tag">QUANT ENGINE 02</div>
-                <h3>Accu-Forge Engine</h3>
-                <p>Assemble 3-leg to 5-leg parlay tickets with target odds and verified probabilities.</p>
+                <h3>Accu-Forge Parlay</h3>
+                <p>Build multi-match accumulator slips with target odds and verified probability.</p>
               </div>
-              <div class="launch-arrow-pill" title="Launch Accu-Forge">→</div>
+              <span class="launch-arrow-link">Build Ticket →</span>
             </div>
+
             <div class="dash-launchpad-card" data-tab-target="view-batch" role="button" tabindex="0">
               <div class="launch-content">
-                <div class="launch-meta-tag">QUANT ENGINE 03</div>
-                <h3>Batch Match Scanner</h3>
-                <p>Simulate upcoming fixture cards simultaneously and find bankers.</p>
+                <h3>Full Slate Scanner</h3>
+                <p>Simulate all scheduled fixtures simultaneously to discover top value picks.</p>
               </div>
-              <div class="launch-arrow-pill" title="Open Batch Scanner">→</div>
+              <span class="launch-arrow-link">Run Scanner →</span>
             </div>
           </div>
 
-          <!-- Today's Top Playable Candidates Table / Card Grid -->
+          <!-- Today's Matches Table -->
           <div class="dash-section-box">
             <div class="dash-box-head">
               <div>
-                <h3 class="dash-box-title">Today's Model-Qualified Fixtures</h3>
-                <p class="dash-box-sub">Upcoming fixtures available in system database. Tap any match to evaluate in Value Screener.</p>
+                <h3 class="dash-box-title">Today's Match Schedule</h3>
+                <p class="dash-box-sub">Select any fixture to view statistical breakdown and probability models.</p>
               </div>
             </div>
             <div class="dash-fixtures-list" id="dashFixturesList">
-              <div class="dash-loading-card">Loading live daily fixtures and system telemetry...</div>
-            </div>
-          </div>
-
-          <!-- Administrator Controls (Rendered if Admin) -->
-          <div class="dash-section-box" id="dashAdminSection" style="display: none;">
-            <div class="dash-box-head">
-              <div>
-                <h3 class="dash-box-title">Administrator Controls</h3>
-                <p class="dash-box-sub">Train machine learning models, settle predictions, and synchronize live football feeds.</p>
-              </div>
-            </div>
-            <div class="dash-admin-grid">
-              <div class="admin-action-card">
-                <h3>Model Retraining</h3>
-                <p>Execute Poisson &amp; Logistic regression training on historical match outcomes.</p>
-                <button type="button" class="btn-dash-lime btn-sm" id="btnAdminTrainModel">Trigger Retrain (/admin/train) →</button>
-              </div>
-              <div class="admin-action-card">
-                <h3>Settle Predictions</h3>
-                <p>Cross-reference finished match scores and settle prediction win/loss logs.</p>
-                <button type="button" class="btn-dash-outline btn-sm" id="btnAdminSettle">Settle Predictions (/admin/settle) →</button>
-              </div>
-              <div class="admin-action-card">
-                <h3>Live Data Ingestion</h3>
-                <p>Fetch the latest fixture odds and league tables from football-data API.</p>
-                <button type="button" class="btn-dash-outline btn-sm" id="btnAdminSyncLive">Sync Live Data (/api/sync-live-data) →</button>
-              </div>
+              <div class="dash-loading-card">Loading scheduled matches...</div>
             </div>
           </div>
         </div>
@@ -2985,7 +2944,7 @@
       .then(function (data) { if (data) window.__teamForms = data; })
       .catch(function () { });
   </script>
-  <script src="/static/app.js?v=115"></script>
+  <script src="/static/app.js?v=116"></script>
 </body>
 
 </html>

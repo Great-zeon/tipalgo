@@ -13624,7 +13624,7 @@ body.light-theme-mode .btn-validate-print-slip[disabled] {
   margin: 0;
 }
 
-/* Statistics Grid */
+/* Statistics Grid: Clean 4-card metric strip */
 .dash-stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -13632,75 +13632,41 @@ body.light-theme-mode .btn-validate-print-slip[disabled] {
 }
 
 .dash-stat-card {
-  background: #111720;
+  background: #0d1424;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 1.15rem 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  transition: transform 0.15s ease, border-color 0.15s ease;
+  gap: 0.35rem;
+  transition: border-color 0.15s ease;
 }
 
 .dash-stat-card:hover {
-  border-color: rgba(190, 242, 100, 0.3);
-  transform: translateY(-2px);
-}
-
-.dash-stat-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  border-color: rgba(56, 189, 248, 0.3);
 }
 
 .dash-stat-lbl {
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-weight: 600;
   color: #94a3b8;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.dash-stat-badge {
-  font-size: 0.68rem;
-  font-weight: 800;
-  padding: 0.15rem 0.5rem;
-  border-radius: 4px;
-}
-
-.dash-stat-badge.live {
-  background: rgba(16, 185, 129, 0.15);
-  color: #10b981;
-}
-
-.dash-stat-badge.gold {
-  background: rgba(245, 158, 11, 0.15);
-  color: #f59e0b;
-}
-
-.dash-stat-badge.green {
-  background: rgba(190, 242, 100, 0.15);
-  color: #bef264;
-}
-
-.dash-stat-badge.cyan {
-  background: rgba(56, 189, 248, 0.15);
-  color: #38bdf8;
+  letter-spacing: 0.05em;
 }
 
 .dash-stat-number {
   font-size: 1.85rem;
   font-weight: 800;
-  color: #ffffff;
+  color: #f8fafc;
   letter-spacing: -0.02em;
 }
 
 .dash-stat-footer {
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   color: #64748b;
 }
 
-/* Launchpad Row (Sleek, Institutional Quant Modules) */
+/* Quick Navigation Row (Sleek, Clean, Uncluttered) */
 .dash-launchpad-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -13708,34 +13674,22 @@ body.light-theme-mode .btn-validate-print-slip[disabled] {
 }
 
 .dash-launchpad-card {
-  background: #111720;
+  background: #0d1424;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 1.25rem 1.4rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1.25rem;
+  gap: 1rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  position: relative;
-  overflow: hidden;
 }
 
 .dash-launchpad-card:hover {
-  background: #151d28;
-  border-color: rgba(190, 242, 100, 0.4);
+  background: #111a2e;
+  border-color: rgba(56, 189, 248, 0.3);
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-}
-
-.launch-meta-tag {
-  font-size: 0.65rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  color: #bef264;
-  text-transform: uppercase;
-  margin-bottom: 0.35rem;
 }
 
 .launch-content {
@@ -13743,9 +13697,9 @@ body.light-theme-mode .btn-validate-print-slip[disabled] {
 }
 
 .launch-content h3 {
-  font-size: 1.05rem;
-  font-weight: 800;
-  margin: 0 0 0.35rem 0;
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 0.3rem 0;
   color: #ffffff;
 }
 
@@ -13756,37 +13710,28 @@ body.light-theme-mode .btn-validate-print-slip[disabled] {
   line-height: 1.45;
 }
 
-.launch-arrow-pill {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: rgba(190, 242, 100, 0.1);
-  border: 1px solid rgba(190, 242, 100, 0.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #bef264;
-  font-size: 0.95rem;
-  font-weight: 800;
-  flex-shrink: 0;
-  transition: all 0.2s ease;
+.launch-arrow-link {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #38bdf8;
+  white-space: nowrap;
+  transition: transform 0.15s ease;
 }
 
-.dash-launchpad-card:hover .launch-arrow-pill {
-  background: #bef264;
-  color: #0a0e14;
+.dash-launchpad-card:hover .launch-arrow-link {
   transform: translateX(3px);
+  color: #7dd3fc;
 }
 
-/* Fixtures Section */
+/* Fixtures Section & Table */
 .dash-section-box {
-  background: #111720;
+  background: #0d1424;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
+  border-radius: 12px;
   padding: 1.35rem 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.15rem;
 }
 
 .dash-box-head {
@@ -13798,7 +13743,7 @@ body.light-theme-mode .btn-validate-print-slip[disabled] {
 }
 
 .dash-box-title {
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   font-weight: 800;
   color: #ffffff;
   margin: 0 0 0.2rem 0;
@@ -13810,45 +13755,169 @@ body.light-theme-mode .btn-validate-print-slip[disabled] {
   margin: 0;
 }
 
-.dash-fixtures-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 0.85rem;
+.dash-table-wrap {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.dash-fixture-card {
-  background: #0a0e14;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
-  padding: 0.9rem 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+.dash-fixtures-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+  text-align: left;
+}
+
+.dash-fixtures-table th {
+  background: #070d1e;
+  color: #94a3b8;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
+}
+
+.dash-fixtures-table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: #e2e8f0;
+  vertical-align: middle;
+}
+
+.dash-fixture-row:hover td {
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+}
+
+.dash-team-names {
+  font-weight: 600;
+  color: #f8fafc;
+  font-size: 0.88rem;
+}
+
+.dash-vs-dim {
+  font-weight: 400;
+  color: #64748b;
+  font-size: 0.75rem;
+  margin: 0 0.35rem;
+}
+
+.dash-league-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.18rem 0.5rem;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.dash-odd-num {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: #38bdf8;
+  font-size: 0.85rem;
+}
+
+.btn-dash-analyze {
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  color: #38bdf8;
+  padding: 0.35rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
-.dash-fixture-card:hover {
-  border-color: #bef264;
-  background: #121924;
+.btn-dash-analyze:hover {
+  background: #38bdf8;
+  color: #020617;
 }
 
-.dash-fixture-teams {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: #ffffff;
+/* Mobile Fixture List */
+.dash-mobile-fixture-list {
+  display: none;
 }
 
-.dash-fixture-odds-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.76rem;
-  color: #94a3b8;
-}
+@media (max-width: 768px) {
+  .dash-table-wrap {
+    display: none;
+  }
 
-.dash-fixture-odds-row strong {
-  color: #bef264;
+  .dash-mobile-fixture-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .dash-mobile-fixture-card {
+    background: #090f1d;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  .dash-mobile-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .btn-dash-analyze-sm {
+    background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    color: #38bdf8;
+    padding: 0.25rem 0.65rem;
+    border-radius: 4px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .dash-mobile-match-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #f8fafc;
+  }
+
+  .dash-mobile-odds-strip {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .dash-mobile-odd-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+    padding: 0.4rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .dash-odd-lbl {
+    font-size: 0.68rem;
+    color: #64748b;
+    font-weight: 600;
+  }
+
+  .dash-odd-val {
+    font-size: 0.82rem;
+    color: #38bdf8;
+    font-family: var(--font-mono);
+  }
 }
 
 /* ==========================================================================
