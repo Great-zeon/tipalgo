@@ -7943,6 +7943,7 @@
     }
   }
 
+  window.addToSlip = addToSlip;
   function addToSlip(pick) {
     if (!pick || !pick.match || !pick.market) return false;
 
