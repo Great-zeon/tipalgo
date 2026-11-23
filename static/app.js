@@ -2084,28 +2084,15 @@
       if (d2) d2.textContent = 'Bayern vs Dortmund projected 3.45 xG total volume.';
     }
 
-    // Mobile Bottom Navigation Bar (Home, Dashboard, 33 Endpoints, Bet Slip, Profile)
-    const bottomNavButtons = document.querySelectorAll('.mobile-bottom-nav .bottom-nav-item');
-    if (bottomNavButtons.length >= 5) {
-      const s0 = bottomNavButtons[0].querySelector('span');
-      if (s0) s0.textContent = lang.navHome;
-      const s1 = bottomNavButtons[1].querySelector('span');
-      if (s1) s1.textContent = 'Dashboard';
-      const s2 = bottomNavButtons[2].querySelector('span');
-      if (s2) s2.textContent = '33 Endpoints';
-      const s3 = bottomNavButtons[3].querySelector('span:not(.bottom-slip-badge)');
-      if (s3) s3.textContent = lang.navSlip;
-      const s4 = bottomNavButtons[4].querySelector('span');
-      if (s4) s4.textContent = lang.navProfile;
-    } else {
-      const bottomNavSpans = document.querySelectorAll('.mobile-bottom-nav .bottom-nav-item span');
-      if (bottomNavSpans.length >= 4) {
-        bottomNavSpans[0].textContent = lang.navHome;
-        bottomNavSpans[1].textContent = '33 Endpoints';
-        bottomNavSpans[2].textContent = lang.navSlip;
-        bottomNavSpans[3].textContent = lang.navProfile;
-      }
-    }
+    // Mobile Bottom Navigation Bar (Home, 33 Endpoints, Bet Slip, Profile)
+    const btnNavHome = document.querySelector('.mobile-bottom-nav .bottom-nav-item[data-tab-target="view-calendar"] span.bottom-nav-label, .mobile-bottom-nav .bottom-nav-item[data-tab-target="view-calendar"] span');
+    if (btnNavHome) btnNavHome.textContent = lang.navHome || 'Home';
+    const btnNavGrand = document.querySelector('.mobile-bottom-nav .bottom-nav-item[data-tab-target="view-grand"] span.bottom-nav-label, .mobile-bottom-nav .bottom-nav-item[data-tab-target="view-grand"] span');
+    if (btnNavGrand) btnNavGrand.textContent = '33 Endpoints';
+    const btnNavSlip = document.querySelector('.mobile-bottom-nav #btnBottomSlipToggle span.bottom-nav-label, .mobile-bottom-nav #btnBottomSlipToggle span:not(.bottom-slip-badge)');
+    if (btnNavSlip) btnNavSlip.textContent = lang.navSlip || 'Bet Slip';
+    const btnNavProfile = document.querySelector('.mobile-bottom-nav .bottom-nav-item[data-tab-target="view-profile"] span.bottom-nav-label, .mobile-bottom-nav .bottom-nav-item[data-tab-target="view-profile"] span');
+    if (btnNavProfile) btnNavProfile.textContent = lang.navProfile || 'Profile';
 
     // Calendar Header & Dropdown
     const calHdrLabel = document.querySelector('.cal-dropdown-header-label span');
