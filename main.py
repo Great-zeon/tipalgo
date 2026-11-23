@@ -4434,7 +4434,10 @@ async def get_all_candidate_bets(db: AsyncSession, predictor: PredictorService,
                 'time_wat': meta_wat['time_wat'],
                 'home': home,
                 'away': away,
+                'home_team': home,
+                'away_team': away,
                 'league': league,
+                'league_id': league,
             })
     _candidate_cache[cache_key] = {'ts': time.time(), 'data': all_bets}
     return all_bets
@@ -4493,7 +4496,7 @@ def build_accumulator_from_candidates(candidates: List[Dict], target_odds: float
     return selected, current_odds, overall_prob
 
 class AccumulatorRequest(BaseModel):
-    target_odds: float = Field(..., gt=1.0, json_schema_extra={"example": 5.0})
+    target_odds: float = Field(4.0, ge=0.5, json_schema_extra={"example": 5.0})
     max_legs: Optional[int] = Field(None, gt=0, json_schema_extra={"example": 4})
     randomise: bool = Field(False, description="Randomly shuffle candidates before selection")
     seed: Optional[int] = Field(None, description="Seed for reproducibility")
@@ -8960,6 +8963,7 @@ async def ep_accumulator(req: AccumulatorRequest, db: AsyncSession = Depends(get
                          user: User = Depends(get_current_user),
                          _ = Depends(rate_limit_dependency),
                          predictor: PredictorService = Depends(get_predictor)):
+    effective_target = max(1.10, float(req.target_odds or 4.0))
     candidates = await get_all_candidate_bets(
         db, predictor,
         min_edge=req.min_edge,
@@ -8974,19 +8978,19 @@ async def ep_accumulator(req: AccumulatorRequest, db: AsyncSession = Depends(get
         }
     selected, combined_odds, overall_prob = build_accumulator_from_candidates(
         candidates,
-        target_odds=req.target_odds,
+        target_odds=effective_target,
         max_legs=req.max_legs,
         randomise=req.randomise,
         seed=req.seed,
         tolerance=req.tolerance
     )
-    min_allowed_odds = req.target_odds * (1.0 - req.tolerance)
-    max_allowed_odds = req.target_odds * (1.0 + req.tolerance)
+    min_allowed_odds = effective_target * (1.0 - req.tolerance)
+    max_allowed_odds = effective_target * (1.0 + req.tolerance)
     if not selected or combined_odds < min_allowed_odds or combined_odds > max_allowed_odds:
         return {
             "pattern_matched": False,
             "feature": "Accu-Forge",
-            "message": f"Could not build accumulator for target {req.target_odds:.2f} within ±{req.tolerance*100:.0f}% tolerance with available bets.",
+            "message": f"Could not build accumulator for target {effective_target:.2f} within ±{req.tolerance*100:.0f}% tolerance with available bets.",
             "total_candidates": len(candidates)
         }
     legs = []
@@ -8996,12 +9000,15 @@ async def ep_accumulator(req: AccumulatorRequest, db: AsyncSession = Depends(get
             "selection": bet['selection'],
             "odds": round(bet['odds'], 2),
             "probability_percentage": f"{bet['model_prob']*100:.1f}%",
-            "edge_percentage": f"{bet['edge']*100:.1f}%"
+            "edge_percentage": f"{bet['edge']*100:.1f}%",
+            "home_team": bet.get('home_team') or bet.get('home') or (bet['match'].split(' vs ')[0] if ' vs ' in bet['match'] else 'Home'),
+            "away_team": bet.get('away_team') or bet.get('away') or (bet['match'].split(' vs ')[1] if ' vs ' in bet['match'] else 'Away'),
+            "market": bet.get('market', 'Accu-Forge Leg')
         })
     response = {
         "pattern_matched": True,
         "feature": "Accu-Forge",
-        "target_odds": req.target_odds,
+        "target_odds": effective_target,
         "achieved_odds": round(combined_odds, 2),
         "overall_probability": f"{overall_prob*100:.1f}%",
         "number_of_legs": len(legs),

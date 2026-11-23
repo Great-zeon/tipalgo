@@ -1350,10 +1350,10 @@
               </div>
             </div>
             <div style="display: flex; gap: 0.5rem; margin-top: 0.85rem; flex-wrap: wrap;">
-              <button class="btn-banker-add-slip" data-match="${esc(b.match)}" data-selection="${esc(b.selection)}" data-odds="${b.odds}" data-home="${esc(b.home || '')}" data-away="${esc(b.away || '')}" data-market="${esc(b.market || 'Banker Win')}" style="flex: 1;">
+              <button class="btn-banker-add-slip" data-match="${esc(b.match)}" data-selection="${esc(b.selection)}" data-odds="${b.odds}" data-home="${esc(b.home || b.home_team || '')}" data-away="${esc(b.away || b.away_team || '')}" data-market="${esc(b.market || 'Banker Win')}" style="flex: 1;">
                 + Add to Slip
               </button>
-              <button class="btn-banker-copy" data-home="${b.home_team || (b.match ? b.match.split(' vs ')[0] : 'Home')}" data-away="${b.away_team || (b.match ? b.match.split(' vs ')[1] : 'Away')}" data-league="${b.league_id || 'PL'}" data-odds="${b.odds}" style="flex: 1;">
+              <button class="btn-banker-copy" data-home="${esc(b.home || b.home_team || (b.match ? b.match.split(' vs ')[0] : 'Home'))}" data-away="${esc(b.away || b.away_team || (b.match ? b.match.split(' vs ')[1] : 'Away'))}" data-league="${esc(b.league || b.league_id || 'PL')}" data-odds="${b.odds}" style="flex: 1;">
                 <span>Analyze</span> <span>→</span>
               </button>
             </div>
@@ -1389,11 +1389,18 @@
       // Attach Breakdown Handlers
       dom.bankerCardsGrid.querySelectorAll('.btn-banker-copy').forEach(btn => {
         btn.addEventListener('click', () => {
-          const home = btn.getAttribute('data-home');
-          const away = btn.getAttribute('data-away');
-          const league = btn.getAttribute('data-league');
+          const home = btn.getAttribute('data-home') || 'Home';
+          const away = btn.getAttribute('data-away') || 'Away';
+          const league = btn.getAttribute('data-league') || 'PL';
           const odds = parseFloat(btn.getAttribute('data-odds')) || 1.45;
-          const matched = state.fixtures.find(f => f.home_team === home && f.away_team === away) || {
+          const fixturePool = [
+            ...(state.fixtures || []),
+            ...(state.calendar?.data?.matches || [])
+          ];
+          const matched = fixturePool.find(f => 
+            (f.home_team && f.home_team.toLowerCase() === home.toLowerCase() && f.away_team && f.away_team.toLowerCase() === away.toLowerCase()) ||
+            (`${f.home_team} vs ${f.away_team}`.toLowerCase() === `${home} vs ${away}`.toLowerCase())
+          ) || {
             home_team: home,
             away_team: away,
             league_id: league,
@@ -1576,9 +1583,15 @@
     `;
 
     try {
+      let rawTarget = dom.accuTargetOdds ? parseFloat(dom.accuTargetOdds.value) : 4.0;
+      if (isNaN(rawTarget) || rawTarget < 1.1) {
+        rawTarget = 2.5;
+        if (dom.accuTargetOdds) dom.accuTargetOdds.value = "2.5";
+      }
+
       const payload = {
-        target_odds: dom.accuTargetOdds ? parseFloat(dom.accuTargetOdds.value) || 4.0 : 4.0,
-        max_legs: dom.accuMaxLegs ? parseInt(dom.accuMaxLegs.value) || 3 : 3,
+        target_odds: rawTarget,
+        max_legs: dom.accuMaxLegs ? Math.max(1, parseInt(dom.accuMaxLegs.value) || 3) : 3,
         min_probability: dom.accuMinProb ? parseFloat(dom.accuMinProb.value) || 0.50 : 0.50,
         min_edge: dom.accuMinEdge ? (parseFloat(dom.accuMinEdge.value) || 0.01) : 0.01,
         randomise: false,
@@ -1676,9 +1689,21 @@
       }
 
     } catch (e) {
+      console.warn('Accu-Forge notice:', e);
+      const targetVal = dom.accuTargetOdds ? (parseFloat(dom.accuTargetOdds.value) || 4.0) : 4.0;
       dom.accuTicketDisplay.innerHTML = `
-        <div class="tool-empty-card" style="border-color: rgba(244, 63, 94, 0.3);">
-          <div style="color: #f43f5e; font-weight: 700;">Could not build Accu-Forge ticket: ${esc(e.message)}</div>
+        <div class="tool-empty-card" style="border-color: rgba(245, 158, 11, 0.3);">
+          <div class="tool-empty-icon" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b;">
+            <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+          </div>
+          <h3 class="tool-empty-title">No Qualifying Accu-Forge Parlay Found</h3>
+          <p class="tool-empty-desc">
+            No combination of today's active fixtures could meet target odds of @${targetVal.toFixed(2)} under current probability thresholds. Try setting target odds between 2.50 and 6.00 or lowering the min probability.
+          </p>
         </div>
       `;
     }
@@ -1882,11 +1907,22 @@
 
       dom.batchScanResultsTable.querySelectorAll('.btn-table-analyze').forEach(btn => {
         btn.addEventListener('click', () => {
-          const match = btn.getAttribute('data-match');
-          const matched = (state.fixtures && state.fixtures.find(f => `${f.home_team} vs ${f.away_team}`.toLowerCase() === match.toLowerCase())) || {
-            home_team: match.split(' vs ')[0] || 'Home',
-            away_team: match.split(' vs ')[1] || 'Away',
+          const match = btn.getAttribute('data-match') || '';
+          const parts = match.split(' vs ');
+          const home = parts[0]?.trim() || 'Home';
+          const away = parts[1]?.trim() || 'Away';
+          const fixturePool = [
+            ...(state.fixtures || []),
+            ...(state.calendar?.data?.matches || [])
+          ];
+          const matched = fixturePool.find(f => 
+            (`${f.home_team} vs ${f.away_team}`.toLowerCase() === match.toLowerCase()) ||
+            (f.home_team && f.home_team.toLowerCase() === home.toLowerCase() && f.away_team && f.away_team.toLowerCase() === away.toLowerCase())
+          ) || {
+            home_team: home,
+            away_team: away,
             league: 'Premier League',
+            league_id: 'PL',
             home_odds: 1.85,
             draw_odds: 3.40,
             away_odds: 3.90
@@ -4436,6 +4472,12 @@
     if (viewId === 'view-value') viewId = 'view-screener';
     if (viewId === 'view-scanner') viewId = 'view-batch';
 
+    // Track navigation history for seamless back navigation
+    if (viewId !== 'view-match-analytics' && state.currentView && state.currentView !== 'view-match-analytics') {
+      state.previousView = state.currentView;
+    }
+    state.currentView = viewId;
+
     // 1. Panels
     document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
     const targetView = document.getElementById(viewId);
@@ -4573,8 +4615,26 @@
   // Open Full Match Analytics View
   function openMatchAnalytics(fixture) {
     const f = fixture || state.activeFixture;
-    if (f) state.activeFixture = f;
+    if (f) {
+      state.activeFixture = f;
+      updateActiveFixtureUI();
+    }
     switchView('view-match-analytics');
+
+    // Context-sensitive Back button label
+    const backBtn = document.getElementById('btnBackToOverview');
+    if (backBtn) {
+      let backLabel = 'Back to Matches';
+      if (state.previousView === 'view-bankers') backLabel = 'Back to Banker Slate';
+      else if (state.previousView === 'view-screener') backLabel = 'Back to Value Screener';
+      else if (state.previousView === 'view-batch') backLabel = 'Back to Full Slate Scanner';
+      else if (state.previousView === 'view-accumulator') backLabel = 'Back to Accu-Forge';
+      else if (state.previousView === 'view-slip-history') backLabel = 'Back to Slip History';
+      
+      const textSpan = backBtn.querySelector('span:last-child') || backBtn;
+      textSpan.textContent = `← ${backLabel}`;
+    }
+
     if (f) loadMatchAnalytics(f);
   }
 
@@ -5636,8 +5696,19 @@
       renderCalendarEndpointsDropdown();
       populateCalendarLeagueDropdown(data.matches);
 
-      // Auto-bind activeFixture to today's real first match
+      // Auto-bind activeFixture to today's real first match and sync fixture lists
       if (data.matches && data.matches.length > 0) {
+        state.fixtures = data.matches;
+        const fixtureOpts = state.fixtures.map((f, i) => `
+          <option value="${i}">${esc(f.home_team)} vs ${esc(f.away_team)} (${esc(f.league_id || f.league || 'PL')})</option>
+        `).join('');
+        if (dom.fixtureSelect) {
+          dom.fixtureSelect.innerHTML = fixtureOpts;
+        }
+        const screenerSel = document.getElementById('screenerFixtureSelect');
+        if (screenerSel) {
+          screenerSel.innerHTML = fixtureOpts;
+        }
         if (!state.activeFixture || state.activeFixture.home_team === 'Arsenal') {
           state.activeFixture = data.matches[0];
           updateActiveFixtureUI();
@@ -5679,7 +5750,7 @@
       } catch (e) {}
     }
 
-    if (cached) {
+    if (cached && Array.isArray(cached.matches) && cached.matches.length > 0) {
       applyCalendarSlateData(cached);
     } else {
       renderShimmeringSkeletonCards();
@@ -5698,10 +5769,12 @@
         const data = await api(url);
         if (!data) return;
 
-        clientSlateMemoryCache.set(cacheKey, data);
-        try {
-          sessionStorage.setItem(`sportymill_slate_${cacheKey}`, JSON.stringify(data));
-        } catch (e) {}
+        if (data && Array.isArray(data.matches) && data.matches.length > 0) {
+          clientSlateMemoryCache.set(cacheKey, data);
+          try {
+            sessionStorage.setItem(`sportymill_slate_${cacheKey}`, JSON.stringify(data));
+          } catch (e) {}
+        }
 
         // Discard stale responses if user switched dates while in flight
         if (thisRequestId !== currentSlateRequestId) {
@@ -9549,7 +9622,8 @@
     const btnBackToOverview = document.getElementById('btnBackToOverview');
     if (btnBackToOverview) {
       btnBackToOverview.addEventListener('click', () => {
-        switchView('view-calendar');
+        const dest = state.previousView || 'view-calendar';
+        switchView(dest);
       });
     }
 
