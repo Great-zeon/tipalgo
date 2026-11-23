@@ -16894,11 +16894,13 @@ body.light-theme-mode .footer-bottom-row {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
 }
 
 .history-ledger-table {
   width: 100%;
+  min-width: 680px;
   border-collapse: collapse;
   font-size: 0.82rem;
   text-align: left;
