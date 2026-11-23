@@ -573,22 +573,9 @@
   // App Bootstrap
   async function init() {
     try {
-      const savedTone = localStorage.getItem('tipalgo_tone');
-      const toneWrapper = document.getElementById('toneWrapper');
-      if (savedTone && (savedTone === 'BANTER' || savedTone === 'PROFESSIONAL')) {
-        state.personalityMode = savedTone;
-        if (dom.personaSelect) {
-          dom.personaSelect.value = savedTone;
-        }
-      }
-      if (toneWrapper) {
-        if (state.personalityMode === 'BANTER') {
-          toneWrapper.classList.add('banter-active');
-        } else {
-          toneWrapper.classList.remove('banter-active');
-        }
-      }
-      applyLanguageMode(state.personalityMode);
+      localStorage.removeItem('tipalgo_tone');
+      state.personalityMode = 'PROFESSIONAL';
+      applyLanguageMode('PROFESSIONAL');
     } catch (e) {}
 
     setupEventListeners();
@@ -733,7 +720,6 @@
       // Handle insufficient data or no pattern matched (Pass) safely without fabricating data
       if (!res || res.pattern_matched === false || res.status === 'insufficient_data') {
         const isInsufficient = res && (res.status === 'insufficient_data' || (res.message && res.message.toLowerCase().includes('insufficient')));
-        const isBanter = state.personalityMode === 'BANTER';
         
         if (dom.heroPickTitle) {
           dom.heroPickTitle.textContent = isInsufficient 
@@ -753,10 +739,10 @@
           dom.heroEdgeBadge.className = 'hero-edge-badge neutral';
         }
         if (dom.heroKellyStake) {
-          dom.heroKellyStake.textContent = isBanter ? 'Advised Stake: ₦0 (No Bet)' : 'Suggested Stake: ₦0 (Pass)';
+          dom.heroKellyStake.textContent = 'Suggested Stake: ₦0 (Pass)';
         }
         if (dom.heroExpectedReturn) {
-          dom.heroExpectedReturn.textContent = isBanter ? 'Expected Cashout: ₦0' : 'Est. Payout: ₦0';
+          dom.heroExpectedReturn.textContent = 'Est. Payout: ₦0';
         }
         if (dom.metricWinRate) {
           dom.metricWinRate.textContent = (res && res.probability != null) ? `${Number(res.probability).toFixed(1)}%` : 'N/A';
@@ -781,29 +767,20 @@
       const numStake = parseFloat(kellyStake.replace(/[^0-9.]/g, '')) || 0;
       const estReturn = numStake > 0 ? formatNaira(numStake * odds) : '₦0';
 
-      const isBanter = state.personalityMode === 'BANTER';
-      const stakePrefix = isBanter ? 'Advised Chop Stake: ' : 'Suggested Stake: ';
-      const returnPrefix = isBanter ? 'Estimated Cashout: ' : 'Est. Payout: ';
+      const stakePrefix = 'Suggested Stake: ';
+      const returnPrefix = 'Est. Payout: ';
 
       if (dom.heroPickTitle) dom.heroPickTitle.textContent = `${res.selection || `${f.home_team} Win`} @ ${odds.toFixed(2)}`;
       if (dom.heroOddsValue) dom.heroOddsValue.textContent = `Odds: ${odds.toFixed(2)}`;
-      if (dom.heroModelProbability) dom.heroModelProbability.textContent = isBanter
-        ? `Chance to Enter: ${prob.toFixed(1)}% · Bookie Implied: ${(100/odds).toFixed(1)}%`
-        : `Win Likelihood: ${prob.toFixed(1)}% · Implied: ${(100/odds).toFixed(1)}%`;
-      if (dom.heroEdgeBadge) dom.heroEdgeBadge.textContent = isBanter
-        ? `${edge > 0 ? '+' : ''}${edge.toFixed(1)}% Sweet Edge`
-        : `${edge > 0 ? '+' : ''}${edge.toFixed(1)}% Value Edge`;
+      if (dom.heroModelProbability) dom.heroModelProbability.textContent = `Win Likelihood: ${prob.toFixed(1)}% · Implied: ${(100/odds).toFixed(1)}%`;
+      if (dom.heroEdgeBadge) dom.heroEdgeBadge.textContent = `${edge > 0 ? '+' : ''}${edge.toFixed(1)}% Value Edge`;
       if (dom.heroKellyStake) dom.heroKellyStake.textContent = `${stakePrefix}${kellyStake}`;
       if (dom.heroExpectedReturn) dom.heroExpectedReturn.textContent = `${returnPrefix}${estReturn}`;
 
       if (dom.metricWinRate) dom.metricWinRate.textContent = `${prob.toFixed(1)}%`;
       if (dom.metricEdgePercent) dom.metricEdgePercent.textContent = `${edge > 0 ? '+' : ''}${edge.toFixed(1)}%`;
       if (dom.metricConfidenceRating) {
-        if (isBanter) {
-          dom.metricConfidenceRating.textContent = edge >= 10 ? 'CONFIRM CHOP' : 'SOLID CHOP';
-        } else {
-          dom.metricConfidenceRating.textContent = res.confidence || (edge >= 10 ? 'HIGH' : 'MEDIUM');
-        }
+        dom.metricConfidenceRating.textContent = res.confidence || (edge >= 10 ? 'HIGH' : 'MEDIUM');
       }
 
       // Update Form Streaks
@@ -819,7 +796,6 @@
 
     } catch (e) {
       console.warn('Hero calculation note:', e);
-      const isBanter = state.personalityMode === 'BANTER';
       if (dom.heroPickTitle) dom.heroPickTitle.textContent = 'Prediction Unavailable: Verified Data Missing';
       if (dom.heroOddsValue) dom.heroOddsValue.textContent = f.home_odds ? `Odds: ${Number(f.home_odds).toFixed(2)}` : 'Odds: Unavailable';
       if (dom.heroModelProbability) dom.heroModelProbability.textContent = 'Data note: ' + (e.message || 'Unable to compute');
@@ -827,7 +803,7 @@
         dom.heroEdgeBadge.textContent = 'DATA UNAVAILABLE';
         dom.heroEdgeBadge.className = 'hero-edge-badge alert';
       }
-      if (dom.heroKellyStake) dom.heroKellyStake.textContent = isBanter ? 'Advised Stake: ₦0' : 'Suggested Stake: ₦0';
+      if (dom.heroKellyStake) dom.heroKellyStake.textContent = 'Suggested Stake: ₦0';
       if (dom.heroExpectedReturn) dom.heroExpectedReturn.textContent = 'Est. Payout: ₦0';
       if (dom.metricWinRate) dom.metricWinRate.textContent = 'N/A';
       if (dom.metricEdgePercent) dom.metricEdgePercent.textContent = '0.0%';
@@ -839,65 +815,41 @@
     renderMarketBreakupGrid(f);
   }
 
-  // Update Hero Commentary (English vs. Nigerian Pidgin)
+  // Update Hero Commentary
   function updateHeroCommentary(res) {
     if (!dom.heroCommentaryText) return;
-    const isBanter = state.personalityMode === 'BANTER';
     const f = state.activeFixture || { home_team: 'Home', away_team: 'Away', home_odds: 2.0 };
     
     if (dom.quoteModeTag) {
-      dom.quoteModeTag.textContent = isBanter ? 'Naija Banter Verdict' : 'SportyMill Model Verdict';
+      dom.quoteModeTag.textContent = 'SportyMill Model Verdict';
     }
 
     // Update the 4 Principles Note Bullets
     if (dom.noteHeaderTitle) {
-      dom.noteHeaderTitle.textContent = isBanter ? 'How The Algorithm Dey Catch Winners' : 'How SportyMill Engine Picks Winners';
+      dom.noteHeaderTitle.textContent = 'How SportyMill Engine Picks Winners';
     }
     if (dom.noteBulletsList) {
-      if (isBanter) {
-        dom.noteBulletsList.innerHTML = `
-          <li>
-            <strong>Poisson Goal Math:</strong> We dey calculate how many goals both teams fit score based on recent attack fire and defense wey dey leak.
-          </li>
-          <li>
-            <strong>Form &amp; Ginger Momentum:</strong> 5 straight games without shaking means the boys dey hot well well, no slack on top pitch.
-          </li>
-          <li>
-            <strong>Smart Kelly Money Management:</strong> We no dey bet like mumu; Kelly formula dey calculate exact Naira stake make your bankroll no cast.
-          </li>
-          <li>
-            <strong>Strict +4.0% Value Floor:</strong> If bookie odds no sweet pass break-even price by at least +4.0%, we no go touch am. No be everything wey shine be gold!
-          </li>
-        `;
-      } else {
-        dom.noteBulletsList.innerHTML = `
-          <li>
-            <strong>Bivariate Poisson Modeling:</strong> Calibrates attacking ratings, defensive concession rates, and home pitch bias to compute precise goal expectancies.
-          </li>
-          <li>
-            <strong>Form &amp; Momentum Tracking:</strong> Weights recent 5-game trajectories and flags squads with fatigue (e.g. &le; 3 rest days) before bookmaker lines shift.
-          </li>
-          <li>
-            <strong>Smart Kelly Bankroll Staking:</strong> Safeguards user capital by calculating the mathematically optimal Naira bet size using a 0.25 fractional Kelly formula.
-          </li>
-          <li>
-            <strong>Mandatory 4.0% Value Floor:</strong> Recommends selections only when model probability beats the bookmaker break-even price by at least +4.0%.
-          </li>
-        `;
-      }
+      dom.noteBulletsList.innerHTML = `
+        <li>
+          <strong>Bivariate Poisson Modeling:</strong> Calibrates attacking ratings, defensive concession rates, and home pitch bias to compute precise goal expectancies.
+        </li>
+        <li>
+          <strong>Form &amp; Momentum Tracking:</strong> Weights recent 5-game trajectories and flags squads with fatigue (e.g. &le; 3 rest days) before bookmaker lines shift.
+        </li>
+        <li>
+          <strong>Smart Kelly Bankroll Staking:</strong> Safeguards user capital by calculating the mathematically optimal Naira bet size using a 0.25 fractional Kelly formula.
+        </li>
+        <li>
+          <strong>Mandatory 4.0% Value Floor:</strong> Recommends selections only when model probability beats the bookmaker break-even price by at least +4.0%.
+        </li>
+      `;
     }
 
     if (!res || res.pattern_matched === false || res.status === 'insufficient_data') {
       const isInsufficient = res && (res.status === 'insufficient_data' || (res.message && res.message.toLowerCase().includes('insufficient')));
-      if (isBanter) {
-        dom.heroCommentaryText.textContent = isInsufficient
-          ? `"Abeg hold your body! Complete stats for ${f.home_team} vs ${f.away_team} never land from provider. No bet!"`
-          : `"Hold your money o! ${f.home_team} vs ${f.away_team} no get up to +4.0% value edge. We no dey dash bookie money!"`;
-      } else {
-        dom.heroCommentaryText.textContent = isInsufficient
-          ? `"Prediction unavailable: verified statistical data is incomplete for ${f.home_team} vs ${f.away_team}."`
-          : `"Model Pass: Calculated edge for ${f.home_team} vs ${f.away_team} fails the required +4.0% value threshold. Recommendation: Pass / No Bet."`;
-      }
+      dom.heroCommentaryText.textContent = isInsufficient
+        ? `"Prediction unavailable: verified statistical data is incomplete for ${f.home_team} vs ${f.away_team}."`
+        : `"Model Pass: Calculated edge for ${f.home_team} vs ${f.away_team} fails the required +4.0% value threshold. Recommendation: Pass / No Bet."`;
       return;
     }
 
@@ -905,13 +857,9 @@
     const edge = res.edge;
     const odds = (f && f.home_odds) ? f.home_odds : (res.odds || 2.0);
     const kellyStake = res.stake_suggestion || '₦0';
-    const headline = res?.explanation?.headline || (isBanter ? 'Money dey here!' : 'Statistical edge detected.');
+    const headline = res?.explanation?.headline || 'Statistical edge detected.';
     
-    if (isBanter) {
-      dom.heroCommentaryText.textContent = `"${headline} ${f.home_team} get ${prob}% win chance against ${f.away_team}. Model catch ${edge > 0 ? '+' : ''}${edge}% value edge. Suggested stake: ${kellyStake}."`;
-    } else {
-      dom.heroCommentaryText.textContent = `"${headline} Model probability is ${prob}% vs bookmaker implied ${(100/odds).toFixed(1)}%. Calculated edge is ${edge > 0 ? '+' : ''}${edge}%. Suggested stake: ${kellyStake}."`;
-    }
+    dom.heroCommentaryText.textContent = `"${headline} Model probability is ${prob}% vs bookmaker implied ${(100/odds).toFixed(1)}%. Calculated edge is ${edge > 0 ? '+' : ''}${edge}%. Suggested stake: ${kellyStake}."`;
   }
 
   // Render Streak Badges
@@ -1147,16 +1095,15 @@
       });
       state.lastPredictionResult = res;
 
-      const isBanter = state.personalityMode === 'BANTER';
       const matched = res.pattern_matched !== false;
-      const pick = res.selection || res.top_pick || (matched ? (isBanter ? 'Chop Value Pick' : 'Statistical Advantage Identified') : (isBanter ? 'No Value / Drop Am' : 'No Value Edge'));
+      const pick = res.selection || res.top_pick || (matched ? 'Statistical Advantage Identified' : 'No Value Edge');
       const prob = res.probability !== undefined ? `${res.probability}%` : (res.overall_probability || 'N/A');
       const edge = res.edge !== undefined ? `${res.edge > 0 ? '+' : ''}${res.edge}%` : 'N/A';
       const stake = res.stake_suggestion || 'N/A';
       const odds = res.odds || payload.home_odds || 1.65;
       const expl = res.explanation || {};
-      const headline = expl.headline || (matched ? (isBanter ? 'Oga! Money dey here! No shaking!' : 'Positive Value Detected (+EV)') : (isBanter ? 'Abeg hold your money! Dis match no get value o!' : 'No Significant Edge Found'));
-      const rule = expl.rule || (matched ? (isBanter ? `Model don calculate +${edge} value edge wey pass bookie break-even price. Enter with your Kelly stake!` : res.message || 'Analyzed against strict statistical value criteria.') : (isBanter ? 'Bookie price no reach our +4.0% safety floor. Drop am make we move on!' : res.message || 'Fails the mandatory +4.0% value threshold.'));
+      const headline = expl.headline || (matched ? 'Positive Value Detected (+EV)' : 'No Significant Edge Found');
+      const rule = expl.rule || (matched ? (res.message || 'Analyzed against strict statistical value criteria.') : (res.message || 'Fails the mandatory +4.0% value threshold.'));
 
       // Recent 5 match form for both sides
       const homeMatches = res.recent_matches?.home?.all || [];
@@ -1168,29 +1115,29 @@
             <div>
               <div class="outcome-title">${res.match || `${payload.home_team} vs ${payload.away_team}`}</div>
               <div style="font-size: 0.82rem; color: #4f46e5; font-weight: 800; margin-top: 0.25rem;">
-                Model: ${endpointMeta.name} ${isBanter ? '· (Naija Mode)' : ''}
+                Model: ${endpointMeta.name}
               </div>
             </div>
             <span class="outcome-status-badge ${matched ? 'success' : 'neutral'}">
-              ${matched ? (isBanter ? 'VALUE DEY HERE' : 'VALUE EDGE CONFIRMED') : (isBanter ? 'NO BET O! DROP AM' : 'PASS / NO BET')}
+              ${matched ? 'VALUE EDGE CONFIRMED' : 'PASS / NO BET'}
             </span>
           </div>
 
           <div class="outcome-metrics-row">
             <div class="outcome-metric-cell">
-              <div class="cell-label">${isBanter ? 'Recommended Pick' : 'Recommended Pick'}</div>
+              <div class="cell-label">Recommended Pick</div>
               <div class="cell-value green">${pick}</div>
             </div>
             <div class="outcome-metric-cell">
-              <div class="cell-label">${isBanter ? 'True Win Likelihood' : 'Model Probability'}</div>
+              <div class="cell-label">Model Probability</div>
               <div class="cell-value">${prob}</div>
             </div>
             <div class="outcome-metric-cell">
-              <div class="cell-label">${isBanter ? 'Positive Value Edge' : 'Value Edge'}</div>
+              <div class="cell-label">Value Edge</div>
               <div class="cell-value green">${edge}</div>
             </div>
             <div class="outcome-metric-cell">
-              <div class="cell-label">${isBanter ? 'Recommended Naira Stake' : 'Suggested Stake (Kelly)'}</div>
+              <div class="cell-label">Suggested Stake (Kelly)</div>
               <div class="cell-value">${stake}</div>
             </div>
           </div>
@@ -1298,18 +1245,13 @@
       if (!candidates || !candidates.length) {
         dom.bankerCardsGrid.innerHTML = `
           <div class="tool-empty-card" style="grid-column: 1 / -1;">
-            <div class="tool-empty-icon" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b;">
-              <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
-              </svg>
-            </div>
-            <h3 class="tool-empty-title">No ${(minProb * 100).toFixed(0)}%+ Bankers on Today's Board</h3>
+            <h3 class="tool-empty-title">No ${(minProb * 100).toFixed(0)}%+ Bankers Today</h3>
             <p class="tool-empty-desc">
-              No matches on today's schedule currently reach the strict ${(minProb * 100).toFixed(0)}% probability cutoff. Tap below to inspect strong 70% or 60% probability picks across today's games.
+              No scheduled fixtures reach the ${(minProb * 100).toFixed(0)}% probability threshold on today's board.
             </p>
-            <div style="display: flex; gap: 0.65rem; justify-content: center; flex-wrap: wrap; margin-top: 1.25rem;">
-              <button class="btn-pill-filter" onclick="if(window.renderBankerSlate) window.renderBankerSlate(0.70)">View 70%+ Picks</button>
-              <button class="btn-pill-filter" onclick="if(window.renderBankerSlate) window.renderBankerSlate(0.60)">View 60%+ Picks</button>
+            <div style="display: flex; gap: 0.65rem; justify-content: center; flex-wrap: wrap; margin-top: 1rem;">
+              <button class="btn-pill-filter" onclick="if(window.renderBankerSlate) window.renderBankerSlate(0.70)">View 70%+ Selections</button>
+              <button class="btn-pill-filter" onclick="if(window.renderBankerSlate) window.renderBankerSlate(0.60)">View 60%+ Selections</button>
             </div>
           </div>
         `;
@@ -1320,14 +1262,8 @@
         const probPct = (b.model_prob * 100);
         const edgePct = (b.edge * 100);
         let badgeClass = 'good';
-        let tierLabel = 'Balanced Value';
-        if (probPct >= 80) {
-          badgeClass = 'ultra';
-          tierLabel = 'Ultra Safe Banker';
-        } else if (probPct >= 70) {
-          badgeClass = 'high';
-          tierLabel = 'High Conviction';
-        }
+        if (probPct >= 80) badgeClass = 'ultra';
+        else if (probPct >= 70) badgeClass = 'high';
 
         const kellyAmt = formatNaira(state.user.bankroll * Math.max(0.01, (b.edge * 0.25)));
 
@@ -1335,7 +1271,7 @@
           <div class="banker-card">
             <div>
               <div class="banker-card-header">
-                <span class="banker-league-tag">${b.league === 'PD' ? 'La Liga' : (b.league === 'SA' ? 'Serie A' : (b.league === 'BL1' ? 'Bundesliga' : 'Premier League'))} · Matchday Slate</span>
+                <span class="banker-league-tag">${b.league === 'PD' ? 'La Liga' : (b.league === 'SA' ? 'Serie A' : (b.league === 'BL1' ? 'Bundesliga' : 'Premier League'))}</span>
                 <span class="banker-prob-badge ${badgeClass}">${probPct.toFixed(1)}% WIN PROB</span>
               </div>
               <div class="banker-match-title">${b.match}</div>
@@ -1346,7 +1282,6 @@
               <div class="banker-metrics-strip">
                 <span>Edge: <strong class="edge-green">+${edgePct.toFixed(1)}%</strong></span>
                 <span>Stake: <strong>${kellyAmt}</strong></span>
-                <span>Tier: <strong>${tierLabel}</strong></span>
               </div>
             </div>
             <div style="display: flex; gap: 0.5rem; margin-top: 0.85rem; flex-wrap: wrap;">
@@ -1472,47 +1407,47 @@
           <div class="outcome-head">
             <div>
               <div class="outcome-title">${esc(matchTitle)}</div>
-              <div style="font-size: 0.8rem; color: #38bdf8; font-weight: 700; margin-top: 0.2rem;">
-                ${leagueName} · Value Radar ${isBanter ? '(Naija Radar)' : '(Institutional ML)'}
+              <div style="font-size: 0.8rem; color: #94a3b8; font-weight: 600; margin-top: 0.2rem;">
+                ${leagueName} · Match Evaluation
               </div>
             </div>
             <span class="outcome-status-badge ${isPatternMatched ? 'success' : 'neutral'}">
-              ${isPatternMatched ? (isBanter ? 'VALUE DEY HERE' : '+EV VALUE IDENTIFIED') : (isBanter ? 'PASS (FAIR PRICE)' : 'FAIR PRICE · PASS')}
+              ${isPatternMatched ? '+EV QUALIFIED' : 'NO VALUE EDGE'}
             </span>
           </div>
 
           <div class="outcome-metrics-row">
             <div class="outcome-metric-cell">
-              <div class="cell-label">${isBanter ? 'Qualified Pick' : 'Model Selection'}</div>
-              <div class="cell-value ${isPatternMatched ? 'green' : ''}">${esc(res.selection || (isBanter ? 'Pass (No Edge)' : 'Pass (Fair Price)'))}</div>
+              <div class="cell-label">Model Selection</div>
+              <div class="cell-value ${isPatternMatched ? 'green' : ''}">${esc(res.selection || 'Pass (Fair Line)')}</div>
             </div>
             <div class="outcome-metric-cell">
-              <div class="cell-label">Win Likelihood</div>
-              <div class="cell-value">${probNum > 0 ? probNum.toFixed(1) + '%' : '47.2%'}</div>
+              <div class="cell-label">Win Probability</div>
+              <div class="cell-value">${probNum > 0 ? probNum.toFixed(1) + '%' : '—'}</div>
             </div>
             <div class="outcome-metric-cell">
               <div class="cell-label">Calculated Edge</div>
-              <div class="cell-value ${isPositiveEdge ? 'green' : ''}">${isPositiveEdge ? '+' + edgeNum.toFixed(1) + '%' : (edgeNum !== 0 ? edgeNum.toFixed(1) + '%' : 'Fair Line')}</div>
+              <div class="cell-value ${isPositiveEdge ? 'green' : ''}">${isPositiveEdge ? '+' + edgeNum.toFixed(1) + '%' : (edgeNum !== 0 ? edgeNum.toFixed(1) + '%' : '0.0%')}</div>
             </div>
             <div class="outcome-metric-cell">
-              <div class="cell-label">${isBanter ? 'Suggested Stake' : 'Kelly Stake'}</div>
-              <div class="cell-value">${esc(res.stake_suggestion || '₦0 (Capital Protected)')}</div>
+              <div class="cell-label">Kelly Stake</div>
+              <div class="cell-value">${esc(res.stake_suggestion || '₦0')}</div>
             </div>
           </div>
 
           <div class="outcome-narrative">
-            <strong>${isPatternMatched ? (isBanter ? 'Oga! Screener don catch value!' : 'Positive Expected Value (+EV) Confirmed') : (isBanter ? 'Protection Active: Bookie price fair, no edge dey!' : 'Capital Protection: Risk Filter Active')}</strong>
-            <p>${isPatternMatched ? esc(res.explanation?.rule || 'Symmetric probability model detected mispriced odds exceeding required edge safety threshold.') : esc(res.message || 'Market odds align with model expectancy. Zero positive mathematical discrepancy detected across bookmaker lines.') + ' In accordance with Kelly bankroll criteria, capital is protected by passing on zero-edge fixtures.'}</p>
+            <strong>${isPatternMatched ? '+EV Opportunity Identified' : 'Fair Market Price (Pass)'}</strong>
+            <p>${isPatternMatched ? esc(res.explanation?.rule || 'Model probability exceeds market implied probability by the required edge threshold.') : 'Bookmaker odds align with Poisson probability distribution. No mathematical value advantage detected.'}</p>
           </div>
 
           <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem;">
             ${isPatternMatched ? `
               <button class="btn-hero-screener" id="btnScreenerAddSlip" style="flex: 1;">
-                + Add Value Pick to Bet Slip
+                + Add Pick to Slip
               </button>
             ` : ''}
             <button class="btn-pill-dark" id="btnAnalyzeScreenerMatch" style="flex: 1; padding: 0.75rem;">
-              Inspect 33 Markets Breakdown →
+              Analyze Match Breakdown →
             </button>
             <button class="btn-pill-filter" id="btnScreenerNextMatch" style="padding: 0.75rem 1rem;">
               Next Match →
@@ -1572,13 +1507,8 @@
     if (!dom.accuTicketDisplay) return;
     dom.accuTicketDisplay.innerHTML = `
       <div class="tool-empty-card">
-        <div class="tool-empty-icon" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b;">
-          <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" class="spin-slow">
-            <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="12"></circle>
-          </svg>
-        </div>
-        <div style="font-weight: 700; color: #f59e0b;">Scanning Scheduled Database Fixtures...</div>
-        <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.35rem;">Combining mathematically qualifying value legs into an accumulator...</p>
+        <div style="font-weight: 700; color: #38bdf8;">Scanning Scheduled Fixtures...</div>
+        <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.35rem;">Combining qualifying value legs into an accumulator parlay...</p>
       </div>
     `;
 
@@ -1606,13 +1536,6 @@
       if (!res.pattern_matched || !res.legs || !res.legs.length) {
         dom.accuTicketDisplay.innerHTML = `
           <div class="tool-empty-card">
-            <div class="tool-empty-icon" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b;">
-              <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="8" x2="12" y2="12"></line>
-                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-              </svg>
-            </div>
             <h3 class="tool-empty-title">${esc(res.message || 'No Qualifying Accu-Forge Legs Found')}</h3>
             <p class="tool-empty-desc">
               Current mathematical thresholds are too restrictive for today's market odds. Try lowering target odds or min probability.
@@ -1629,12 +1552,12 @@
         <div class="outcome-clean-card" style="margin-top: 1rem;">
           <div class="outcome-head">
             <div>
-              <div class="outcome-title">Accu-Forge™ Verified Ticket (${res.number_of_legs} Legs)</div>
-              <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.2rem;">Multi-Match Parlay from Database Slate</div>
+              <div class="outcome-title">Accu-Forge Parlay (${res.number_of_legs} Legs)</div>
+              <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.2rem;">Multi-Match Combination</div>
             </div>
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
               <span class="outcome-status-badge success">Combined Odds: @${Number(res.achieved_odds || 0).toFixed(2)}</span>
-              <span class="outcome-status-badge neutral">Ticket Prob: ${esc(res.overall_probability || 'N/A')}</span>
+              <span class="outcome-status-badge neutral">Prob: ${esc(res.overall_probability || 'N/A')}</span>
             </div>
           </div>
 
@@ -1655,10 +1578,6 @@
           <div class="accu-payout-banner">
             <span style="color: #94a3b8; font-size: 0.85rem;">Est. Payout on ₦10,000 Stake:</span>
             <strong style="font-size: 1.25rem; color: #34d399; font-family: var(--font-mono);">${potentialPayout}</strong>
-          </div>
-
-          <div style="text-align: center; padding: 0.75rem; background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; font-weight: 700; font-size: 0.85rem; margin-top: 0.75rem;">
-            Accu-Forge Parlay Verified · ${res.number_of_legs} Legs Combined (@${Number(res.achieved_odds || 0).toFixed(2)})
           </div>
 
           <button class="btn-hero-screener" id="btnLoadAccuToSlip" style="width: 100%; margin-top: 0.85rem; padding: 0.85rem; font-size: 0.9rem;">
@@ -1692,14 +1611,7 @@
       console.warn('Accu-Forge notice:', e);
       const targetVal = dom.accuTargetOdds ? (parseFloat(dom.accuTargetOdds.value) || 4.0) : 4.0;
       dom.accuTicketDisplay.innerHTML = `
-        <div class="tool-empty-card" style="border-color: rgba(245, 158, 11, 0.3);">
-          <div class="tool-empty-icon" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b;">
-            <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="8" x2="12" y2="12"></line>
-              <line x1="12" y1="16" x2="12.01" y2="16"></line>
-            </svg>
-          </div>
+        <div class="tool-empty-card">
           <h3 class="tool-empty-title">No Qualifying Accu-Forge Parlay Found</h3>
           <p class="tool-empty-desc">
             No combination of today's active fixtures could meet target odds of @${targetVal.toFixed(2)} under current probability thresholds. Try setting target odds between 2.50 and 6.00 or lowering the min probability.
@@ -1714,13 +1626,8 @@
     if (!dom.batchScanResultsTable) return;
     dom.batchScanResultsTable.innerHTML = `
       <div class="tool-empty-card">
-        <div class="tool-empty-icon" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
-          <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" class="spin-slow">
-            <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="12"></circle>
-          </svg>
-        </div>
-        <div style="font-weight: 700; color: #10b981;">Simulating All Scheduled Fixtures...</div>
-        <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.35rem;">Calculating Poisson probability distributions and value edges for today's active match slate...</p>
+        <div style="font-weight: 700; color: #38bdf8;">Simulating Scheduled Fixtures...</div>
+        <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.35rem;">Computing Poisson probability distributions across active fixtures...</p>
       </div>
     `;
 
@@ -2041,132 +1948,132 @@
       navGrand: "33 Endpoints",
       navAbout: "About SportyMill",
       navSupport: "Customer Care",
-      navContest: "Sure Banker Pick",
-      navAnalytics: "Match Gist & Breakdown",
-      navBankers: "80%+ Sure Banker Slates",
-      navScreener: "Value Edge Scanner",
-      navAccumulator: "Accu-Forge Multi",
+      navContest: "Top Banker Pick",
+      navAnalytics: "Full Match Analytics",
+      navBankers: "Banker Slate",
+      navScreener: "Value Screener",
+      navAccumulator: "Accu-Forge Parlays",
       navBatch: "Full Slate Scanner",
       navSlip: "Bet Slip",
-      navProfile: "My Profile",
+      navProfile: "Profile",
 
-      matchLabel: "Game",
-      toneLabel: "Naija Mode",
-      btnAddCustom: "+ Add Your Game",
+      matchLabel: "Match",
+      toneLabel: "Professional",
+      btnAddCustom: "+ Add Custom Fixture",
       syncBtnText: "Refresh Matches",
 
-      calHeader: "Matches Wey Dey Play By Date",
-      calSub: "Tap here choose any day make you see matches",
-      calBadgeSuffix: "Matches Dey",
-      calYesterday: "Yesterday Match",
-      calToday: "Today Game",
-      calTomorrow: "Tomorrow Match",
-      calNext5: "Next 5 Days Run",
-      calGoToday: "Jump to Today",
-      calDone: "Oya Done",
+      calHeader: "Matches By Date",
+      calSub: "Select a date to inspect fixtures",
+      calBadgeSuffix: "Matches Available",
+      calYesterday: "Yesterday",
+      calToday: "Today",
+      calTomorrow: "Tomorrow",
+      calNext5: "Next 5 Days",
+      calGoToday: "Today",
+      calDone: "Done",
 
-      searchPlaceholder: "Find your team or league (e.g. Arsenal, Chelsea, Madrid)...",
+      searchPlaceholder: "Search fixtures or leagues (e.g. Arsenal, Chelsea, Real Madrid)...",
       filterBtn: "Filter Matches",
       viewTable: "Odds Table",
       viewGrid: "Match Cards",
 
-      cardModelPick: "Chop Pick",
-      cardWinLikelihood: "Chance to Enter",
-      cardAnalyticsBtn: "Check Gist",
-      cardAddSlip: "Chop Am",
-      cardInSlip: "Don Enter",
-      cardBankerBadge: "80%+ BANKER",
+      cardModelPick: "Model Pick",
+      cardWinLikelihood: "Win Likelihood",
+      cardAnalyticsBtn: "Analytics",
+      cardAddSlip: "Add to Slip",
+      cardInSlip: "Added",
+      cardBankerBadge: "BANKER",
 
       slipTitle: "Bet Slip",
-      slipEmptyTitle: "Your chop slip still dey empty oga!",
-      slipEmptySub: "Tap any sweet odds or 'Chop Am' make you load your ticket!",
-      slipClear: "Clear Slip",
-      slipStakeLabel: "Your Stake (₦)",
-      slipTotalOdds: "Total Combined Odds",
-      slipReturn: "Money Wey Go Enter",
-      slipBookBtn: "Book Ticket / Get Code",
-      slipAuditBtn: "Audit Slip With Quant Screener",
+      slipEmptyTitle: "Your Bet Slip is Empty",
+      slipEmptySub: "Click odds on any fixture to add selections to your slip.",
+      slipClear: "Clear",
+      slipStakeLabel: "Stake (₦)",
+      slipTotalOdds: "Combined Odds",
+      slipReturn: "Est. Payout",
+      slipBookBtn: "Save Slip & Code",
+      slipAuditBtn: "Check Slip & Print",
 
-      subtabContest: "Sure Banker Pick",
-      subtabAnalytics: "Match Gist & Breakdown",
-      subtabBankers: "80%+ Sure Banker Slates",
-      subtabGrand: "All 33 Chop Endpoints",
-      subtabScreener: "Value Edge Scanner",
-      subtabAccumulator: "Accu-Forge Multi",
+      subtabContest: "Top Banker Pick",
+      subtabAnalytics: "Match Breakdown",
+      subtabBankers: "Banker Picks",
+      subtabGrand: "33 Prediction Markets",
+      subtabScreener: "Value Screener",
+      subtabAccumulator: "Accu-Forge Parlays",
       subtabBatch: "Full Slate Scanner",
 
-      poolLabel: "OGA VALUE PICK DEY HERE",
-      metricWinRate: "Chance to Enter",
-      metricRankGap: "Table Level Gap",
-      metricEdge: "Extra Sweet Edge",
-      metricConfidence: "Confidence Level",
-      btnHeroPredict: "Inspect Full Match Breakdown →",
+      poolLabel: "Top Mathematical Value Pick",
+      metricWinRate: "Win Likelihood",
+      metricRankGap: "Rank Gap",
+      metricEdge: "Value Edge",
+      metricConfidence: "Confidence",
+      btnHeroPredict: "Analyze Full Breakdown →",
 
-      top3Header: "Top 3 Sweetest Betting Angles",
-      top3Sub: "The 3 most reliable options wey fit pay pass for this match.",
-      pillBestEdge: "Sweetest Edge",
-      pillAllMarkets: "All Options",
+      top3Header: "Market Odds Breakdown (Top 3 Angles)",
+      top3Sub: "Algorithmic probability rankings calibrated for the active fixture.",
+      pillBestEdge: "Best Edge",
+      pillAllMarkets: "All Markets",
 
       textBackOverview: "← Back to Matches",
-      analyticsModePill: "FULL MATCH GIST",
-      labelHomeOdds: "Home Win (1)",
-      labelDrawOdds: "Draw / Stalemate (X)",
-      labelAwayOdds: "Away Win (2)",
-      textBetOptionsTitle: "High-Conviction Naija Chop Picks",
-      textBetOptionsSub: "Carefully calculated betting selections wey fit sweet your pocket without burning your money.",
-      textSubStrategyTitle: "Trap & Bookmaker Pattern Radar",
-      textSubStrategySub: "Model dey check whether bookie set trap with fake favorite or if one team sharp pass the other.",
-      textEndpointsTitle: "Full 33-Endpoint Audit (Every Single Option Checked)",
-      textEndpointsSub: "Every single market endpoint wey our engine run for this match, explained make punters understand easily.",
+      analyticsModePill: "QUANT MODEL AUDIT",
+      labelHomeOdds: "Home (1)",
+      labelDrawOdds: "Draw (X)",
+      labelAwayOdds: "Away (2)",
+      textBetOptionsTitle: "SportyMill High-Conviction Selections",
+      textBetOptionsSub: "Mathematically vetted betting selections designed for maximum yield and bankroll safety under Fractional Kelly.",
+      textSubStrategyTitle: "Sub-Strategy Trap & Pattern Detection",
+      textSubStrategySub: "Evaluates bookmaker pricing anomalies, false favorites, and form mismatches using the script's SubStrategyDetector.",
+      textEndpointsTitle: "Complete 33-Market Statistical Audit",
+      textEndpointsSub: "Every prediction endpoint checked by the Poisson and Kelly models for this fixture, explained in plain language.",
       textFormH2HTitle: "Recent Form & Head-to-Head History",
-      textFormH2HSub: "Last 5 matches wey dem play and who dey always beat who."
+      textFormH2HSub: "Last 5 competitive match results and head-to-head dominance comparison."
     }
   };
 
-  // Translate entire UI between Professional English and Authentic Naija Pidgin
+  // Translate entire UI to Professional English
   function applyLanguageMode(mode) {
-    const lang = TRANSLATIONS[mode] || TRANSLATIONS.PROFESSIONAL;
-    const isBanter = mode === 'BANTER';
+    const lang = TRANSLATIONS.PROFESSIONAL;
+    const isBanter = false;
 
-    // Toggle global Banter class on body & tone wrapper
-    document.body.classList.toggle('banter-mode-active', isBanter);
+    // Remove any legacy Banter class on body & tone wrapper
+    document.body.classList.remove('banter-mode-active');
     const toneWrapper = document.getElementById('toneWrapper');
     if (toneWrapper) {
-      toneWrapper.classList.toggle('banter-active', isBanter);
+      toneWrapper.classList.remove('banter-active');
     }
     if (dom.personaSelect) {
-      dom.personaSelect.value = mode;
+      dom.personaSelect.value = 'PROFESSIONAL';
     }
 
     // Top Navigation Items
     const elTopNavHome = document.getElementById('topNavHome');
     if (elTopNavHome) elTopNavHome.textContent = lang.navHome;
     const elTopNavGrand = document.getElementById('topNavGrand');
-    if (elTopNavGrand) elTopNavGrand.textContent = isBanter ? '33 Endpoints' : '33 Endpoints';
+    if (elTopNavGrand) elTopNavGrand.textContent = '33 Endpoints';
     const elTopNavAbout = document.getElementById('topNavAbout');
     if (elTopNavAbout) elTopNavAbout.textContent = lang.navAbout;
     const elTopNavSupport = document.getElementById('topNavSupport');
     if (elTopNavSupport) elTopNavSupport.textContent = lang.navSupport;
 
-    // Notifications Popover Dynamic Translations
+    // Notifications Popover
     const notifHeader = document.querySelector('.notif-popover-title');
-    if (notifHeader) notifHeader.textContent = isBanter ? 'Live Model Intelligence (Ginger Alerts)' : 'Live Model Intelligence';
+    if (notifHeader) notifHeader.textContent = 'Live Model Intelligence';
     const notifItems = document.querySelectorAll('.notifications-popover .notif-item');
     if (notifItems && notifItems.length >= 3) {
       const t0 = notifItems[0].querySelector('.notif-item-title');
       const d0 = notifItems[0].querySelector('.notif-item-desc');
-      if (t0) t0.textContent = isBanter ? '+8.4% Sweet Value Spike' : '+8.4% EV Value Spike';
-      if (d0) d0.textContent = isBanter ? 'Liverpool vs Man City get heavy goal vibration under Poisson simulation.' : 'Liverpool vs Man City home edge confirmed under Poisson goal simulation.';
+      if (t0) t0.textContent = '+8.4% EV Value Spike';
+      if (d0) d0.textContent = 'Liverpool vs Man City home edge confirmed under Poisson goal simulation.';
 
       const t1 = notifItems[1].querySelector('.notif-item-title');
       const d1 = notifItems[1].querySelector('.notif-item-desc');
-      if (t1) t1.textContent = isBanter ? '80%+ Sure Banker Pass' : '80%+ Banker Filter';
-      if (d1) d1.textContent = isBanter ? 'Arsenal or Draw (1X) don pass all our strict safety checks cleanly.' : 'Arsenal or Draw (1X) qualified under multi-strategy safety filter.';
+      if (t1) t1.textContent = '80%+ Banker Filter';
+      if (d1) d1.textContent = 'Arsenal or Draw (1X) qualified under multi-strategy safety filter.';
 
       const t2 = notifItems[2].querySelector('.notif-item-title');
       const d2 = notifItems[2].querySelector('.notif-item-desc');
-      if (t2) t2.textContent = isBanter ? 'Over 2.5 Goals Radar' : 'Over 2.5 Goals Radar';
-      if (d2) d2.textContent = isBanter ? 'Bayern vs Dortmund project 3.45 heavy match goals.' : 'Bayern vs Dortmund projected 3.45 xG total volume.';
+      if (t2) t2.textContent = 'Over 2.5 Goals Radar';
+      if (d2) d2.textContent = 'Bayern vs Dortmund projected 3.45 xG total volume.';
     }
 
     // Mobile Bottom Navigation Bar (Home, Dashboard, 33 Endpoints, Bet Slip, Profile)
@@ -2175,9 +2082,9 @@
       const s0 = bottomNavButtons[0].querySelector('span');
       if (s0) s0.textContent = lang.navHome;
       const s1 = bottomNavButtons[1].querySelector('span');
-      if (s1) s1.textContent = isBanter ? 'Dashboard' : 'Dashboard';
+      if (s1) s1.textContent = 'Dashboard';
       const s2 = bottomNavButtons[2].querySelector('span');
-      if (s2) s2.textContent = isBanter ? '33 Endpoints' : '33 Endpoints';
+      if (s2) s2.textContent = '33 Endpoints';
       const s3 = bottomNavButtons[3].querySelector('span:not(.bottom-slip-badge)');
       if (s3) s3.textContent = lang.navSlip;
       const s4 = bottomNavButtons[4].querySelector('span');
@@ -2186,7 +2093,7 @@
       const bottomNavSpans = document.querySelectorAll('.mobile-bottom-nav .bottom-nav-item span');
       if (bottomNavSpans.length >= 4) {
         bottomNavSpans[0].textContent = lang.navHome;
-        bottomNavSpans[1].textContent = isBanter ? '33 Endpoints' : '33 Endpoints';
+        bottomNavSpans[1].textContent = '33 Endpoints';
         bottomNavSpans[2].textContent = lang.navSlip;
         bottomNavSpans[3].textContent = lang.navProfile;
       }
@@ -2220,7 +2127,7 @@
 
     // Filter & View Mode Buttons
     const btnFilterTrigger = document.querySelector('#btnOpenFilterDrawer span');
-    if (btnFilterTrigger) btnFilterTrigger.textContent = isBanter ? 'Filter Games' : lang.filterBtn;
+    if (btnFilterTrigger) btnFilterTrigger.textContent = lang.filterBtn;
     const btnViewModeTable = document.getElementById('btnViewModeTable');
     if (btnViewModeTable) {
       btnViewModeTable.title = `${lang.viewTable} (Table View)`;
@@ -2240,15 +2147,15 @@
     const btnClearSlip = document.getElementById('btnClearSlip');
     if (btnClearSlip) btnClearSlip.textContent = 'Clear';
     const slipEmptyTitle = document.querySelector('#slipEmptyState p') || document.querySelector('#slipEmptyState div:nth-child(2)');
-    if (slipEmptyTitle) slipEmptyTitle.textContent = isBanter ? 'Your Chop Slip Dey Empty Oga!' : 'Your Bet Slip is Empty';
+    if (slipEmptyTitle) slipEmptyTitle.textContent = 'Your Bet Slip is Empty';
     const slipEmptySub = document.querySelector('#slipEmptyState span') || document.querySelector('#slipEmptyState div:nth-child(3)');
-    if (slipEmptySub) slipEmptySub.textContent = isBanter ? 'Tap any sweet odds or match pick make you load your ticket sharp sharp!' : 'Click the odds box on any prediction to add it to your ticket.';
+    if (slipEmptySub) slipEmptySub.textContent = 'Click odds on any fixture to add selections to your slip.';
     const slipAddedLabel = document.getElementById('slipAddedLabel');
-    if (slipAddedLabel) slipAddedLabel.textContent = isBanter ? 'Matches We Don Load:' : 'Games Added:';
+    if (slipAddedLabel) slipAddedLabel.textContent = 'Games Added:';
     const slipOddsLabel = document.getElementById('slipOddsLabel');
-    if (slipOddsLabel) slipOddsLabel.textContent = isBanter ? 'Total Combined Odds:' : 'Combined Odds:';
+    if (slipOddsLabel) slipOddsLabel.textContent = 'Combined Odds:';
     const btnValidatePrintSlipSpan = document.querySelector('#btnValidatePrintSlip span');
-    if (btnValidatePrintSlipSpan) btnValidatePrintSlipSpan.textContent = isBanter ? 'Audit Slip & Print Ticket' : 'Check Slip & Print';
+    if (btnValidatePrintSlipSpan) btnValidatePrintSlipSpan.textContent = 'Check Slip & Print';
 
     // Filter Modal & Drawer Elements
     const filterTitle = document.querySelector('.filter-sidebar-title') || document.querySelector('.filter-sidebar-header h3');
@@ -4533,34 +4440,34 @@
     // Dynamic Header Title Update
     const titleEl = document.getElementById('headerTitleText');
     const subEl = document.getElementById('headerSubtitleText');
+    if (subEl) subEl.textContent = '';
     if (titleEl) {
       if (viewId === 'view-calendar') {
-        titleEl.textContent = 'Matches & Predictions';
-        if (subEl) subEl.textContent = 'Quantitative Poisson expectancies & value odds';
+        titleEl.textContent = 'Matches';
       } else if (viewId === 'view-grand') {
-        titleEl.textContent = state.personalityMode === 'BANTER' ? '33 Chop Endpoints' : '33 Endpoints';
-        if (subEl) subEl.textContent = state.personalityMode === 'BANTER' ? 'All 33 model endpoints wey dey scan games for today' : 'Complete algorithmic suite across all 33 predictive endpoints';
+        titleEl.textContent = '33 Prediction Markets';
       } else if (viewId === 'view-match-analytics') {
-        titleEl.textContent = state.personalityMode === 'BANTER' ? 'Match Gist & Breakdown' : 'Match Breakdown';
-        if (subEl) subEl.textContent = state.personalityMode === 'BANTER' ? 'Full Poisson simulation & sweet value edge' : 'Full mathematical Poisson simulation & Kelly edge';
+        titleEl.textContent = 'Match Analytics';
+      } else if (viewId === 'view-bankers') {
+        titleEl.textContent = 'Banker Picks';
+      } else if (viewId === 'view-screener') {
+        titleEl.textContent = 'Value Screener';
+      } else if (viewId === 'view-accumulator') {
+        titleEl.textContent = 'Accu-Forge Parlay';
+      } else if (viewId === 'view-batch') {
+        titleEl.textContent = 'Full Slate Scanner';
       } else if (viewId === 'view-contest') {
         titleEl.textContent = 'Top Banker Pick';
-        if (subEl) subEl.textContent = 'Highest statistical probability single selection';
       } else if (viewId === 'view-about') {
-        titleEl.textContent = 'About SportyMill';
-        if (subEl) subEl.textContent = 'Quantitative betting architecture & probability modeling';
+        titleEl.textContent = 'About';
       } else if (viewId === 'view-profile') {
-        titleEl.textContent = 'User Profile';
-        if (subEl) subEl.textContent = 'Account settings, tier status & bankroll';
+        titleEl.textContent = 'Profile';
       } else if (viewId === 'view-dashboard') {
-        titleEl.textContent = 'SportyMill Quant Dashboard';
-        if (subEl) subEl.textContent = 'Value Screener, Accu-Forge and institutional telemetry';
+        titleEl.textContent = 'Dashboard';
       } else if (viewId === 'view-history') {
-        titleEl.textContent = 'Match Prediction History & Accuracy Audit';
-        if (subEl) subEl.textContent = 'Continuous machine learning audit against verified final match scores';
+        titleEl.textContent = 'Prediction History';
       } else if (viewId === 'view-slip-history') {
-        titleEl.textContent = 'Bet Slip History & Booking Codes';
-        if (subEl) subEl.textContent = 'Archived SportyBet booking codes, odds, and accumulator slips';
+        titleEl.textContent = 'Bet Slip History';
       }
     }
 
@@ -7130,32 +7037,24 @@
         return;
       }
 
-      let emptyTitle = isBanter ? 'No Match Dey For Here' : 'No Matches Scheduled';
-      let emptyMsg = isBanter 
-        ? `No match dey scheduled for <strong>${esc(dateTitle)}</strong>.` 
-        : `No matches are scheduled or recorded for <strong>${esc(dateTitle)}</strong>.`;
+      let emptyTitle = 'No Matches Scheduled';
+      let emptyMsg = `No matches are scheduled or recorded for <strong>${esc(dateTitle)}</strong>.`;
 
       if (isProviderError) {
-        emptyTitle = isBanter ? 'Network Wahala: Provider Unreachable' : 'Unable to Retrieve Fixtures';
-        emptyMsg = isBanter
-          ? `Unable to retrieve fixtures. The external data provider could not be reached. Please check connectivity or click retry.`
-          : `Unable to retrieve fixtures. The external data provider could not be reached. Please retry.`;
+        emptyTitle = 'Unable to Retrieve Fixtures';
+        emptyMsg = `Unable to retrieve fixtures. The external data provider could not be reached. Please retry.`;
       } else if (state.calendar.searchQuery) {
-        emptyMsg = isBanter 
-          ? `We no see any match for "<strong>${esc(state.calendar.searchQuery)}</strong>" on ${esc(dateTitle)}.`
-          : `No matches match your search "<strong>${esc(state.calendar.searchQuery)}</strong>" on ${esc(dateTitle)}.`;
+        emptyMsg = `No matches match your search "<strong>${esc(state.calendar.searchQuery)}</strong>" on ${esc(dateTitle)}.`;
       } else if (hasActiveFilters) {
         const filterNames = [];
-        if (minProb !== 'all') filterNames.push(`${minProb}%+ ${isBanter ? 'Chance' : 'Confidence'}`);
+        if (minProb !== 'all') filterNames.push(`${minProb}%+ Confidence`);
         if (selectedEps.length > 0) {
-          filterNames.push(`${selectedEps.length} ${isBanter ? 'Selected Markets' : 'Selected Markets'}`);
+          filterNames.push(`${selectedEps.length} Selected Markets`);
         } else if (activeEp && activeEp !== 'all') {
           const foundEp = FILTER_ENDPOINT_CATEGORIES.flatMap(c => c.endpoints).find(e => e.id === activeEp);
           filterNames.push(foundEp ? foundEp.name : activeEp);
         }
-        emptyMsg = isBanter
-          ? `No match for <strong>${esc(dateTitle)}</strong> pass your filter (<strong>${esc(filterNames.join(' & '))}</strong>).`
-          : `No matches on <strong>${esc(dateTitle)}</strong> meet your filter criteria (<strong>${esc(filterNames.join(' & '))}</strong>).`;
+        emptyMsg = `No matches on <strong>${esc(dateTitle)}</strong> meet your filter criteria (<strong>${esc(filterNames.join(' & '))}</strong>).`;
       }
 
       const todayStr = getSystemTodayDateStr ? getSystemTodayDateStr() : 'today';
@@ -7201,25 +7100,25 @@
             ${isProviderError ? `
               <button class="btn-empty-today" id="btnEmptyViewLatestSlate" style="background: #00d665; color: #052e16; font-weight: 800; border: none; display: inline-flex; align-items: center; gap: 0.45rem;">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
-                <span>${isBanter ? 'View Latest Verified Matches' : 'View Latest Verified Slate'}</span>
+                <span>View Latest Verified Slate</span>
               </button>
               <button class="btn-empty-today" id="btnEmptyRetrySync" style="background: rgba(255,255,255,0.08); color: #f8fafc; font-weight: 700; border: 1px solid rgba(255,255,255,0.15); display: inline-flex; align-items: center; gap: 0.45rem;">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-                <span>${isBanter ? 'Retry Sync' : 'Retry Provider'}</span>
+                <span>Retry Provider</span>
               </button>
             ` : ''}
             ${(hasActiveFilters || state.calendar.searchQuery) ? `
               <button class="btn-empty-today" id="btnEmptyResetFilters">
-                ${isBanter ? 'Clear Filters &amp; Show All' : 'Reset Filters &amp; Show All'}
+                Reset Filters &amp; Show All
               </button>
             ` : (!isProviderError ? `
               <button class="btn-empty-today" id="btnEmptyViewUpcomingSlate" style="background: #00d665; color: #052e16; font-weight: 800; border: none; display: inline-flex; align-items: center; gap: 0.45rem;">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
-                <span>${isBanter ? 'View Next Active Matches' : 'View Verified Match Slate'}</span>
+                <span>View Verified Match Slate</span>
               </button>
             ` : '')}
             <button class="btn-empty-pick" id="btnEmptyPickDate">
-              ${isBanter ? 'Pick Another Day' : 'Pick Another Date'}
+              Pick Another Date
             </button>
           </div>
         </div>
@@ -7249,7 +7148,7 @@
       const btnRetry = document.getElementById('btnEmptyRetrySync');
       if (btnRetry) {
         btnRetry.addEventListener('click', () => {
-          toast(isBanter ? 'Retrying provider sync...' : 'Retrying provider connection...', 'info');
+          toast('Retrying provider connection...', 'info');
           loadCalendarSlate(state.calendar.selectedDate, state.calendar.selectedEndpoint, true);
         });
       }
@@ -8164,7 +8063,6 @@
         dom.btnValidateSlip.setAttribute('aria-disabled', 'true');
       }
 
-      const isBanter = state.personalityMode === 'BANTER';
       dom.slipItemsContainer.innerHTML = `
         <div class="slip-empty-state" id="slipEmptyState" style="text-align: center; padding: 1.15rem 0.75rem;">
           <div class="slip-empty-icon" style="margin: 0 auto 0.5rem auto; width: 36px; height: 36px; border-radius: 50%; background: rgba(0, 214, 101, 0.1); display: flex; align-items: center; justify-content: center; color: #00d665;">
@@ -8175,15 +8073,15 @@
               <line x1="16" y1="17" x2="8" y2="17"></line>
             </svg>
           </div>
-          <div style="font-weight: 800; font-size: 0.92rem; color: #ffffff;">${isBanter ? 'Your Chop Slip Dey Empty Oga!' : 'Your Bet Slip is Empty'}</div>
-          <div style="font-size: 0.74rem; color: #94a3b8; margin-top: 0.25rem; line-height: 1.35;">${isBanter ? 'Tap any sweet odds or match pick make you load your ticket sharp sharp!' : 'Click the odds box on any prediction to add it to your ticket.'}</div>
+          <div style="font-weight: 700; font-size: 0.92rem; color: #ffffff;">Your Bet Slip is Empty</div>
+          <div style="font-size: 0.74rem; color: #94a3b8; margin-top: 0.25rem; line-height: 1.35;">Click odds on any fixture to add selections to your slip.</div>
         </div>
       `;
 
-      if (dom.slipTotalLegs) dom.slipTotalLegs.textContent = isBanter ? '0 Match' : '0 Picks';
+      if (dom.slipTotalLegs) dom.slipTotalLegs.textContent = '0 Picks';
       if (dom.slipTotalOdds) dom.slipTotalOdds.textContent = '0.00';
       if (dom.slipPotentialWin) dom.slipPotentialWin.textContent = '₦0.00';
-      if (dom.slipBanterText) dom.slipBanterText.textContent = isBanter ? 'Select games across the calendar make you load your sweet ticket.' : 'Select games across the calendar to add to your prediction ticket.';
+      if (dom.slipBanterText) dom.slipBanterText.textContent = 'Select fixtures across the board to build your ticket.';
       return;
     }
 
@@ -8244,17 +8142,8 @@
       dom.slipStakeInput.value = stake;
     }
 
-    // Dynamic Naija Banter commentary inside slip
     if (dom.slipBanterText) {
-      if (count === 1) {
-        dom.slipBanterText.textContent = `Single pick @${totalOdds.toFixed(2)}x odds. Sharp banker mathematical value!`;
-      } else if (count <= 3) {
-        dom.slipBanterText.textContent = `Clean ${count}-game combo! Total odds na ${totalOdds.toFixed(2)}x. Green ticket loading sharp sharp!`;
-      } else if (count <= 6) {
-        dom.slipBanterText.textContent = `Chai! ${count} matches accumulator @${totalOdds.toFixed(2)}x. High algorithmic edge verified!`;
-      } else {
-        dom.slipBanterText.textContent = `E reach to fast and pray! ${count} legs monster slip with ${totalOdds.toFixed(2)}x odds. Mathematical value high die!`;
-      }
+      dom.slipBanterText.textContent = `${count} ${count === 1 ? 'selection' : 'selections'} combined at @${totalOdds.toFixed(2)} total odds.`;
     }
   }
 
@@ -8379,11 +8268,6 @@
 
     container.innerHTML = `
       <div class="tool-empty-card">
-        <div class="tool-empty-icon" style="background: rgba(56, 189, 248, 0.12); color: #38bdf8;">
-          <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" class="spin-slow">
-            <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="12"></circle>
-          </svg>
-        </div>
         <div style="font-weight: 700; color: #38bdf8;">Loading Bet Slip History...</div>
       </div>
     `;
@@ -8412,17 +8296,9 @@
     if (!combined.length) {
       container.innerHTML = `
         <div class="tool-empty-card">
-          <div class="tool-empty-icon" style="background: rgba(56, 189, 248, 0.12); color: #38bdf8;">
-            <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-            </svg>
-          </div>
-          <h3 class="tool-empty-title">No Saved Bet Slips in History</h3>
+          <h3 class="tool-empty-title">No Saved Bet Slips Yet</h3>
           <p class="tool-empty-desc">
-            Load picks into your Chop Slip from any match on the board, then tap "Save Slip" or "Audit Slip" to archive your booking codes and odds here.
+            Add selections to your Bet Slip from any match on the board, then click "Save Slip" to archive booking codes and odds.
           </p>
           <button class="btn-hero-screener" style="margin-top: 1.25rem;" onclick="switchView('view-calendar')">
             Browse Active Matches →
@@ -9425,76 +9301,12 @@
       });
     }
 
-    // Personality Switcher (English vs. Nigerian Pidgin)
-    if (dom.personaSelect) {
-      dom.personaSelect.addEventListener('change', async () => {
-        state.personalityMode = dom.personaSelect.value;
-        const isBanter = state.personalityMode === 'BANTER';
-        const toneWrapper = document.getElementById('toneWrapper');
-        try {
-          localStorage.setItem('tipalgo_tone', state.personalityMode);
-        } catch (e) {}
-
-      if (toneWrapper) {
-        if (isBanter) {
-          toneWrapper.classList.add('banter-active');
-        } else {
-          toneWrapper.classList.remove('banter-active');
-        }
-      }
-
-      applyLanguageMode(state.personalityMode);
-      toast(`Tone switched to ${isBanter ? 'Naija Banter Mode' : 'Professional Mode'}`);
-
-      // Re-run the active fixture analysis from backend with the new personality_mode
-      await updateActiveFixtureUI();
-
-      // If full analytics view is open, refresh analytics with new tone
-      const analyticsView = document.getElementById('view-match-analytics');
-      if (analyticsView && analyticsView.classList.contains('active')) {
-        await loadMatchAnalytics(state.activeFixture);
-      }
-
-      // If a live prediction was previously run in Tab 3, re-run with new tone
-      if (state.lastPredictionPath) {
-        await runLivePrediction(state.lastPredictionPath);
-      }
-    });
-  }
-
-  // Interactive Analytics Mode Switcher Pills
-    const btnModePro = document.getElementById('btnAnalyticsModePro');
-    const btnModeBanter = document.getElementById('btnAnalyticsModeBanter');
-    if (btnModePro) {
-      btnModePro.addEventListener('click', async () => {
-        state.personalityMode = 'PROFESSIONAL';
-        if (dom.personaSelect) dom.personaSelect.value = 'PROFESSIONAL';
-        try { localStorage.setItem('tipalgo_tone', 'PROFESSIONAL'); } catch (e) {}
-        const toneWrapper = document.getElementById('toneWrapper');
-        if (toneWrapper) toneWrapper.classList.remove('banter-active');
-        applyLanguageMode('PROFESSIONAL');
-        toast('Commentary Mode: Professional Quant Mode');
-        await updateActiveFixtureUI();
-        if (state.activeFixture) {
-          await loadMatchAnalytics(state.activeFixture);
-        }
-      });
-    }
-    if (btnModeBanter) {
-      btnModeBanter.addEventListener('click', async () => {
-        state.personalityMode = 'BANTER';
-        if (dom.personaSelect) dom.personaSelect.value = 'BANTER';
-        try { localStorage.setItem('tipalgo_tone', 'BANTER'); } catch (e) {}
-        const toneWrapper = document.getElementById('toneWrapper');
-        if (toneWrapper) toneWrapper.classList.add('banter-active');
-        applyLanguageMode('BANTER');
-        toast('Commentary Mode: Naija Banter Mode');
-        await updateActiveFixtureUI();
-        if (state.activeFixture) {
-          await loadMatchAnalytics(state.activeFixture);
-        }
-      });
-    }
+    // Tone Enforcement (Strict Professional Mode)
+    state.personalityMode = 'PROFESSIONAL';
+    try {
+      localStorage.removeItem('tipalgo_tone');
+      localStorage.setItem('tipalgo_tone', 'PROFESSIONAL');
+    } catch (e) {}
 
     // Live Sports Data Sync Trigger
     const btnSyncLiveData = document.getElementById('btnSyncLiveData');
@@ -10313,12 +10125,10 @@
     }
     if (rowSettingLanguage) {
       rowSettingLanguage.addEventListener('click', () => {
-        const nextMode = state.personalityMode === 'BANTER' ? 'PROFESSIONAL' : 'BANTER';
-        state.personalityMode = nextMode;
-        if (dom.personaSelect) dom.personaSelect.value = nextMode;
-        applyLanguageMode(nextMode);
+        state.personalityMode = 'PROFESSIONAL';
+        applyLanguageMode('PROFESSIONAL');
         updateUserUI();
-        toast(`Tone switched to ${nextMode === 'BANTER' ? 'Naija Banter Mode' : 'Professional Mode'}`);
+        toast('Commentary Mode: Professional Mode');
       });
     }
 

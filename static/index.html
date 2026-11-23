@@ -36,7 +36,7 @@
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet">
 
-  <link rel="stylesheet" href="/static/style.css?v=112">
+  <link rel="stylesheet" href="/static/style.css?v=113">
 </head>
 
 <body class="light-platform">
@@ -125,24 +125,19 @@
           </button>
           <div class="nav-dropdown-menu">
             <a href="#" class="dropdown-menu-item" data-tab-target="view-bankers" id="topNavBankers">
-              <span class="item-title">80%+ Banker Slate</span>
-              <span class="item-desc">High conviction mathematical certainty selections</span>
+              <span class="item-title">Bankers Slate (80%+)</span>
             </a>
             <a href="#" class="dropdown-menu-item" data-tab-target="view-screener" id="topNavScreener">
               <span class="item-title">Value Screener (+EV)</span>
-              <span class="item-desc">Kelly criterion mispriced market discrepancy detector</span>
             </a>
             <a href="#" class="dropdown-menu-item" data-tab-target="view-accumulator" id="topNavAccu">
               <span class="item-title">Accu-Forge Parlay</span>
-              <span class="item-desc">Correlated statistical accumulator ticket builder</span>
             </a>
             <a href="#" class="dropdown-menu-item" data-tab-target="view-batch" id="topNavBatch">
               <span class="item-title">Full Slate Scanner</span>
-              <span class="item-desc">High-throughput multi-match quantitative scan</span>
             </a>
             <a href="#" class="dropdown-menu-item" data-tab-target="view-slip-history" id="topNavSlipHistory">
               <span class="item-title">Bet Slip History</span>
-              <span class="item-desc">Review and re-load past validated betting slips</span>
             </a>
           </div>
         </div>
@@ -150,19 +145,6 @@
 
       <!-- Right: Actions Group -->
       <div class="nav-right-actions">
-        <!-- Professional vs Naija Banter Mode Toggle -->
-        <div class="header-select-wrapper tone-select-wrapper" id="toneWrapper" title="Commentary Tone">
-          <span class="select-prefix-icon tone-icon">
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-            </svg>
-          </span>
-          <select id="personaSelect" class="header-select persona-styled-select">
-            <option value="PROFESSIONAL" selected>Professional Mode</option>
-            <option value="BANTER">Naija Banter Mode</option>
-          </select>
-        </div>
 
         <!-- Notifications Icon Button -->
         <button class="nav-icon-btn" id="btnNavNotifications" title="Live Predictions &amp; Model Alerts">
@@ -1133,18 +1115,16 @@
         </div>
       </section>
 
-      <!-- View 2: 80%+ Banker Filter Slate -->
+      <!-- View 2: Banker Slate -->
       <section id="view-bankers" class="view-panel">
         <div class="panel-section-header">
           <div>
-            <span class="pill-badge pill-badge-fire">High Probability</span>
-            <h2>Banker Picks &amp; High-Conviction Slate</h2>
-            <p>High-probability fixtures backed by Poisson goal models and verified market odds.</p>
+            <h2>Banker Picks</h2>
           </div>
           <div class="banker-threshold-pills" id="bankerThresholdPills">
             <button class="btn-pill-filter active" data-prob="0.80">80%+ Bankers</button>
             <button class="btn-pill-filter" data-prob="0.70">70%+ High Conviction</button>
-            <button class="btn-pill-filter" data-prob="0.60">60%+ Balanced Value</button>
+            <button class="btn-pill-filter" data-prob="0.60">60%+ Value</button>
           </div>
         </div>
         <div class="bankers-cards-grid" id="bankersSlateGrid"></div>
@@ -1156,10 +1136,8 @@
         <div class="grand-header-strip">
           <div class="grand-header-main">
             <div class="grand-title-badge-group">
-              <h1 class="grand-view-title">Prediction Markets</h1>
-              <span class="grand-active-models-badge">33 Quantitative Models</span>
+              <h1 class="grand-view-title">33 Prediction Markets</h1>
             </div>
-            <p class="grand-view-subtitle">Select any mathematical model to inspect qualifying upcoming fixtures.</p>
           </div>
 
           <div class="grand-search-wrap">
@@ -1204,46 +1182,38 @@
         <div class="screener-dribbble-card">
           <div class="screener-banner-header">
             <div>
-              <span class="pill-badge pill-badge-cyan">Value Radar</span>
-              <h2>Side-Agnostic Value Screener</h2>
-              <p>Unbiased probability simulation to detect mispriced lines and positive value edge (+EV).</p>
+              <h2>Value Screener</h2>
             </div>
             <button class="btn-hero-screener" id="btnExecuteScreener">Run Screener Analysis →</button>
           </div>
           <div class="screener-controls-strip">
-            <div class="strip-item">
+            <div class="strip-item" style="flex: 2;">
               <label>Select Match</label>
               <select id="screenerFixtureSelect" class="clean-select"></select>
             </div>
-            <div class="strip-item">
-              <label>Min Edge Required</label>
+            <div class="strip-item" style="flex: 1;">
+              <label>Minimum Value Edge</label>
               <select id="screenerEdgeSelect" class="clean-select">
-                <option value="0.02">2% Minimum Edge (Aggressive)</option>
-                <option value="0.04" selected>4% Minimum Edge (Recommended)</option>
-                <option value="0.08">8% High Confidence Edge (Conservative)</option>
+                <option value="0.02">2% Minimum Edge</option>
+                <option value="0.04" selected>4% Minimum Edge</option>
+                <option value="0.08">8% High Confidence</option>
               </select>
-            </div>
-            <div class="strip-item">
-              <label>Model Architecture</label>
-              <span class="value-highlight">Machine Learning Logistic Ensemble</span>
             </div>
           </div>
           <div id="screenerResultDisplay" class="screener-result-display">
-            <div class="empty-dribbble-state">Click "Run Screener Analysis" to evaluate the selected fixture.</div>
+            <div class="empty-dribbble-state">Select a fixture and click "Run Screener Analysis" to evaluate value edge.</div>
           </div>
         </div>
       </section>
 
-      <!-- View 5: Accu-Forge Parlay Tickets -->
+      <!-- View 5: Accu-Forge Parlay -->
       <section id="view-accumulator" class="view-panel">
         <div class="accu-dribbble-container">
           <div class="accu-config-bar">
             <div>
-              <span class="pill-badge pill-badge-gold">Ticket Engine</span>
-              <h2>Accu-Forge™ Parlay Engine</h2>
-              <p>Scans upcoming fixtures to combine qualifying value legs into an accumulator slip.</p>
+              <h2>Accu-Forge Parlay</h2>
             </div>
-            <button class="btn-pill-dark" id="btnGenerateAccuTicket">Forge Ticket Now →</button>
+            <button class="btn-pill-dark" id="btnGenerateAccuTicket">Forge Ticket →</button>
           </div>
           <div class="accu-params-strip">
             <div class="strip-item">
@@ -1267,19 +1237,17 @@
         </div>
       </section>
 
-      <!-- View 6: Full Slate Batch Scanner -->
+      <!-- View 6: Full Slate Scanner -->
       <section id="view-batch" class="view-panel">
         <div class="batch-scanner-container">
           <div class="panel-section-header">
             <div>
-              <span class="pill-badge pill-badge-green">Slate Radar</span>
-              <h2>Full Slate Market Scanner</h2>
-              <p>Simulates model probabilities across all upcoming matches to identify positive value opportunities.</p>
+              <h2>Full Slate Scanner</h2>
             </div>
             <button class="btn-pill-dark" id="btnExecuteBatchScan">Scan All Fixtures Now</button>
           </div>
           <div id="batchScanResultsTable" class="batch-table-container">
-            <div class="empty-dribbble-state">Click "Scan All Fixtures Now" to run full slate simulation.</div>
+            <div class="empty-dribbble-state">Click "Scan All Fixtures Now" to simulate all scheduled matches.</div>
           </div>
         </div>
       </section>
@@ -1292,11 +1260,8 @@
           <div class="history-page-header">
             <div>
               <div class="history-title-row">
-                <h2>Prediction History &amp; Auditing</h2>
-                <span class="pill-badge-green">Audited Records</span>
+                <h2>Prediction History</h2>
               </div>
-              <p class="history-subtitle">Distinguishing live pre-match recommendations from retrospective statistical
-                model validation.</p>
             </div>
             <button class="btn-pill-dark" id="btnSettlePendingMatches">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2">
@@ -1304,35 +1269,12 @@
                 <path d="M1 20v-6h6"></path>
                 <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
               </svg>
-              <span>Sync &amp; Settle Now</span>
+              <span>Sync &amp; Settle</span>
             </button>
           </div>
 
           <!-- Live Predictions Ledger & Historical Verification Section -->
           <div id="histBacktestSection" style="display: block;">
-            <div class="backtest-provenance-banner"
-              style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; font-size: 0.84rem; color: #cbd5e1; line-height: 1.6;">
-              <div
-                style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem; flex-wrap: wrap; gap: 0.5rem;">
-                <strong
-                  style="color: #38bdf8; font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem;">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10" />
-                    <polyline points="12 6 12 12 16 14" />
-                  </svg>
-                  Historical Retrospective Backtest &amp; Model Performance Audit
-                </strong>
-                <span
-                  style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700;">v21.0
-                  Validation</span>
-              </div>
-              <p style="margin: 0; color: #94a3b8; font-size: 0.82rem;">
-                These results represent retrospective model validation against completed historical fixtures. They were
-                not recommendations issued before kickoff and should not be interpreted as verified live betting
-                performance. Genuine pre-match recommendations for active upcoming fixtures appear under the
-                <strong>Pending</strong> filter.
-              </p>
-            </div>
 
             <!-- Simple Clean KPI Cards (5 Cards) -->
             <div class="history-metrics-strip">
@@ -1409,10 +1351,9 @@
             <div class="history-filter-bar">
               <div class="history-status-tabs">
                 <button class="hist-filter-btn active" data-status="all" id="btnFilterAll">All Predictions</button>
-                <button class="hist-filter-btn" data-status="correct" id="btnFilterCorrect">✓ Correct Only</button>
-                <button class="hist-filter-btn" data-status="incorrect" id="btnFilterIncorrect">✗ Incorrect
-                  Only</button>
-                <button class="hist-filter-btn" data-status="pending" id="btnFilterPending">⏱ Pending Only</button>
+                <button class="hist-filter-btn" data-status="correct" id="btnFilterCorrect">Correct Only</button>
+                <button class="hist-filter-btn" data-status="incorrect" id="btnFilterIncorrect">Incorrect Only</button>
+                <button class="hist-filter-btn" data-status="pending" id="btnFilterPending">Pending Only</button>
               </div>
               <div class="history-filter-inputs">
                 <select class="history-select-styled" id="histEndpointSelect">
@@ -1467,9 +1408,7 @@
         <div class="slip-history-page-container">
           <div class="panel-section-header">
             <div>
-              <span class="pill-badge pill-badge-cyan">Ticket Archive</span>
-              <h2>Bet Slip History &amp; Booking Codes</h2>
-              <p>Audit your saved tickets, copy SportyBet booking codes, and reload previous accumulators.</p>
+              <h2>Bet Slip History</h2>
             </div>
             <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
               <button class="btn-pill-filter" id="btnClearSlipHistory">Clear History</button>
@@ -1479,17 +1418,9 @@
 
           <div id="slipHistoryFeed" class="slip-history-feed">
             <div class="tool-empty-card">
-              <div class="tool-empty-icon" style="background: rgba(56, 189, 248, 0.12); color: #38bdf8;">
-                <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                </svg>
-              </div>
               <h3 class="tool-empty-title">No Saved Bet Slips Yet</h3>
               <p class="tool-empty-desc">
-                Select picks from any match to load your Chop Slip, then tap "Save Slip" to archive your booking codes and odds.
+                Select picks from any match to add to your Bet Slip, then tap "Save Slip" to archive your booking codes and odds.
               </p>
               <button class="btn-hero-screener" style="margin-top: 1.25rem;" data-tab-target="view-calendar">
                 Browse Active Matches →
@@ -3085,10 +3016,9 @@
           </div>
         </div>
 
-        <!-- Banter Verdict Box -->
-        <div class="val-banter-card" id="valBanterCard">
-          <span class="banter-icon-tag">NG</span>
-          <p id="valBanterText">Evaluating slip...</p>
+        <!-- Slip Evaluation Summary Box -->
+        <div class="val-banter-card" id="valBanterCard" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: 8px; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.2); margin-bottom: 1rem;">
+          <p id="valBanterText" style="margin: 0; font-size: 0.85rem; color: #cbd5e1;">Evaluating ticket selections...</p>
         </div>
 
         <!-- Detailed Legs Table (Country, Odds, League, Match, Date, Tip) -->
@@ -3666,7 +3596,7 @@
       .then(function (data) { if (data) window.__teamForms = data; })
       .catch(function () { });
   </script>
-  <script src="/static/app.js?v=112"></script>
+  <script src="/static/app.js?v=113"></script>
 </body>
 
 </html>
