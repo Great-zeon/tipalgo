@@ -12477,6 +12477,7 @@ body.light-theme-mode .prof-inline-feedback.success {
     grid-template-columns: minmax(0, 1fr) 340px !important;
     gap: 1.5rem !important;
     align-items: start !important;
+    overflow: visible !important;
   }
 
   .workspace-views-col {
@@ -20234,6 +20235,14 @@ select option {
   background: rgba(16, 185, 129, 0.28);
   border-color: #34d399;
   color: #ffffff;
+}
+
+.btn-banker-add-slip.in-slip,
+.btn-banker-add-slip.in-slip:hover {
+  background: #00d665 !important;
+  border-color: #34d399 !important;
+  color: #042f2e !important;
+  font-weight: 800 !important;
 }
 
 /* ===================================================================

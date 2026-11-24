@@ -4501,6 +4501,8 @@ async def get_all_candidate_bets(db: AsyncSession, predictor: PredictorService,
                 'away_team': away,
                 'league': league,
                 'league_id': league,
+                'league_name': l_name,
+                'country': l_country,
             })
     _candidate_cache[cache_key] = {'ts': time.time(), 'data': all_bets}
     return all_bets
@@ -5134,7 +5136,15 @@ def _render_seo_html(page_path: Path, status_code: int = 200) -> HTMLResponse:
         )
     if head_injections and "</head>" in content:
         content = content.replace("</head>", "  " + "\n  ".join(head_injections) + "\n</head>", 1)
-    headers = {"Cache-Control": "public, max-age=300"} if status_code == 200 else None
+    headers = (
+        {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        }
+        if status_code == 200
+        else None
+    )
     return HTMLResponse(content, status_code=status_code, headers=headers)
 
 @app.middleware("http")

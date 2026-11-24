@@ -1274,17 +1274,33 @@
         else if (probPct >= 70) badgeClass = 'high';
 
         const kellyAmt = formatNaira(state.user.bankroll * Math.max(0.01, (b.edge * 0.25)));
-        const marketName = b.market || b.selection || 'Banker Win';
-        const leagueLabel = b.league_name || (
-          b.league === 'PD' ? 'La Liga'
-          : b.league === 'SA' ? 'Serie A'
-          : b.league === 'BL1' ? 'Bundesliga'
-          : b.league === 'FL1' ? 'Ligue 1'
-          : b.league === 'CL' ? 'Champions League'
-          : b.league === 'PL' ? 'Premier League'
-          : (b.country && b.league ? `${b.country} · ${b.league}` : (b.league || 'Verified Slate'))
-        );
-        const inSlip = slipItems.some(i => i.match === b.match && (i.market === marketName || i.selection === b.selection));
+        const marketName = b.selection || b.market || 'Banker Win';
+        const fallbackLeagueMap = {
+          PL: 'Premier League',
+          PD: 'La Liga',
+          SA: 'Serie A',
+          BL1: 'Bundesliga',
+          FL1: 'Ligue 1',
+          CL: 'Champions League',
+          UEL: 'Europa League',
+          UECL: 'Conference League',
+          BSA: 'Brazil · Serie A',
+          COS_LIGA: 'Costa Rica · Liga de Ascenso',
+          ARG: 'Argentina · Liga Profesional',
+          COL: 'Colombia · Primera A',
+          MLS: 'USA · MLS',
+          ELC: 'Championship',
+          PPL: 'Primeira Liga',
+          DED: 'Eredivisie',
+          TUR: 'Süper Lig',
+          BEL: 'Pro League'
+        };
+        const rawLeagueCode = b.league || b.league_id || '';
+        const cleanLeagueName = b.league_name && b.league_name !== rawLeagueCode
+          ? (b.country && !b.league_name.toLowerCase().includes(b.country.toLowerCase()) ? `${b.country} · ${b.league_name}` : b.league_name)
+          : (fallbackLeagueMap[rawLeagueCode] || (b.country && rawLeagueCode ? `${b.country} · ${rawLeagueCode}` : (rawLeagueCode || 'Verified Slate')));
+        const leagueLabel = cleanLeagueName;
+        const inSlip = slipItems.some(i => i.match === b.match && (i.market === marketName || i.market === b.market || i.selection === b.selection));
 
         return `
           <div class="banker-card">
@@ -12230,78 +12246,25 @@
     const mainArea = document.getElementById('mainContentArea');
     if (!col || !sidebar || !mainArea) return;
 
-    let ticking = false;
-
     function enforceSticky() {
-      // Mobile / Tablet portrait: leave styling to CSS media queries
-      if (window.innerWidth < 920 || !mainArea.classList.contains('has-desktop-slip')) {
-        if (col.dataset.fixedPinned === 'true') {
-          col.style.position = '';
-          col.style.top = '';
-          col.style.right = '';
-          col.style.bottom = '';
-          col.style.width = '';
-          col.style.zIndex = '';
-          delete col.dataset.fixedPinned;
-        }
-        return;
+      // Clear legacy inline fixed/absolute overrides; CSS sticky grid inside .has-desktop-slip handles positioning cleanly across all views
+      if (col.dataset.fixedPinned === 'true' || col.style.position) {
+        col.style.position = '';
+        col.style.top = '';
+        col.style.right = '';
+        col.style.bottom = '';
+        col.style.width = '';
+        col.style.zIndex = '';
+        delete col.dataset.fixedPinned;
       }
-
-      const areaRect = mainArea.getBoundingClientRect();
-      const navTopOffset = 76; // height of pinned top-navbar + clearance
-      const colHeight = col.offsetHeight || 500;
-      const rightMargin = Math.max(16, window.innerWidth - areaRect.right);
-
-      // If the top of the workspace has scrolled past the sticky threshold
-      if (areaRect.top < navTopOffset) {
-        const bottomEdge = areaRect.bottom - colHeight - 20;
-
-        if (bottomEdge < navTopOffset) {
-          col.style.position = 'absolute';
-          col.style.top = Math.max(0, mainArea.offsetHeight - colHeight) + 'px';
-          col.style.bottom = 'auto';
-          col.style.right = '0px';
-          col.style.width = '340px';
-          col.style.zIndex = '90';
-          col.dataset.fixedPinned = 'true';
-        } else {
-          col.style.position = 'fixed';
-          col.style.top = navTopOffset + 'px';
-          col.style.bottom = 'auto';
-          col.style.right = rightMargin + 'px';
-          col.style.width = '340px';
-          col.style.zIndex = '90';
-          col.dataset.fixedPinned = 'true';
-        }
-      } else {
-        if (col.dataset.fixedPinned === 'true') {
-          col.style.position = '';
-          col.style.top = '';
-          col.style.right = '';
-          col.style.bottom = '';
-          col.style.width = '';
-          col.style.zIndex = '';
-          delete col.dataset.fixedPinned;
-        }
+      if (typeof syncBetslipPlacement === 'function') {
+        syncBetslipPlacement();
       }
     }
 
     window._enforceDesktopStickySlip = enforceSticky;
-
-    function onScroll() {
-      if (!ticking) {
-        requestAnimationFrame(() => {
-          enforceSticky();
-          ticking = false;
-        });
-        ticking = true;
-      }
-    }
-
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll, { passive: true });
-    // Run on initial load
-    setTimeout(enforceSticky, 300);
+    window.addEventListener('resize', enforceSticky, { passive: true });
+    enforceSticky();
   }
 
   // ===================================================================
