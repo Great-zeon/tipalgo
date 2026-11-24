@@ -4428,11 +4428,20 @@ async def get_all_candidate_bets(db: AsyncSession, predictor: PredictorService,
             'draw': fixture.draw_odds,
             'away_win': fixture.away_odds,
         }
+        adv_stats = {
+            'home_odds': fixture.home_odds,
+            'draw_odds': fixture.draw_odds,
+            'away_odds': fixture.away_odds,
+            'league_avg_goals': 2.7
+        }
         try:
-            probs_data = await predictor.get_probabilities(db, home, away, league)
+            probs_data = await predictor.get_probabilities(db, home, away, league, advanced_stats=adv_stats)
         except Exception as e:
-            logger.warning(f"Skipping {home} vs {away}: {e}", exc_info=True)
-            continue
+            try:
+                probs_data = await predictor.get_probabilities(db, home, away, league)
+            except Exception as e2:
+                logger.warning(f"Skipping {home} vs {away}: {e2}")
+                continue
         all_probs = probs_data.get("all_probs", {})
         if not all_probs:
             continue
