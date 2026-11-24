@@ -7797,79 +7797,37 @@ async def get_dashboard_stats(
     db: AsyncSession = Depends(get_db),
     user: Optional[User] = Depends(get_optional_current_user)
 ):
-    now = datetime.now(timezone.utc)
+    now = now_lagos()
     today_str = now.strftime("%Y-%m-%d")
     
-    # 1. Matches playable today with odds (genuine scheduled matches from provider)
-    today_res = await db.execute(
-        select(func.count(HistoricalMatch.id))
-        .where(
-            and_(
-                func.substr(HistoricalMatch.match_date, 1, 10) == today_str,
-                HistoricalMatch.status.in_(["scheduled", "ns", "timed"]),
-                HistoricalMatch.source_classification == "provider_verified",
-                HistoricalMatch.external_id.notlike("ext_%"),
-                HistoricalMatch.external_id.notlike("SYN-%"),
-                HistoricalMatch.external_id.notlike("auto_%"),
-                HistoricalMatch.external_id.notlike("demo_%"),
-                HistoricalMatch.home_odds.isnot(None),
-                HistoricalMatch.away_odds.isnot(None)
-            )
-        )
-    )
-    playable_today = today_res.scalar() or 0
+    # 1. Matches playable today directly from live official provider feed
+    from football_ingestion import FootballDataService, LiveFixtureItem
+    service = FootballDataService(api_key=config.FOOTBALL_API_KEY, base_url=config.FOOTBALL_API_BASE)
+    prov_res = await service.fetch_live_fixtures_with_provenance(today_str)
+    raw_fixtures = prov_res.matches if prov_res.success else []
+    items = [LiveFixtureItem(m, provider=service.provider) for m in raw_fixtures]
+    playable_today = len(items)
 
     # 2. Total predictions logged across all endpoints & leagues
     pred_res = await db.execute(select(func.count(PredictionLog.id)))
     logged_preds = pred_res.scalar() or 0
 
-    # 3. Leagues count (from provider-verified matches)
-    league_res = await db.execute(
-        select(func.count(func.distinct(HistoricalMatch.league_id)))
-        .where(
-            and_(
-                HistoricalMatch.source_classification == "provider_verified",
-                HistoricalMatch.external_id.notlike("ext_%"),
-                HistoricalMatch.external_id.notlike("SYN-%"),
-                HistoricalMatch.external_id.notlike("auto_%"),
-                HistoricalMatch.external_id.notlike("demo_%")
-            )
-        )
-    )
-    leagues_count = league_res.scalar() or 0
+    # 3. Unique leagues count from live provider feed
+    leagues_set = set(i.league_id for i in items if i.league_id)
+    leagues_count = len(leagues_set) if leagues_set else len(LEAGUE_METADATA)
 
-    # 4. Top sample fixtures: ONLY genuine scheduled future matches (never past database records)
-    cand_res = await db.execute(
-        select(HistoricalMatch)
-        .where(
-            and_(
-                HistoricalMatch.source_classification == "provider_verified",
-                HistoricalMatch.status.in_(["scheduled", "ns", "timed"]),
-                func.substr(HistoricalMatch.match_date, 1, 10) >= today_str,
-                HistoricalMatch.external_id.notlike("ext_%"),
-                HistoricalMatch.external_id.notlike("auto_%"),
-                HistoricalMatch.external_id.notlike("SYN-%"),
-                HistoricalMatch.external_id.notlike("demo_%"),
-                HistoricalMatch.home_odds.isnot(None),
-                HistoricalMatch.draw_odds.isnot(None),
-                HistoricalMatch.away_odds.isnot(None)
-            )
-        )
-        .order_by(HistoricalMatch.match_date.asc())
-        .limit(8)
-    )
-    fixtures_sample = cand_res.scalars().all()
+    # 4. Top sample fixtures: Authentic live matches directly from provider
     sample_list = []
-    for f in fixtures_sample:
+    for f in items[:8]:
         sample_list.append({
             "home_team": f.home_team,
             "away_team": f.away_team,
             "league_id": f.league_id,
-            "league_name": format_league_display_name(f.league_id),
+            "league_name": f.league_name or format_league_display_name(f.league_id),
             "home_odds": f.home_odds,
             "draw_odds": f.draw_odds,
             "away_odds": f.away_odds,
-            "match_date": f.match_date.isoformat() if f.match_date else None
+            "match_date": f.match_date.isoformat() if hasattr(f.match_date, "isoformat") else str(f.match_date)
         })
 
     return {

@@ -36,7 +36,7 @@
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet">
 
-  <link rel="stylesheet" href="/static/style.css?v=122">
+  <link rel="stylesheet" href="/static/style.css?v=125">
 </head>
 
 <body class="light-platform">
@@ -297,14 +297,22 @@
       <!-- Notifications Popover -->
       <div class="notifications-popover" id="popoverNotifications">
         <div class="notif-popover-header">
-          <span class="notif-popover-title">Live Model Intelligence</span>
-          <span style="font-size:0.68rem; color:#10b981; font-weight:700;" id="notifBadgeCount">LIVE ALERTS</span>
+          <div class="notif-popover-title-wrap">
+            <span class="notif-live-beacon"></span>
+            <span class="notif-popover-title">Live Model Signals</span>
+          </div>
+          <span class="notif-badge-pill" id="notifBadgeCount">LIVE SIGNALS</span>
         </div>
-        <div id="notifItemsContainer" style="display:flex; flex-direction:column; gap:0.55rem;">
-          <div class="notif-item">
-            <span class="notif-item-title">Model Radar Active</span>
-            <span class="notif-item-desc">Scanning authentic live fixtures for value spikes and banker clearances...</span>
-            <span class="notif-item-time">Active Feed</span>
+        <div id="notifItemsContainer" class="notif-items-list">
+          <div class="notif-signal-card type-banker">
+            <div class="notif-card-top">
+              <span class="notif-type-tag">QUANT RADAR</span>
+              <span class="notif-match-time">Active Today</span>
+            </div>
+            <div class="notif-match-heading">
+              <span class="notif-teams-title">Scanning Live Fixtures...</span>
+            </div>
+            <p class="notif-summary-text">Calibrating Poisson goals simulation and live value edges.</p>
           </div>
         </div>
       </div>
@@ -2948,7 +2956,7 @@
       .then(function (data) { if (data) window.__teamForms = data; })
       .catch(function () { });
   </script>
-  <script src="/static/app.js?v=123"></script>
+  <script src="/static/app.js?v=125"></script>
 </body>
 
 </html>
