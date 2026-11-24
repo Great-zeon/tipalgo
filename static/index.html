@@ -36,7 +36,7 @@
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet">
 
-  <link rel="stylesheet" href="/static/style.css?v=126">
+  <link rel="stylesheet" href="/static/style.css?v=127">
 </head>
 
 <body class="light-platform">
@@ -317,136 +317,6 @@
         </div>
       </div>
     </header>
-
-    <!-- ===================================================================
-       RESPONSIVE MOBILE NAVIGATION DRAWER
-       =================================================================== -->
-    <div class="mobile-menu-backdrop" id="mobileMenuBackdrop" aria-hidden="true">
-      <div class="mobile-menu-drawer" id="mobileMenuDrawer" role="dialog" aria-modal="true"
-        aria-label="Mobile Navigation">
-        <div class="mobile-menu-header">
-          <div class="nav-left-brand">
-            <a href="/" class="platform-logo" data-tab-target="view-calendar">
-              <img src="/static/img/sportymill_logo_transparent.webp" alt="SportyMill"
-                class="brand-logo-img brand-logo-dark" width="150" height="36">
-              <img src="/static/img/sportymill_logo_light_theme.webp" alt="SportyMill"
-                class="brand-logo-img brand-logo-light" width="150" height="36">
-            </a>
-          </div>
-          <button type="button" class="btn-close-mobile-menu" id="btnCloseMobileMenu"
-            aria-label="Close menu">&times;</button>
-        </div>
-
-        <nav class="mobile-menu-nav">
-          <a href="#" class="mobile-nav-link active" data-tab-target="view-calendar" id="mobNavMatches">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
-              <path d="M2 12h20" />
-            </svg>
-            <span>Matches Slate</span>
-          </a>
-          <a href="#" class="mobile-nav-link" data-tab-target="view-grand" id="mobNavGrand">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="12 2 2 7 12 12 22 7 12 2" />
-              <polyline points="2 17 12 22 22 17" />
-              <polyline points="2 12 12 17 22 12" />
-            </svg>
-            <span>33 Endpoints</span>
-          </a>
-          <a href="#" class="mobile-nav-link" data-tab-target="view-bankers" id="mobNavBankers">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
-            <span>80%+ Bankers</span>
-          </a>
-          <a href="#" class="mobile-nav-link" data-tab-target="view-screener" id="mobNavScreener">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              <line x1="11" y1="8" x2="11" y2="14" />
-              <line x1="8" y1="11" x2="14" y2="11" />
-            </svg>
-            <span>Value Screener</span>
-          </a>
-          <a href="#" class="mobile-nav-link" data-tab-target="view-accumulator" id="mobNavAccu">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-            </svg>
-            <span>Accu-Forge</span>
-          </a>
-          <a href="#" class="mobile-nav-link" data-tab-target="view-batch" id="mobNavBatch">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <line x1="3" y1="9" x2="21" y2="9" />
-              <line x1="9" y1="21" x2="9" y2="9" />
-            </svg>
-            <span>Full Slate</span>
-          </a>
-          <a href="#" class="mobile-nav-link" data-tab-target="view-history" id="mobNavHistory">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#10b981" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="9"></circle>
-              <polyline points="12 7 12 12 15 15"></polyline>
-            </svg>
-            <span>Prediction History</span>
-          </a>
-          <a href="#" class="mobile-nav-link" data-tab-target="view-about" id="mobNavAbout">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="16" x2="12" y2="12" />
-              <line x1="12" y1="8" x2="12.01" y2="8" />
-            </svg>
-            <span>About Model</span>
-          </a>
-
-          <div class="mobile-tone-toggle-row" style="padding: 0.85rem 1rem; margin-top: 0.5rem; background: rgba(30, 41, 59, 0.4); border-radius: 8px; border: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between;">
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-              </svg>
-              <span style="font-size: 0.82rem; color: #cbd5e1; font-weight: 600;">Commentary Tone</span>
-            </div>
-            <select id="personaSelectMobile" style="background: #0f172a; color: #38bdf8; border: 1px solid rgba(56,189,248,0.4); border-radius: 6px; padding: 0.35rem 0.65rem; font-size: 0.78rem; font-weight: 700;">
-              <option value="PROFESSIONAL">Professional</option>
-              <option value="BANTER">Naija Banter</option>
-            </select>
-          </div>
-
-          <div class="mobile-nav-divider"></div>
-
-          <a href="/privacy" class="mobile-nav-link">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
-            <span>Privacy Policy</span>
-          </a>
-          <a href="/terms" class="mobile-nav-link">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
-              <line x1="16" y1="13" x2="8" y2="13" />
-              <line x1="16" y1="17" x2="8" y2="17" />
-            </svg>
-            <span>Terms &amp; Conditions</span>
-          </a>
-        </nav>
-
-        <div class="mobile-menu-footer-actions">
-          <button type="button" class="btn-login-modal" id="btnMobileLogin" style="width:100%; border-radius:8px;">Sign
-            In</button>
-        </div>
-      </div>
-    </div>
 
     <!-- Main Content Area -->
     <main class="content-area">
@@ -1463,8 +1333,16 @@
               </svg>
               <span>Back to Matches</span>
             </button>
-            <h2 class="profile-screen-title">Account Profile &amp; Capital Management</h2>
-            <div style="width: 100px;"></div>
+            <h2 class="profile-screen-title">Account Profile &amp; Bankroll</h2>
+            <button class="btn-profile-signout" id="btnProfileSignOut" type="button" title="Sign Out of Session">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+              <span>Sign Out</span>
+            </button>
           </div>
 
           <div class="profile-content-grid">
@@ -1474,7 +1352,7 @@
               <div class="profile-user-card-v2">
                 <div class="profile-avatar-wrap">
                   <div class="profile-avatar-big" id="profileBigAvatar">
-                    <span id="profileAvatarText">JJ</span>
+                    <span id="profileAvatarText">SM</span>
                     <img id="profileAvatarImg" src="" alt="Avatar"
                       style="display:none; width:100%; height:100%; object-fit:cover; border-radius:50%;">
                   </div>
@@ -1489,9 +1367,9 @@
                   </label>
                 </div>
                 <div class="profile-user-info-text">
-                  <h3 id="profileBigName">Jonathan John</h3>
-                  <span id="profileBigHandle">@demopro · Pro Subscriber</span>
-                  <span class="profile-tier-badge">VERIFIED PRO TRADER</span>
+                  <h3 id="profileBigName">SportyMill User</h3>
+                  <span id="profileBigHandle">@user</span>
+                  <span class="profile-tier-badge" id="profileTierBadge">ACTIVE ACCOUNT</span>
                 </div>
               </div>
 
@@ -1505,28 +1383,28 @@
                     </svg></div>
                   <div>
                     <h3>Edit Profile Details</h3>
-                    <p>Update your personal display name, username, and contact phone.</p>
+                    <p>Update your username, phone number, and email saved to your account.</p>
                   </div>
                 </div>
                 <form id="formEditProfileDetails" class="profile-form">
                   <div class="prof-form-row">
                     <label for="profInputUsername">Username</label>
-                    <input type="text" id="profInputUsername" class="clean-input" value="demopro" required>
+                    <input type="text" id="profInputUsername" class="clean-input" required>
                   </div>
                   <div class="prof-form-row">
-                    <label for="profInputPhone">Phone Number (SMS Notifications &amp; OTP)</label>
-                    <input type="tel" id="profInputPhone" class="clean-input" value="08034567890" required>
+                    <label for="profInputPhone">Phone Number</label>
+                    <input type="tel" id="profInputPhone" class="clean-input" placeholder="e.g. 08034567890">
                   </div>
                   <div class="prof-form-row">
-                    <label for="profInputEmail">Email Address (Optional)</label>
-                    <input type="email" id="profInputEmail" class="clean-input" value="jonathan@sportymill.com">
+                    <label for="profInputEmail">Email Address</label>
+                    <input type="email" id="profInputEmail" class="clean-input" placeholder="you@example.com">
                   </div>
-                  <button type="submit" class="btn-pill-dark btn-save-profile" id="btnSaveProfile">Save Profile Changes
-                    →</button>
+                  <div id="profDetailsFeedback" class="prof-inline-feedback" style="display:none;"></div>
+                  <button type="submit" class="btn-pill-dark btn-save-profile" id="btnSaveProfile">Save Profile Changes</button>
                 </form>
               </div>
 
-              <!-- Functional Password Reset via SMS OTP -->
+              <!-- Functional Account Security / Change Password Form -->
               <div class="profile-section-card">
                 <div class="profile-section-head">
                   <div class="prof-sec-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none"
@@ -1535,38 +1413,22 @@
                       <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                     </svg></div>
                   <div>
-                    <h3>Security &amp; SMS OTP Password Reset</h3>
-                    <p>Reset or update your account password using instant SMS OTP verification.</p>
+                    <h3>Account Security</h3>
+                    <p>Update your account password directly.</p>
                   </div>
                 </div>
-                <div class="profile-otp-flow">
-                  <div class="otp-action-row">
-                    <div class="otp-phone-display">
-                      <span class="otp-phone-lbl">Registered Phone:</span>
-                      <strong id="profOtpTargetPhone">08034567890</strong>
-                    </div>
-                    <button type="button" class="btn-pill-dark" id="btnProfSendOtp">Send 6-Digit SMS OTP</button>
+                <form id="formUpdateProfilePassword" class="profile-form">
+                  <div class="prof-form-row">
+                    <label for="profNewPass">New Password</label>
+                    <input type="password" id="profNewPass" class="clean-input" placeholder="At least 6 characters" minlength="6" required>
                   </div>
-                  <div id="profOtpSuccessBanner" class="auth-alert-banner success"
-                    style="display:none; margin: 0.8rem 0;"></div>
-                  <div class="prof-otp-fields" id="profOtpFields" style="margin-top: 1rem;">
-                    <div class="prof-form-row">
-                      <label for="profOtpCode">Enter 6-Digit OTP</label>
-                      <input type="text" id="profOtpCode" class="clean-input font-mono" placeholder="123456"
-                        maxlength="6">
-                    </div>
-                    <div class="prof-form-row">
-                      <label for="profNewPass">New Password</label>
-                      <input type="password" id="profNewPass" class="clean-input" placeholder="At least 6 characters">
-                    </div>
-                    <div class="prof-form-row">
-                      <label for="profConfirmPass">Confirm New Password</label>
-                      <input type="password" id="profConfirmPass" class="clean-input" placeholder="Repeat new password">
-                    </div>
-                    <button type="button" class="btn-pill-dark" id="btnProfUpdatePassword" style="width:100%;">Verify
-                      OTP &amp; Update Password →</button>
+                  <div class="prof-form-row">
+                    <label for="profConfirmPass">Confirm New Password</label>
+                    <input type="password" id="profConfirmPass" class="clean-input" placeholder="Repeat new password" minlength="6" required>
                   </div>
-                </div>
+                  <div id="profPasswordFeedback" class="prof-inline-feedback" style="display:none;"></div>
+                  <button type="submit" class="btn-pill-dark btn-save-profile" id="btnProfUpdatePassword">Update Password</button>
+                </form>
               </div>
             </div>
 
@@ -1583,37 +1445,43 @@
                       <path d="M3 7h18" />
                     </svg></div>
                   <div>
-                    <h3 class="bankroll-card-title">Bankroll Allocation &amp; Capital Management</h3>
-                    <p class="bankroll-card-subtitle">Kelly Criterion fractional capital protection guidelines.</p>
+                    <h3 class="bankroll-card-title">Bankroll &amp; Stake Sizing</h3>
+                    <p class="bankroll-card-subtitle">Controls suggested Kelly stakes across match cards and tools.</p>
                   </div>
                 </div>
 
                 <div class="bankroll-main-display">
                   <span class="bankroll-stat-lbl">Total Liquid Bankroll</span>
                   <div class="bankroll-stat-amount" id="profileBankrollDisplay">₦1,000,000</div>
-                  <div class="bankroll-stat-sub">Managed under 0.25 Fractional Kelly Criterion</div>
+                  <div class="bankroll-stat-sub">Protected with 0.25 Fractional Kelly Criterion</div>
                 </div>
 
                 <div class="bankroll-guidelines-box">
                   <div class="bankroll-rule-item">
                     <div class="rule-title">Max Allocation Per Bet</div>
-                    <div class="rule-body"><strong>5.0% maximum cap (₦50,000)</strong> prevents catastrophic drawdown.
-                    </div>
+                    <div class="rule-body" id="profileMaxAllocationDisplay"><strong>5.0% maximum cap (₦50,000)</strong> prevents catastrophic drawdown.</div>
                   </div>
                   <div class="bankroll-rule-item">
-                    <div class="rule-title">Compounding Edge</div>
-                    <div class="rule-body">Stakes dynamically expand as wallet grows; contract during drawdowns.</div>
+                    <div class="rule-title">Dynamic Stake Scaling</div>
+                    <div class="rule-body">Suggested stakes across the Value Screener, Banker Slate, and Match Cards scale directly from this balance.</div>
                   </div>
                 </div>
 
                 <!-- Custom Bankroll Setting -->
                 <div class="bankroll-custom-setting">
                   <label for="inputCustomLiquidBankroll">Set Liquid Bankroll Capital (₦)</label>
+                  <div class="bankroll-preset-chips">
+                    <button type="button" class="bankroll-preset-chip" data-bankroll="50000">₦50k</button>
+                    <button type="button" class="bankroll-preset-chip" data-bankroll="250000">₦250k</button>
+                    <button type="button" class="bankroll-preset-chip" data-bankroll="1000000">₦1M</button>
+                    <button type="button" class="bankroll-preset-chip" data-bankroll="5000000">₦5M</button>
+                  </div>
                   <div class="custom-bankroll-input-wrap">
                     <input type="number" id="inputCustomLiquidBankroll" class="clean-input font-mono" value="1000000"
-                      min="5000" step="10000">
+                      min="1000" step="5000">
                     <button type="button" class="btn-pill-dark" id="btnSaveCustomBankroll">Save Bankroll</button>
                   </div>
+                  <div id="profBankrollFeedback" class="prof-inline-feedback" style="display:none; margin-top: 0.65rem;"></div>
                 </div>
               </div>
             </div>
@@ -1992,6 +1860,133 @@
       </span>
       <span class="floating-slip-count-badge" id="floatingSlipCountBadge" style="display: none;">0</span>
     </button>
+  </div>
+
+  <!-- Responsive Mobile Navigation Drawer (Placed at body root for clean fixed slide animations) -->
+  <div class="mobile-menu-backdrop" id="mobileMenuBackdrop" aria-hidden="true">
+    <div class="mobile-menu-drawer" id="mobileMenuDrawer" role="dialog" aria-modal="true"
+      aria-label="Mobile Navigation">
+      <div class="mobile-menu-header">
+        <div class="nav-left-brand">
+          <a href="/" class="platform-logo" data-tab-target="view-calendar">
+            <img src="/static/img/sportymill_logo_transparent.webp" alt="SportyMill"
+              class="brand-logo-img brand-logo-dark" width="150" height="36">
+            <img src="/static/img/sportymill_logo_light_theme.webp" alt="SportyMill"
+              class="brand-logo-img brand-logo-light" width="150" height="36">
+          </a>
+        </div>
+        <button type="button" class="btn-close-mobile-menu" id="btnCloseMobileMenu"
+          aria-label="Close menu">&times;</button>
+      </div>
+
+      <nav class="mobile-menu-nav">
+        <a href="#" class="mobile-nav-link active" data-tab-target="view-calendar" id="mobNavMatches">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+            <path d="M2 12h20" />
+          </svg>
+          <span>Matches Slate</span>
+        </a>
+        <a href="#" class="mobile-nav-link" data-tab-target="view-grand" id="mobNavGrand">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 2 7 12 12 22 7 12 2" />
+            <polyline points="2 17 12 22 22 17" />
+            <polyline points="2 12 12 17 22 12" />
+          </svg>
+          <span>33 Endpoints</span>
+        </a>
+        <a href="#" class="mobile-nav-link" data-tab-target="view-bankers" id="mobNavBankers">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+          <span>80%+ Bankers</span>
+        </a>
+        <a href="#" class="mobile-nav-link" data-tab-target="view-screener" id="mobNavScreener">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            <line x1="11" y1="8" x2="11" y2="14" />
+            <line x1="8" y1="11" x2="14" y2="11" />
+          </svg>
+          <span>Value Screener</span>
+        </a>
+        <a href="#" class="mobile-nav-link" data-tab-target="view-accumulator" id="mobNavAccu">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+          </svg>
+          <span>Accu-Forge</span>
+        </a>
+        <a href="#" class="mobile-nav-link" data-tab-target="view-batch" id="mobNavBatch">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <line x1="3" y1="9" x2="21" y2="9" />
+            <line x1="9" y1="21" x2="9" y2="9" />
+          </svg>
+          <span>Full Slate</span>
+        </a>
+        <a href="#" class="mobile-nav-link" data-tab-target="view-history" id="mobNavHistory">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#10b981" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"></circle>
+            <polyline points="12 7 12 12 15 15"></polyline>
+          </svg>
+          <span>Prediction History</span>
+        </a>
+        <a href="#" class="mobile-nav-link" data-tab-target="view-about" id="mobNavAbout">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
+          <span>About Model</span>
+        </a>
+
+        <div class="mobile-tone-toggle-row">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <span class="mobile-tone-label">Commentary Tone</span>
+          </div>
+          <select id="personaSelectMobile" class="mobile-tone-select">
+            <option value="PROFESSIONAL">Professional</option>
+            <option value="BANTER">Naija Banter</option>
+          </select>
+        </div>
+
+        <div class="mobile-nav-divider"></div>
+
+        <a href="/privacy" class="mobile-nav-link">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+          <span>Privacy Policy</span>
+        </a>
+        <a href="/terms" class="mobile-nav-link">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+          </svg>
+          <span>Terms &amp; Conditions</span>
+        </a>
+      </nav>
+
+      <div class="mobile-menu-footer-actions">
+        <button type="button" class="btn-login-modal" id="btnMobileLogin" style="width:100%; border-radius:8px;">Sign Out</button>
+      </div>
+    </div>
   </div>
 
   <!-- Bet Slip Off-Canvas Drawer Backdrop Overlay -->
@@ -2956,7 +2951,7 @@
       .then(function (data) { if (data) window.__teamForms = data; })
       .catch(function () { });
   </script>
-  <script src="/static/app.js?v=126"></script>
+  <script src="/static/app.js?v=127"></script>
 </body>
 
 </html>

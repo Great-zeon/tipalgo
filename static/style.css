@@ -4279,7 +4279,8 @@ body.light-theme-mode .btn-cal-footer-close {
   top: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
-  transform: translateX(105%);
+  transform: translate3d(105%, 0, 0);
+  will-change: transform;
   visibility: hidden;
   pointer-events: none;
   width: 400px;
@@ -4294,14 +4295,14 @@ body.light-theme-mode .btn-cal-footer-close {
   flex-direction: column;
   padding: 1.25rem 1.15rem;
   gap: 1rem;
-  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.32s;
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.32s;
   box-sizing: border-box;
   overflow-y: auto !important;
   overscroll-behavior: contain !important;
 }
 
 .betslip-sidebar.open {
-  transform: translateX(0) !important;
+  transform: translate3d(0, 0, 0) !important;
   visibility: visible !important;
   pointer-events: auto !important;
 }
@@ -6046,15 +6047,20 @@ body.filter-drawer-open {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transform: translateX(-100%);
-  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translate3d(-100%, 0, 0);
+  will-change: transform;
+  visibility: hidden;
+  pointer-events: none;
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.32s;
   overscroll-behavior: contain !important;
   touch-action: pan-y !important;
   isolation: isolate;
 }
 
 .filter-sidebar.open {
-  transform: translateX(0);
+  transform: translate3d(0, 0, 0);
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .filter-sidebar-header {
@@ -10828,69 +10834,10 @@ body {
     color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-body,
-.app-wrapper,
-.top-navbar,
-.content-area,
-.betslip-sidebar,
-.home-slip-col,
-.betslip-header,
-.betslip-body,
-.betslip-items-container,
-.betslip-footer,
-.site-footer,
-.footer-inner,
-.footer-top-grid,
-.footer-col,
-.footer-brand-col,
-.footer-status-chip,
-.footer-hours-badge,
-.footer-disclaimer-strip,
-.footer-bottom-row,
-.sb-league-block,
-.sb-league-header,
-.em-league-matches-list,
-.employer-match-card,
-.sportsbook-table,
-.sb-match-row,
-.sb-time-col,
-.sb-team-col,
-.sb-prediction-col,
-.sb-odds-pill,
-.grid-match-card,
-.card-match-header,
-.card-teams-duel,
-.card-pred-pill,
-.search-bar-wrap,
-.calendar-ribbon-bar,
-.cal-day-chip,
-.cal-shortcut-chip,
-.btn-league-see-all,
-.profile-dropdown-menu,
-.notifications-popover,
-.modal-box,
-.header-select,
-.persona-styled-select,
-.tone-select-wrapper,
-.grand-endpoint-card,
-.banker-card,
-.dash-stat-card,
-.dash-launchpad-card,
-.saved-slip-card,
-.tool-module-card,
-.grand-category-pill,
-.grand-search-box,
-.calendar-limitless-dropdown-menu,
-.cal-limitless-trigger-bar,
-.club-planning-search-banner {
-  transition: none !important;
-}
-
-/* Eliminate staggered multi-stage theme transitions so light & dark mode switch simultaneously */
-body.light-theme-mode,
-body.dark-theme-mode,
-body.light-theme-mode *,
-body.dark-theme-mode * {
+/* Eliminate staggered multi-stage theme transitions ONLY during active theme switch,
+   preserving smooth 60fps drawer, modal, and filter slide transitions everywhere */
+body.theme-switching,
+body.theme-switching * {
   transition: none !important;
 }
 
@@ -12288,6 +12235,226 @@ body.banter-mode-active .sb-model-pick-pill .sb-pick-title {
 
 .custom-bankroll-input-wrap button {
   white-space: nowrap;
+}
+
+/* Profile Sign Out Button, Preset Chips, Inline Feedback, Light Mode & Mobile Refinement */
+.btn-profile-signout {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.32);
+  color: #fca5a5;
+  padding: 0.5rem 0.95rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-profile-signout:hover {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: rgba(239, 68, 68, 0.55);
+  color: #ffffff;
+}
+
+.bankroll-preset-chips {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.45rem;
+  margin-bottom: 0.65rem;
+}
+
+.bankroll-preset-chip {
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  color: #38bdf8;
+  border-radius: 8px;
+  padding: 0.42rem 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.bankroll-preset-chip:hover,
+.bankroll-preset-chip.active {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: #10b981;
+  color: #34d399;
+}
+
+.prof-inline-feedback {
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+}
+
+.prof-inline-feedback.success {
+  background: rgba(16, 185, 129, 0.14);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34d399;
+}
+
+.prof-inline-feedback.error {
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+}
+
+/* Profile Light Mode Refinement */
+body.light-theme-mode .profile-screen-header {
+  border-bottom-color: #e2e8f0;
+}
+
+body.light-theme-mode .profile-screen-title,
+body.light-theme-mode .profile-user-info-text h3,
+body.light-theme-mode .profile-section-head h3,
+body.light-theme-mode .bankroll-card-title,
+body.light-theme-mode .rule-title {
+  color: #0f172a;
+}
+
+body.light-theme-mode .btn-profile-back {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+body.light-theme-mode .btn-profile-back:hover {
+  background: #f1f5f9;
+}
+
+body.light-theme-mode .btn-profile-signout {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+body.light-theme-mode .btn-profile-signout:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+body.light-theme-mode .profile-user-card-v2,
+body.light-theme-mode .profile-section-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+}
+
+body.light-theme-mode .profile-bankroll-card {
+  background: linear-gradient(145deg, #f8fafc 0%, #eff6ff 100%);
+  border-color: #bfdbfe;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+body.light-theme-mode .bankroll-main-display {
+  background: #ffffff;
+  border-color: #dbeafe;
+}
+
+body.light-theme-mode .bankroll-stat-amount {
+  color: #059669;
+}
+
+body.light-theme-mode .bankroll-stat-sub {
+  color: #0284c7;
+}
+
+body.light-theme-mode .bankroll-rule-item {
+  background: #ffffff;
+}
+
+body.light-theme-mode .profile-user-info-text span,
+body.light-theme-mode .profile-section-head p,
+body.light-theme-mode .bankroll-card-subtitle,
+body.light-theme-mode .rule-body {
+  color: #475569;
+}
+
+body.light-theme-mode .prof-form-row label,
+body.light-theme-mode .bankroll-custom-setting label {
+  color: #334155;
+}
+
+body.light-theme-mode .profile-view-screen .clean-input {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+body.light-theme-mode .profile-tier-badge {
+  background: rgba(5, 150, 105, 0.12);
+  color: #047857;
+  border-color: rgba(5, 150, 105, 0.3);
+}
+
+body.light-theme-mode .prof-inline-feedback.error {
+  color: #b91c1c;
+}
+
+body.light-theme-mode .prof-inline-feedback.success {
+  color: #047857;
+}
+
+@media (max-width: 768px) {
+  .profile-view-screen {
+    padding: 0.75rem 0.25rem 5.5rem 0.25rem !important;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .profile-screen-header {
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.85rem;
+  }
+
+  .profile-screen-title {
+    order: 3;
+    width: 100%;
+    font-size: 1.1rem;
+  }
+
+  .btn-profile-back,
+  .btn-profile-signout {
+    padding: 0.45rem 0.8rem;
+    font-size: 0.78rem;
+    min-height: 36px;
+  }
+
+  .profile-user-card-v2 {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.25rem 1rem;
+    gap: 0.9rem;
+  }
+
+  .profile-section-card,
+  .profile-bankroll-card {
+    padding: 1.15rem 1rem;
+  }
+
+  .bankroll-stat-amount {
+    font-size: 1.65rem;
+  }
+
+  .custom-bankroll-input-wrap {
+    flex-direction: column;
+  }
+
+  .custom-bankroll-input-wrap button {
+    width: 100%;
+    padding: 0.75rem;
+  }
 }
 
 /* ===================================================================
@@ -14923,15 +15090,16 @@ body.light-theme-mode .btn-validate-print-slip[disabled] {
     flex-direction: column !important;
     padding: 1.15rem 1rem 1rem 1rem !important;
     gap: 0.75rem !important;
-    transform: translateX(105%) !important;
-    transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.32s !important;
+    transform: translate3d(105%, 0, 0) !important;
+    will-change: transform !important;
+    transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.32s !important;
     visibility: hidden !important;
     pointer-events: none !important;
     box-sizing: border-box !important;
   }
 
   .betslip-sidebar.open {
-    transform: translateX(0) !important;
+    transform: translate3d(0, 0, 0) !important;
     visibility: visible !important;
     pointer-events: auto !important;
   }
@@ -17699,12 +17867,14 @@ body.light-theme-mode .btn-validate-print-slip[disabled] {
   z-index: 10000;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.24s ease, visibility 0.24s ease;
+  pointer-events: none;
+  transition: opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.28s ease;
 }
 
 .mobile-menu-backdrop.open {
   opacity: 1;
   visibility: visible;
+  pointer-events: auto;
 }
 
 .mobile-menu-drawer {
@@ -17713,12 +17883,14 @@ body.light-theme-mode .btn-validate-print-slip[disabled] {
   left: 0;
   width: min(320px, 86vw);
   height: 100vh;
+  height: 100dvh;
   background: #0b1120;
   border-right: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 12px 0 36px rgba(0, 0, 0, 0.7);
   z-index: 10001;
-  transform: translateX(-100%);
-  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translate3d(-105%, 0, 0);
+  will-change: transform;
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -17726,7 +17898,80 @@ body.light-theme-mode .btn-validate-print-slip[disabled] {
 }
 
 .mobile-menu-backdrop.open .mobile-menu-drawer {
-  transform: translateX(0);
+  transform: translate3d(0, 0, 0);
+}
+
+.mobile-tone-toggle-row {
+  padding: 0.85rem 1rem;
+  margin-top: 0.5rem;
+  background: rgba(30, 41, 59, 0.4);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mobile-tone-label {
+  font-size: 0.82rem;
+  color: #cbd5e1;
+  font-weight: 600;
+}
+
+.mobile-tone-select {
+  background: #0f172a;
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: 6px;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+body.light-theme-mode .mobile-menu-drawer {
+  background: #ffffff;
+  border-right-color: #e2e8f0;
+  box-shadow: 12px 0 36px rgba(15, 23, 42, 0.16);
+}
+
+body.light-theme-mode .mobile-menu-header,
+body.light-theme-mode .mobile-menu-footer-actions {
+  border-color: #e2e8f0;
+}
+
+body.light-theme-mode .mobile-nav-link {
+  color: #334155;
+}
+
+body.light-theme-mode .mobile-nav-link:hover,
+body.light-theme-mode .mobile-nav-link.active {
+  background: rgba(2, 132, 199, 0.1);
+  color: #0284c7;
+}
+
+body.light-theme-mode .mobile-nav-divider {
+  background: #e2e8f0;
+}
+
+body.light-theme-mode .mobile-tone-toggle-row {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+body.light-theme-mode .mobile-tone-label {
+  color: #1e293b;
+}
+
+body.light-theme-mode .mobile-tone-select {
+  background: #ffffff;
+  color: #0284c7;
+  border-color: #bae6fd;
+}
+
+body.light-theme-mode .btn-close-mobile-menu {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #475569;
 }
 
 .mobile-menu-header {

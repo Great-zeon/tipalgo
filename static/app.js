@@ -1315,9 +1315,7 @@
           });
           localStorage.setItem('sportymill_betslip', JSON.stringify(state.betslip.items));
           renderSlip();
-          toast(`Added ${selection} (@${odds.toFixed(2)}) to Bet Slip!`);
-          const drawer = document.getElementById('betSlipDrawer');
-          if (drawer) drawer.classList.add('open');
+          toggleSlip(true);
         });
       });
 
@@ -1487,9 +1485,7 @@
           });
           localStorage.setItem('sportymill_betslip', JSON.stringify(state.betslip.items));
           renderSlip();
-          toast(`Added ${res.selection} to Bet Slip!`);
-          const drawer = document.getElementById('betSlipDrawer');
-          if (drawer) drawer.classList.add('open');
+          toggleSlip(true);
         });
       }
 
@@ -1601,9 +1597,7 @@
           });
           localStorage.setItem('sportymill_betslip', JSON.stringify(state.betslip.items));
           renderSlip();
-          toast(`Loaded ${res.legs.length} Accu-Forge legs into Bet Slip!`);
-          const drawer = document.getElementById('betSlipDrawer');
-          if (drawer) drawer.classList.add('open');
+          toggleSlip(true);
         });
       }
 
@@ -4701,6 +4695,13 @@
       }
     } else if (viewId === 'view-profile') {
       updateUserUI();
+      if (typeof window.syncProfileScreenDOM === 'function') {
+        window.syncProfileScreenDOM();
+      }
+      ['profDetailsFeedback', 'profPasswordFeedback', 'profBankrollFeedback'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
     } else if (viewId === 'view-slip-history') {
       loadSlipHistory();
     } else if (viewId === 'view-dashboard') {
@@ -6732,12 +6733,22 @@
   function toggleFilterDrawer(open) {
     if (!dom.filterSidebar || !dom.filterBackdrop) return;
     if (open) {
-      dom.filterSidebar.classList.add('open');
-      dom.filterBackdrop.classList.add('open');
-      document.documentElement.classList.add('filter-drawer-open');
-      document.body.classList.add('filter-drawer-open');
+      if (dom.betslipSidebar && dom.betslipSidebar.classList.contains('open') && typeof toggleSlip === 'function') {
+        toggleSlip(false);
+      }
+      const mobMenu = document.getElementById('mobileMenuBackdrop');
+      if (mobMenu && mobMenu.classList.contains('open')) {
+        mobMenu.classList.remove('open');
+        mobMenu.setAttribute('aria-hidden', 'true');
+      }
       renderEndpointsFilterDrawer();
       updateFilterDrawerUI(false);
+      requestAnimationFrame(() => {
+        dom.filterSidebar.classList.add('open');
+        dom.filterBackdrop.classList.add('open');
+      });
+      document.documentElement.classList.add('filter-drawer-open');
+      document.body.classList.add('filter-drawer-open');
     } else {
       dom.filterSidebar.classList.remove('open');
       dom.filterBackdrop.classList.remove('open');
@@ -8081,29 +8092,59 @@
   // ===================================================================
   // 2. SPORTYBET-STYLE BET SLIP ENGINE (eCommerce Cart Flyout)
   // ===================================================================
+  function syncBetslipPlacement() {
+    if (!dom.betslipSidebar) return;
+    if (window.innerWidth <= 919) {
+      if (dom.betslipSidebar.parentElement !== document.body) {
+        document.body.appendChild(dom.betslipSidebar);
+      }
+    } else if (!dom.betslipSidebar.classList.contains('open')) {
+      if (dom.homeSlipCol && dom.betslipSidebar.parentElement !== dom.homeSlipCol) {
+        dom.homeSlipCol.appendChild(dom.betslipSidebar);
+      }
+    }
+  }
+  window.addEventListener('resize', syncBetslipPlacement);
+
   function toggleSlip(forceOpen) {
     if (!dom.betslipSidebar) return;
-    const shouldOpen = typeof forceOpen === 'boolean' 
-      ? forceOpen 
+    const shouldOpen = typeof forceOpen === 'boolean'
+      ? forceOpen
       : !dom.betslipSidebar.classList.contains('open');
-    
+
     if (shouldOpen) {
-      if (window.innerWidth < 1024) {
+      // Close other drawers cleanly before opening bet slip
+      if (dom.filterSidebar && dom.filterSidebar.classList.contains('open') && typeof toggleFilterDrawer === 'function') {
+        toggleFilterDrawer(false);
+      }
+      const mobMenu = document.getElementById('mobileMenuBackdrop');
+      if (mobMenu && mobMenu.classList.contains('open')) {
+        mobMenu.classList.remove('open');
+        mobMenu.setAttribute('aria-hidden', 'true');
+      }
+
+      if (window.innerWidth <= 919) {
         if (dom.betslipSidebar.parentElement !== document.body) {
           document.body.appendChild(dom.betslipSidebar);
+          // Flush layout so initial translate3d(105%, 0, 0) computes before transitioning to 0
+          void dom.betslipSidebar.offsetWidth;
         }
+        requestAnimationFrame(() => {
+          dom.betslipSidebar.classList.add('open');
+          if (dom.betslipBackdrop) dom.betslipBackdrop.classList.add('open');
+        });
+        document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden';
+      } else {
+        syncBetslipPlacement();
       }
-      dom.betslipSidebar.classList.add('open');
-      if (dom.betslipBackdrop) dom.betslipBackdrop.classList.add('open');
-      document.body.style.overflow = 'hidden';
-      document.documentElement.style.overflow = 'hidden';
     } else {
       dom.betslipSidebar.classList.remove('open');
       if (dom.betslipBackdrop) dom.betslipBackdrop.classList.remove('open');
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
-      if (window.innerWidth >= 1024 && dom.homeSlipCol && dom.betslipSidebar.parentElement !== dom.homeSlipCol) {
-        dom.homeSlipCol.appendChild(dom.betslipSidebar);
+      if (window.innerWidth >= 920) {
+        syncBetslipPlacement();
       }
     }
   }
@@ -8132,26 +8173,23 @@
 
     if (existingIdx >= 0) {
       // Toggle OFF: remove from slip and revert color
-      const removed = state.betslip.items.splice(existingIdx, 1)[0];
+      state.betslip.items.splice(existingIdx, 1);
       try {
         localStorage.setItem('sportymill_betslip', JSON.stringify(state.betslip.items));
       } catch (e) {}
       renderSlip();
       renderCalendarMatchesFeed();
-      toast(`Removed from Bet Slip: ${removed.market}`);
       return false;
     }
 
     if (sameMatchIdx >= 0) {
       // Replace existing market for the same match (accumulator integrity: 1 market per match)
-      const oldMarket = state.betslip.items[sameMatchIdx].market;
       state.betslip.items[sameMatchIdx] = pick;
       try {
         localStorage.setItem('sportymill_betslip', JSON.stringify(state.betslip.items));
       } catch (e) {}
       renderSlip();
       renderCalendarMatchesFeed();
-      toast(`Updated selection for ${pick.match}: ${pick.market} @${Number(pick.odds).toFixed(2)} (replaced ${oldMarket})`);
       return true;
     }
 
@@ -8162,7 +8200,6 @@
     } catch (e) {}
 
     renderSlip();
-    toast(`Added to Bet Slip: ${pick.market} @${Number(pick.odds).toFixed(2)}`);
 
     // Quick bounce animation on header cart badge & floating trigger
     if (dom.headerSlipCount) {
@@ -8187,13 +8224,12 @@
 
   function removeFromSlip(index) {
     if (index >= 0 && index < state.betslip.items.length) {
-      const removed = state.betslip.items.splice(index, 1)[0];
+      state.betslip.items.splice(index, 1);
       try {
         localStorage.setItem('sportymill_betslip', JSON.stringify(state.betslip.items));
       } catch (e) {}
       renderSlip();
       renderCalendarMatchesFeed();
-      toast(`Removed: ${removed.market}`);
     }
   }
 
@@ -8204,7 +8240,6 @@
     } catch (e) {}
     renderSlip();
     renderCalendarMatchesFeed();
-    toast('Bet slip cleared', 'info');
   }
 
   function setStake(amount) {
@@ -8550,9 +8585,7 @@
           state.betslip.items = items;
           localStorage.setItem('sportymill_betslip', JSON.stringify(items));
           renderSlip();
-          toast(`Loaded ${items.length} picks into active bet slip!`);
-          const drawer = document.getElementById('betSlipDrawer');
-          if (drawer) drawer.classList.add('open');
+          toggleSlip(true);
         } catch (e) {
           toast('Failed to load slip');
         }
@@ -8815,11 +8848,27 @@
       if (dropSafeStake) dropSafeStake.textContent = `₦${safeStake.toLocaleString()}`;
 
       const profileName = document.getElementById('profileBigName');
-      const profileAvatar = document.getElementById('profileBigAvatar');
+      const profileAvatarText = document.getElementById('profileAvatarText');
       const profileHandle = document.getElementById('profileBigHandle');
+      const profileTierBadge = document.getElementById('profileTierBadge');
       if (profileName) profileName.textContent = uname;
-      if (profileAvatar) profileAvatar.textContent = initials;
-      if (profileHandle) profileHandle.textContent = `@${uname} · ${isPro ? 'Pro Tier' : 'Free Tier'}`;
+      if (profileAvatarText) profileAvatarText.textContent = initials;
+      if (profileHandle) profileHandle.textContent = `@${uname} · ${state.user.is_admin ? 'Admin' : (isPro ? 'Pro Tier' : 'Standard Account')}`;
+      if (profileTierBadge) {
+        profileTierBadge.textContent = state.user.is_admin ? 'ADMINISTRATOR' : (isPro ? 'VERIFIED PRO TRADER' : 'STANDARD ACCOUNT');
+      }
+
+      try {
+        const savedAvatar = localStorage.getItem('sportymill_user_avatar');
+        if (savedAvatar && typeof window._applyAvatarToAll === 'function') {
+          window._applyAvatarToAll(savedAvatar);
+        }
+      } catch (e) {}
+
+      const mobLoginBtn = document.getElementById('btnMobileLogin');
+      if (mobLoginBtn) {
+        mobLoginBtn.textContent = state.token ? 'Sign Out' : 'Sign In';
+      }
 
       const statViews = document.getElementById('statPostViews');
       const statItems = document.getElementById('statItemsFound');
@@ -9804,6 +9853,7 @@
 
     function applyPlatformTheme(mode) {
       const isDark = (mode === 'dark');
+      document.body.classList.add('theme-switching');
       if (isDark) {
         document.body.classList.remove('light-platform', 'light-theme-mode');
         document.body.classList.add('dark-theme-mode');
@@ -9817,6 +9867,10 @@
         if (themeIconMoon) themeIconMoon.style.display = 'block';
         if (btnNavThemeToggle) btnNavThemeToggle.setAttribute('title', 'Switch to Dark Mode');
       }
+      void document.body.offsetHeight;
+      requestAnimationFrame(() => {
+        document.body.classList.remove('theme-switching');
+      });
       try {
         localStorage.setItem('sportymill_theme_mode', isDark ? 'dark' : 'light');
       } catch (err) {}
@@ -9828,7 +9882,6 @@
         const currentlyDark = document.body.classList.contains('dark-theme-mode');
         const nextTheme = currentlyDark ? 'light' : 'dark';
         applyPlatformTheme(nextTheme);
-        toast(nextTheme === 'dark' ? 'Dark Mode Enabled' : 'Light Mode Enabled');
       });
     }
 
@@ -10025,6 +10078,14 @@
     // ===================================================================
     // DEDICATED PROFILE & CAPITAL MANAGEMENT ENGINE
     // ===================================================================
+    function showProfFeedback(elId, message, type = 'success') {
+      const el = document.getElementById(elId);
+      if (!el) return;
+      el.className = `prof-inline-feedback ${type}`;
+      el.textContent = message;
+      el.style.display = 'block';
+    }
+
     function applyAvatarToAll(dataUrl) {
       const bigAvatarImg = document.getElementById('profileAvatarImg');
       const bigAvatarText = document.getElementById('profileAvatarText');
@@ -10042,12 +10103,13 @@
         dropAvatar.innerHTML = `<img src="${dataUrl}" alt="Avatar" style="width:100%; height:100%; object-fit:cover; border-radius:10px;">`;
       }
     }
+    window._applyAvatarToAll = applyAvatarToAll;
 
     function syncProfileScreenDOM() {
       const u = state.user || {};
-      const uname = u.username || 'demopro';
-      const phone = u.phone_number || '08034567890';
-      const email = u.email || 'demo@sportymill.com';
+      const uname = u.username || 'user';
+      const phone = u.phone_number || '';
+      const email = u.email || '';
       const bankroll = u.bankroll || 1000000;
       const safeStake = Math.round(bankroll * 0.05);
       const isPro = u.tier === 'pro' || u.is_admin;
@@ -10063,19 +10125,35 @@
       const bigName = document.getElementById('profileBigName');
       if (bigName) bigName.textContent = uname;
       const bigHandle = document.getElementById('profileBigHandle');
-      if (bigHandle) bigHandle.textContent = `@${uname} · ${isPro ? 'Pro Tier' : 'Free Tier'}`;
-      const otpPhone = document.getElementById('profOtpTargetPhone');
-      if (otpPhone) otpPhone.textContent = phone;
+      if (bigHandle) bigHandle.textContent = `@${uname} · ${u.is_admin ? 'Admin' : (isPro ? 'Pro Tier' : 'Standard Account')}`;
+      const tierBadge = document.getElementById('profileTierBadge');
+      if (tierBadge) {
+        tierBadge.textContent = u.is_admin ? 'ADMINISTRATOR' : (isPro ? 'VERIFIED PRO TRADER' : 'STANDARD ACCOUNT');
+      }
 
-      const dropAvatar = document.getElementById('dropdownUserAvatar');
-      if (dropAvatar) dropAvatar.textContent = initials;
-      const headAvatar = document.getElementById('headerUserAvatar');
-      if (headAvatar) headAvatar.textContent = initials;
+      const bigAvatarText = document.getElementById('profileAvatarText');
+      if (bigAvatarText) bigAvatarText.textContent = initials;
+
+      let hasSavedAvatar = false;
+      try {
+        const savedAvatar = localStorage.getItem('sportymill_user_avatar');
+        if (savedAvatar) {
+          applyAvatarToAll(savedAvatar);
+          hasSavedAvatar = true;
+        }
+      } catch (e) {}
+
+      if (!hasSavedAvatar) {
+        const dropAvatar = document.getElementById('dropdownUserAvatar');
+        if (dropAvatar) dropAvatar.textContent = initials;
+        const headAvatar = document.getElementById('headerUserAvatar');
+        if (headAvatar) headAvatar.textContent = initials;
+      }
 
       const dropName = document.getElementById('dropdownUserName');
       if (dropName) dropName.textContent = uname;
       const dropSub = document.getElementById('dropdownUserSub');
-      if (dropSub) dropSub.textContent = email;
+      if (dropSub) dropSub.textContent = email || phone || `@${uname}`;
       const dropTier = document.getElementById('dropdownTierBadge');
       if (dropTier) dropTier.textContent = u.is_admin ? 'ADMIN' : (isPro ? 'PRO' : 'FREE');
 
@@ -10083,43 +10161,25 @@
       if (bDisplay) bDisplay.textContent = `₦${bankroll.toLocaleString()}`;
       const maxAlloc = document.getElementById('profileMaxAllocationDisplay');
       if (maxAlloc) {
-        maxAlloc.textContent = `5.0% maximum cap (₦${safeStake.toLocaleString()}) prevents catastrophic drawdown.`;
+        maxAlloc.innerHTML = `<strong>5.0% maximum cap (₦${safeStake.toLocaleString()})</strong> prevents catastrophic drawdown.`;
       }
       const dropBankroll = document.getElementById('dropdownBankrollVal');
       if (dropBankroll) dropBankroll.textContent = `₦${bankroll.toLocaleString()}`;
       const dropSafeStake = document.getElementById('dropdownSafeStakeVal');
       if (dropSafeStake) dropSafeStake.textContent = `₦${safeStake.toLocaleString()}`;
-      const bInp = document.getElementById('inputCustomBankrollAmount');
+      const bInp = document.getElementById('inputCustomLiquidBankroll');
       if (bInp) bInp.value = bankroll;
+
+      document.querySelectorAll('.bankroll-preset-chip').forEach(chip => {
+        const chipVal = parseFloat(chip.getAttribute('data-bankroll'));
+        chip.classList.toggle('active', Math.abs(chipVal - bankroll) < 1);
+      });
     }
+    window.syncProfileScreenDOM = syncProfileScreenDOM;
 
     function setupDedicatedProfileScreen() {
-      // Restore user details from storage
-      try {
-        const savedProf = localStorage.getItem('sportymill_user_profile');
-        if (savedProf) {
-          const parsed = JSON.parse(savedProf);
-          Object.assign(state.user, parsed);
-        }
-      } catch (e) {}
-
-      // Restore avatar from storage
-      try {
-        const savedAvatar = localStorage.getItem('sportymill_user_avatar');
-        if (savedAvatar) {
-          applyAvatarToAll(savedAvatar);
-        }
-      } catch (e) {}
-
-      // Restore bankroll from storage
-      try {
-        const savedBankroll = localStorage.getItem('sportymill_bankroll');
-        if (savedBankroll) {
-          state.user.bankroll = parseFloat(savedBankroll) || 1000000;
-        }
-      } catch (e) {}
-
       syncProfileScreenDOM();
+      syncBetslipPlacement();
 
       // Avatar File Upload
       const avatarInput = document.getElementById('inputProfileAvatarFile');
@@ -10134,104 +10194,155 @@
               localStorage.setItem('sportymill_user_avatar', dataUrl);
             } catch (err) {}
             applyAvatarToAll(dataUrl);
-            toast('Profile photo updated successfully!');
           };
           reader.readAsDataURL(file);
         });
       }
 
-      // Edit Profile Form Submit
+      // Sign Out Button on Profile Header
+      const btnProfileSignOut = document.getElementById('btnProfileSignOut');
+      if (btnProfileSignOut) {
+        btnProfileSignOut.addEventListener('click', () => {
+          handleUserSignOut();
+        });
+      }
+
+      // Edit Profile Details Form Submit (Persists to Backend DB via PUT /auth/profile)
       const formProfile = document.getElementById('formEditProfileDetails');
       if (formProfile) {
-        formProfile.addEventListener('submit', (e) => {
+        formProfile.addEventListener('submit', async (e) => {
           e.preventDefault();
+          const btnSave = document.getElementById('btnSaveProfile');
           const uInput = document.getElementById('profInputUsername');
           const pInput = document.getElementById('profInputPhone');
           const eInput = document.getElementById('profInputEmail');
-          if (uInput && uInput.value.trim()) state.user.username = uInput.value.trim();
-          if (pInput && pInput.value.trim()) state.user.phone_number = pInput.value.trim();
-          if (eInput && eInput.value.trim()) state.user.email = eInput.value.trim();
 
-          try {
-            localStorage.setItem('sportymill_user_profile', JSON.stringify(state.user));
-          } catch (err) {}
+          const payload = {};
+          if (uInput && uInput.value.trim()) payload.username = uInput.value.trim();
+          if (pInput && pInput.value.trim()) payload.phone_number = pInput.value.trim();
+          if (eInput && eInput.value.trim()) payload.email = eInput.value.trim();
 
-          syncProfileScreenDOM();
-          toast('Profile details updated successfully!');
-        });
-      }
-
-      // SMS OTP Flow
-      const btnSendOtp = document.getElementById('btnProfSendOtp');
-      const otpBanner = document.getElementById('profOtpSuccessBanner');
-      const otpFields = document.getElementById('profOtpFields');
-      const btnUpdatePass = document.getElementById('btnProfUpdatePassword');
-
-      if (btnSendOtp && otpBanner) {
-        btnSendOtp.addEventListener('click', () => {
-          const phone = state.user.phone_number || '08034567890';
-          const code = String(Math.floor(100000 + Math.random() * 900000));
-          window._activeProfileOtp = code;
-          otpBanner.innerHTML = `<strong>OTP Sent via SMS!</strong> 6-Digit code sent to <strong>${phone}</strong>. Demo OTP: <span style="font-family:var(--font-mono);font-weight:900;letter-spacing:1px;color:#38bdf8;font-size:1rem;">${code}</span> (valid 5 mins).`;
-          otpBanner.style.display = 'block';
-          if (otpFields) otpFields.style.display = 'block';
-          const otpInp = document.getElementById('profOtpCode');
-          if (otpInp) {
-            otpInp.value = code;
-            otpInp.focus();
+          if (btnSave) {
+            btnSave.disabled = true;
+            btnSave.textContent = 'Saving...';
           }
-          toast(`SMS OTP dispatched to ${phone}!`);
+          try {
+            const res = await api('/auth/profile', {
+              method: 'PUT',
+              body: JSON.stringify(payload)
+            });
+            if (res && res.user) {
+              state.user = Object.assign(state.user || {}, res.user);
+              try {
+                localStorage.setItem('tipalgo_user', JSON.stringify(state.user));
+              } catch (err) {}
+            }
+            syncProfileScreenDOM();
+            updateUserUI();
+            showProfFeedback('profDetailsFeedback', 'Profile details saved to your account.', 'success');
+          } catch (err) {
+            showProfFeedback('profDetailsFeedback', err.message || 'Could not update profile details.', 'error');
+          } finally {
+            if (btnSave) {
+              btnSave.disabled = false;
+              btnSave.textContent = 'Save Profile Changes';
+            }
+          }
         });
       }
 
-      if (btnUpdatePass) {
-        btnUpdatePass.addEventListener('click', () => {
-          const codeInp = document.getElementById('profOtpCode');
+      // Change Account Password Form (Persists to Backend DB via PUT /auth/profile)
+      const formPassword = document.getElementById('formUpdateProfilePassword');
+      if (formPassword) {
+        formPassword.addEventListener('submit', async (e) => {
+          e.preventDefault();
           const newPass = document.getElementById('profNewPass');
           const confPass = document.getElementById('profConfirmPass');
+          const btnUpdatePass = document.getElementById('btnProfUpdatePassword');
 
-          const enteredCode = codeInp ? codeInp.value.trim() : '';
           const p1 = newPass ? newPass.value : '';
           const p2 = confPass ? confPass.value : '';
 
-          if (enteredCode !== window._activeProfileOtp && enteredCode !== '123456') {
-            alert('Incorrect OTP code. Please enter the valid 6-digit SMS code.');
-            return;
-          }
           if (p1.length < 6) {
-            alert('Password must contain at least 6 characters.');
+            showProfFeedback('profPasswordFeedback', 'Password must be at least 6 characters long.', 'error');
             return;
           }
           if (p1 !== p2) {
-            alert('Passwords do not match. Please verify.');
+            showProfFeedback('profPasswordFeedback', 'Passwords do not match. Please check and try again.', 'error');
             return;
           }
 
-          toast('Password successfully updated! Your account is secured.');
-          if (otpBanner) otpBanner.style.display = 'none';
-          if (codeInp) codeInp.value = '';
-          if (newPass) newPass.value = '';
-          if (confPass) confPass.value = '';
+          if (btnUpdatePass) {
+            btnUpdatePass.disabled = true;
+            btnUpdatePass.textContent = 'Updating...';
+          }
+          try {
+            await api('/auth/profile', {
+              method: 'PUT',
+              body: JSON.stringify({ password: p1 })
+            });
+            if (newPass) newPass.value = '';
+            if (confPass) confPass.value = '';
+            showProfFeedback('profPasswordFeedback', 'Password updated successfully.', 'success');
+          } catch (err) {
+            showProfFeedback('profPasswordFeedback', err.message || 'Failed to update password.', 'error');
+          } finally {
+            if (btnUpdatePass) {
+              btnUpdatePass.disabled = false;
+              btnUpdatePass.textContent = 'Update Password';
+            }
+          }
         });
       }
 
-      // Bankroll Allocation & Capital Management
+      // Bankroll Preset Chips
+      document.querySelectorAll('.bankroll-preset-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const val = chip.getAttribute('data-bankroll');
+          const inp = document.getElementById('inputCustomLiquidBankroll');
+          if (inp && val) inp.value = val;
+          document.querySelectorAll('.bankroll-preset-chip').forEach(c => c.classList.remove('active'));
+          chip.classList.add('active');
+        });
+      });
+
+      // Bankroll Allocation & Capital Management (Persists to Backend DB + Recalculates Stakes)
       const btnSaveBankroll = document.getElementById('btnSaveCustomBankroll');
-      const inpBankroll = document.getElementById('inputCustomBankrollAmount');
+      const inpBankroll = document.getElementById('inputCustomLiquidBankroll');
       if (btnSaveBankroll && inpBankroll) {
-        btnSaveBankroll.addEventListener('click', () => {
+        btnSaveBankroll.addEventListener('click', async () => {
           const val = parseFloat(inpBankroll.value);
-          if (!val || val <= 0) {
-            alert('Please enter a valid liquid bankroll amount.');
+          if (!val || val < 1000) {
+            showProfFeedback('profBankrollFeedback', 'Please enter a bankroll of at least ₦1,000.', 'error');
             return;
           }
-          state.user.bankroll = val;
+          btnSaveBankroll.disabled = true;
+          btnSaveBankroll.textContent = 'Saving...';
           try {
-            localStorage.setItem('sportymill_bankroll', String(val));
-          } catch (err) {}
-          syncProfileScreenDOM();
-          toast(`Bankroll updated to ₦${val.toLocaleString()} with 0.25 Kelly protection!`);
-          renderCalendarMatchesFeed();
+            const res = await api('/auth/profile', {
+              method: 'PUT',
+              body: JSON.stringify({ bankroll: val })
+            });
+            if (res && res.user) {
+              state.user = Object.assign(state.user || {}, res.user);
+            } else {
+              if (!state.user) state.user = {};
+              state.user.bankroll = val;
+            }
+            try {
+              localStorage.setItem('tipalgo_user', JSON.stringify(state.user));
+              localStorage.setItem('sportymill_bankroll', String(val));
+            } catch (err) {}
+            syncProfileScreenDOM();
+            updateUserUI();
+            if (typeof renderCalendarMatchesFeed === 'function') renderCalendarMatchesFeed();
+            showProfFeedback('profBankrollFeedback', `Bankroll updated to ₦${val.toLocaleString()}. Suggested stakes updated.`, 'success');
+          } catch (err) {
+            showProfFeedback('profBankrollFeedback', err.message || 'Failed to save bankroll.', 'error');
+          } finally {
+            btnSaveBankroll.disabled = false;
+            btnSaveBankroll.textContent = 'Save Bankroll';
+          }
         });
       }
     }
@@ -10328,7 +10439,6 @@
     if (rowSettingTheme) rowSettingTheme.addEventListener('click', () => {
       const nextTheme = document.body.classList.contains('dark-theme-mode') ? 'light' : 'dark';
       applyPlatformTheme(nextTheme);
-      toast(nextTheme === 'dark' ? 'Dark Mode Enabled' : 'Light Mode Enabled');
     });
     if (rowSettingCurrency) rowSettingCurrency.addEventListener('click', () => toast('Monetary unit: Nigerian Naira (₦ NGN).'));
     if (rowSettingAuth) rowSettingAuth.addEventListener('click', () => openAuthModal('tab-login'));
@@ -11561,7 +11671,6 @@
         const rows = tbody ? Array.from(tbody.querySelectorAll('tr')).filter(r => r.querySelectorAll('td').length >= 5) : [];
         const count = rows.length;
         if (count > 0) {
-          toast(`Added ${count} value legs to SportyBet slip!`);
           const popup = document.getElementById('mobileFloatingSlipPopup');
           if (popup) popup.classList.add('visible');
         } else {
@@ -11724,7 +11833,19 @@
 
     function openMobileMenu() {
       if (backdrop) {
-        backdrop.classList.add('open');
+        if (dom.betslipSidebar && dom.betslipSidebar.classList.contains('open') && typeof toggleSlip === 'function') {
+          toggleSlip(false);
+        }
+        if (dom.filterSidebar && dom.filterSidebar.classList.contains('open') && typeof toggleFilterDrawer === 'function') {
+          toggleFilterDrawer(false);
+        }
+        if (backdrop.parentElement !== document.body) {
+          document.body.appendChild(backdrop);
+          void backdrop.offsetWidth;
+        }
+        requestAnimationFrame(() => {
+          backdrop.classList.add('open');
+        });
         backdrop.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
       }
@@ -11776,9 +11897,14 @@
     }
 
     if (mobLogin) {
+      mobLogin.textContent = state.token ? 'Sign Out' : 'Sign In';
       mobLogin.addEventListener('click', () => {
         closeMobileMenu();
-        openSecurityGate();
+        if (state.token) {
+          handleUserSignOut();
+        } else {
+          showSecurityGate();
+        }
       });
     }
 
