@@ -2022,7 +2022,7 @@
       pillBestEdge: "Sweetest Edge",
       pillAllMarkets: "All Options",
 
-      textBackOverview: "← Back to Matches",
+      textBackOverview: "Back to Matches",
       analyticsModePill: "FULL MATCH GIST",
       labelHomeOdds: "Home Win (1)",
       labelDrawOdds: "Draw / Stalemate (X)",
@@ -2051,21 +2051,21 @@
     if (bankers.length > 0) {
       const b = bankers[0];
       const tip = (b.tips && b.tips.find(t => t.prob_pct >= 75)) || b.top_tip || {};
-      const prob = tip.prob_pct || 90;
+      const prob = tip.prob_pct || 88;
       const odds = tip.odds ? Number(tip.odds).toFixed(2) : '1.20';
       const sel = tip.label || tip.market || 'Under Line';
       alerts.push({
         type: 'banker',
-        tag: isBanter ? `BANKER · ${prob}% CHANCE` : `BANKER · ${prob}% PROB`,
+        tag: isBanter ? `🟢 SURE BANKER · ${prob}% SURE` : `🟢 SURE BANKER · ${prob}% PROB`,
         home_team: b.home_team,
         away_team: b.away_team,
         league_name: b.league_name || 'Serie A',
         selection: sel,
         odds: odds,
-        edge_text: `${prob}% Win Prob`,
+        edge_text: isBanter ? `${prob}% Sure` : `${prob}% Win Prob`,
         summary: isBanter
-          ? `Model run full goal simulation confirm say this selection dey tight for ticket.`
-          : `Poisson goal simulation confirms strong defensive expectancy against market line.`,
+          ? `Dis selection safe die for your ticket today. Both teams rarely cross dis goal line.`
+          : `Very high probability selection with strong defensive form. Safe accumulator anchor.`,
         team: b.home_team,
         time: 'Today'
       });
@@ -2081,7 +2081,7 @@
       const sel = valTip.label || valTip.market || 'Match Winner';
       alerts.push({
         type: 'value',
-        tag: isBanter ? `SWEET VALUE EDGE` : `+EV VALUE SPIKE`,
+        tag: isBanter ? `🔵 SWEET VALUE (+${edgePct}%)` : `🔵 HIGH VALUE (+${edgePct}% EDGE)`,
         home_team: v.home_team,
         away_team: v.away_team,
         league_name: v.league_name || 'Pro League',
@@ -2089,10 +2089,10 @@
         odds: odds,
         edge_text: `+${edgePct}% Edge`,
         summary: isBanter
-          ? `Bookmaker price understate wetin our model calculate. Oga sharp value edge dey here.`
-          : `Model-calculated outcome expectancy exceeds bookmaker implied probability.`,
+          ? `Bookie give sweet odds wey pass normal. True chance sharp pass the odds.`
+          : `Bookmaker odds are priced higher than true model probability. Positive expected value.`,
         team: v.home_team,
-        time: 'Live Edge'
+        time: 'Live Odds'
       });
     }
 
@@ -2104,16 +2104,16 @@
       const odds = gTip.odds ? Number(gTip.odds).toFixed(2) : '1.85';
       alerts.push({
         type: 'goals',
-        tag: isBanter ? `GOALS RADAR` : `GOALS RADAR · OVER 2.5`,
+        tag: isBanter ? `⚡ GOALS RADAR` : `⚡ GOALS RADAR · OVER 2.5`,
         home_team: g.home_team,
         away_team: g.away_team,
         league_name: g.league_name || 'Cup Competition',
         selection: 'Over 2.5 Goals',
         odds: odds,
-        edge_text: `2.9 xG Projected`,
+        edge_text: isBanter ? `High Goals Expected` : `2.9 xG Projected`,
         summary: isBanter
           ? `Both clubs dey attack heavy, pace and offensive form project plenty goals.`
-          : `High attacking pace with combined expected goals (xG) projected above 2.85.`,
+          : `Both teams create regular scoring chances and concede frequently. Open match expected.`,
         team: g.home_team,
         time: 'Radar'
       });
@@ -2126,14 +2126,16 @@
         const topTip = (m.tips && m.tips[0]) || m.top_tip || {};
         alerts.push({
           type: 'banker',
-          tag: `VERIFIED ANALYSIS`,
+          tag: isBanter ? `🟢 VERIFIED MATCH` : `🟢 VERIFIED MATCH`,
           home_team: m.home_team,
           away_team: m.away_team,
           league_name: m.league_name || 'League Match',
-          selection: topTip.label || topTip.market || 'Match Angles',
+          selection: topTip.label || topTip.market || 'Match Pick',
           odds: topTip.odds ? Number(topTip.odds).toFixed(2) : '1.50',
           edge_text: `${topTip.prob_pct || 65}% Win Prob`,
-          summary: `Quantitative lines and full Poisson expectancy simulations verified for this match.`,
+          summary: isBanter
+            ? `Full match numbers and team form verified directly from live API schedule.`
+            : `Verified schedule matchup with live form records and calibrated betting odds.`,
           team: m.home_team,
           time: 'Active'
         });
@@ -2182,8 +2184,8 @@
           if (searchInput) {
             searchInput.value = team;
             state.calendar.searchQuery = team;
-            if (typeof renderCalendarSlateGrid === 'function') {
-              renderCalendarSlateGrid();
+            if (typeof renderCalendarMatchesFeed === 'function') {
+              renderCalendarMatchesFeed();
             }
           }
         }
@@ -2205,8 +2207,9 @@
       document.body.classList.remove('banter-mode-active');
       if (toneWrapper) toneWrapper.classList.remove('banter-active');
     }
-    if (dom.personaSelect) {
-      dom.personaSelect.value = state.personalityMode;
+    const personaDesktop = document.getElementById('personaSelect') || dom.personaSelect;
+    if (personaDesktop) {
+      personaDesktop.value = state.personalityMode;
     }
     const mobilePersona = document.getElementById('personaSelectMobile');
     if (mobilePersona) {
@@ -2223,22 +2226,54 @@
     const elTopNavSupport = document.getElementById('topNavSupport');
     if (elTopNavSupport) elTopNavSupport.textContent = lang.navSupport;
 
+    // Tools Dropdown trigger and items
+    const btnDropdownQuant = document.querySelector('#btnDropdownQuant span');
+    if (btnDropdownQuant) btnDropdownQuant.textContent = isBanter ? 'Chop Tools' : 'Tools';
+    const topNavBankers = document.querySelector('#topNavBankers .item-title');
+    if (topNavBankers) topNavBankers.textContent = isBanter ? '80%+ Sure Banker Picks' : 'Bankers Slate (80%+)';
+    const topNavScreener = document.querySelector('#topNavScreener .item-title');
+    if (topNavScreener) topNavScreener.textContent = isBanter ? 'Value Edge Scanner' : 'Value Screener (+EV)';
+    const topNavAccu = document.querySelector('#topNavAccu .item-title');
+    if (topNavAccu) topNavAccu.textContent = isBanter ? 'Accu-Forge Multi' : 'Accu-Forge Parlay';
+    const topNavBatch = document.querySelector('#topNavBatch .item-title');
+    if (topNavBatch) topNavBatch.textContent = isBanter ? 'Full Slate Scanner' : 'Full Slate Scanner';
+    const topNavSlipHistory = document.querySelector('#topNavSlipHistory .item-title');
+    if (topNavSlipHistory) topNavSlipHistory.textContent = isBanter ? 'Chop Slip History' : 'Bet Slip History';
+
+    // Mobile Menu Drawer Links
+    const mobNavMatches = document.querySelector('#mobNavMatches span');
+    if (mobNavMatches) mobNavMatches.textContent = isBanter ? 'Matches Slate' : 'Matches Slate';
+    const mobNavGrand = document.querySelector('#mobNavGrand span');
+    if (mobNavGrand) mobNavGrand.textContent = isBanter ? '33 Endpoints' : '33 Endpoints';
+    const mobNavBankers = document.querySelector('#mobNavBankers span');
+    if (mobNavBankers) mobNavBankers.textContent = isBanter ? '80%+ Sure Bankers' : '80%+ Bankers';
+    const mobNavScreener = document.querySelector('#mobNavScreener span');
+    if (mobNavScreener) mobNavScreener.textContent = isBanter ? 'Value Edge Scanner' : 'Value Screener';
+    const mobNavAccu = document.querySelector('#mobNavAccu span');
+    if (mobNavAccu) mobNavAccu.textContent = isBanter ? 'Accu-Forge Multi' : 'Accu-Forge';
+    const mobNavBatch = document.querySelector('#mobNavBatch span');
+    if (mobNavBatch) mobNavBatch.textContent = isBanter ? 'Full Slate Scanner' : 'Full Slate';
+    const mobNavHistory = document.querySelector('#mobNavHistory span');
+    if (mobNavHistory) mobNavHistory.textContent = isBanter ? 'Prediction History' : 'Prediction History';
+    const mobNavAbout = document.querySelector('#mobNavAbout span');
+    if (mobNavAbout) mobNavAbout.textContent = isBanter ? 'About SportyMill' : 'About Model';
+
     // Notifications Popover Header & Dynamic Updates
     const notifHeader = document.querySelector('.notif-popover-title');
-    if (notifHeader) notifHeader.textContent = isBanter ? 'Model Intelligence Gist' : 'Live Model Intelligence';
+    if (notifHeader) notifHeader.textContent = isBanter ? 'Live Betting Signals' : 'Live Model Intelligence';
     if (state.calendar && state.calendar.data && state.calendar.data.matches) {
       updateLiveModelNotifications(state.calendar.data.matches);
     }
 
     // Mobile Bottom Navigation Bar (Home, 33 Endpoints, Bet Slip, Profile)
     const btnNavHome = document.querySelector('.mobile-bottom-nav .bottom-nav-item[data-tab-target="view-calendar"] span.bottom-nav-label, .mobile-bottom-nav .bottom-nav-item[data-tab-target="view-calendar"] span');
-    if (btnNavHome) btnNavHome.textContent = lang.navHome || 'Home';
+    if (btnNavHome) btnNavHome.textContent = lang.navHome || 'Matches';
     const btnNavGrand = document.querySelector('.mobile-bottom-nav .bottom-nav-item[data-tab-target="view-grand"] span.bottom-nav-label, .mobile-bottom-nav .bottom-nav-item[data-tab-target="view-grand"] span');
     if (btnNavGrand) btnNavGrand.textContent = '33 Endpoints';
     const btnNavSlip = document.querySelector('.mobile-bottom-nav #btnBottomSlipToggle span.bottom-nav-label, .mobile-bottom-nav #btnBottomSlipToggle span:not(.bottom-slip-badge)');
-    if (btnNavSlip) btnNavSlip.textContent = lang.navSlip || 'Bet Slip';
+    if (btnNavSlip) btnNavSlip.textContent = isBanter ? 'Chop Slip' : 'Bet Slip';
     const btnNavProfile = document.querySelector('.mobile-bottom-nav .bottom-nav-item[data-tab-target="view-profile"] span.bottom-nav-label, .mobile-bottom-nav .bottom-nav-item[data-tab-target="view-profile"] span');
-    if (btnNavProfile) btnNavProfile.textContent = lang.navProfile || 'Profile';
+    if (btnNavProfile) btnNavProfile.textContent = isBanter ? 'My Profile' : 'Profile';
 
     // Calendar Header & Dropdown
     const calHdrLabel = document.querySelector('.cal-dropdown-header-label span');
@@ -2282,21 +2317,21 @@
 
     // Betslip Drawer Elements
     const betslipTitleText = document.querySelector('.slip-title-text');
-    if (betslipTitleText) betslipTitleText.textContent = 'Bet Slip';
+    if (betslipTitleText) betslipTitleText.textContent = isBanter ? 'Chop Slip' : 'Bet Slip';
     const slipHistoryBtnLabel = document.getElementById('slipHistoryBtnLabel');
     if (slipHistoryBtnLabel) slipHistoryBtnLabel.textContent = 'History';
     const btnClearSlip = document.getElementById('btnClearSlip');
-    if (btnClearSlip) btnClearSlip.textContent = 'Clear';
+    if (btnClearSlip) btnClearSlip.textContent = isBanter ? 'Clear Slip' : 'Clear';
     const slipEmptyTitle = document.querySelector('#slipEmptyState p') || document.querySelector('#slipEmptyState div:nth-child(2)');
-    if (slipEmptyTitle) slipEmptyTitle.textContent = 'Your Bet Slip is Empty';
+    if (slipEmptyTitle) slipEmptyTitle.textContent = lang.slipEmptyTitle || (isBanter ? 'Your chop slip still dey empty oga!' : 'Your Bet Slip is Empty');
     const slipEmptySub = document.querySelector('#slipEmptyState span') || document.querySelector('#slipEmptyState div:nth-child(3)');
-    if (slipEmptySub) slipEmptySub.textContent = 'Click odds on any fixture to add selections to your slip.';
+    if (slipEmptySub) slipEmptySub.textContent = lang.slipEmptySub || (isBanter ? 'Tap any sweet odds or "Chop Am" make you load your ticket!' : 'Click odds on any fixture to add selections to your slip.');
     const slipAddedLabel = document.getElementById('slipAddedLabel');
-    if (slipAddedLabel) slipAddedLabel.textContent = 'Games Added:';
+    if (slipAddedLabel) slipAddedLabel.textContent = isBanter ? 'Games Wey You Add:' : 'Games Added:';
     const slipOddsLabel = document.getElementById('slipOddsLabel');
-    if (slipOddsLabel) slipOddsLabel.textContent = 'Combined Odds:';
+    if (slipOddsLabel) slipOddsLabel.textContent = isBanter ? 'Total Combined Odds:' : 'Combined Odds:';
     const btnValidatePrintSlipSpan = document.querySelector('#btnValidatePrintSlip span');
-    if (btnValidatePrintSlipSpan) btnValidatePrintSlipSpan.textContent = 'Check Slip & Print';
+    if (btnValidatePrintSlipSpan) btnValidatePrintSlipSpan.textContent = isBanter ? 'Book Ticket / Check Slip' : 'Check Slip & Print';
 
     // Filter Modal & Drawer Elements
     const filterTitle = document.querySelector('.filter-sidebar-title') || document.querySelector('.filter-sidebar-header h3');
@@ -3431,13 +3466,13 @@
         }
       } catch (e) {}
     }
-    let statusColText = isBanker ? 'BANKER' : 'PRE';
+    let statusColText = isBanker ? (isBanter ? 'SURE BANKER' : 'BANKER') : 'PRE';
     let showStatusBadge = true;
     if (isFinished) {
       showStatusBadge = false; // No FT / FINAL badge per requirement
     } else if (isLive) {
-      timeColText = 'LIVE';
-      statusColText = 'IN-PLAY';
+      timeColText = isBanter ? 'DEY PLAY' : 'LIVE';
+      statusColText = isBanter ? 'LIVE' : 'IN-PLAY';
     } else if (isPostponed) {
       timeColText = 'POSTP';
       statusColText = 'POSTPONED';
@@ -3632,15 +3667,15 @@
               <div class="em-canva-pred-row">
                 <div class="em-pred-pill-wrap pick-trigger ${inSlipTop ? 'in-slip' : ''}"
                   data-home="${esc(m.home_team)}" data-away="${esc(m.away_team)}" data-league="${m.league_id || ''}" data-market="${esc(topTip.market)}" data-odds="${topTip.odds}"
-                  title="${inSlipTop ? 'Click to remove prediction from Bet Slip' : 'Click to add prediction to Bet Slip'}">
+                  title="${inSlipTop ? (isBanter ? 'Tap to remove selection from Chop Slip' : 'Click to remove prediction from Bet Slip') : (isBanter ? 'Tap to chop this odds into your slip' : 'Click to add prediction to Bet Slip')}">
                   <span class="em-canva-pick-label">${esc(topTip.label)}.</span>
-                  <span class="em-canva-prob-badge">${topTip.prob_pct}%</span>
-                  <span class="em-canva-odds-badge ${inSlipTop ? 'in-slip' : ''}">@${Number(topTip.odds).toFixed(2)}</span>
+                  <span class="em-canva-prob-badge">${isBanter ? topTip.prob_pct + '% Sure' : topTip.prob_pct + '%'}</span>
+                  <span class="em-canva-odds-badge ${inSlipTop ? 'in-slip' : ''}">@${Number(topTip.odds).toFixed(2)}${inSlipTop ? (isBanter ? ' Don Enter' : ' Added') : ''}</span>
                 </div>
 
                 <button type="button" class="em-info-circle-btn btn-grid-details"
                   data-home="${esc(m.home_team)}" data-away="${esc(m.away_team)}" data-league="${m.league_id || ''}" data-idx="${rowIdx}"
-                  title="View Analytics, Head-to-Head &amp; Standings" aria-label="View In-Depth Analytics">
+                  title="${isBanter ? 'Check Match Gist, H2H & Standings' : 'View Analytics, Head-to-Head & Standings'}" aria-label="View In-Depth Analytics">
                   <span class="info-letter">i</span>
                 </button>
               </div>
@@ -9476,13 +9511,14 @@
       } catch (e) {}
       applyLanguageMode(state.personalityMode);
       toast(state.personalityMode === 'BANTER' ? 'Oya! Naija Banter Mode Don Active 🔥' : 'Commentary Mode: Professional Quant Mode', 'info');
-      if (typeof renderCalendarSlateGrid === 'function' && dom.calendarMatchesFeed && state.calendar.data) {
-        renderCalendarSlateGrid();
+      if (typeof renderCalendarMatchesFeed === 'function') {
+        renderCalendarMatchesFeed();
       }
       if (state.calendar && state.calendar.data && state.calendar.data.matches) {
         updateLiveModelNotifications(state.calendar.data.matches);
       }
     }
+    window.handleToneChange = handleToneChange;
 
     const personaSelectEl = document.getElementById('personaSelect');
     if (personaSelectEl) {

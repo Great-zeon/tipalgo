@@ -13287,11 +13287,7 @@ body.banter-mode-active .sb-model-pick-pill .sb-pick-title {
   }
 
   .footy-quant-audit-pill {
-    font-size: 0.65rem !important;
-    padding: 0.2rem 0.5rem !important;
-    white-space: nowrap !important;
-    flex-shrink: 0 !important;
-    line-height: 1.2 !important;
+    display: none !important;
   }
 
   .footystats-match-hero-card {
