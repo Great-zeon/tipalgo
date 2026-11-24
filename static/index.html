@@ -146,6 +146,20 @@
       <!-- Right: Actions Group -->
       <div class="nav-right-actions">
 
+        <!-- Professional vs Naija Banter Mode Toggle -->
+        <div class="header-select-wrapper tone-select-wrapper" id="toneWrapper" title="Commentary Tone (Professional vs Naija Banter)">
+          <span class="select-prefix-icon tone-icon">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+          </span>
+          <select id="personaSelect" class="header-select persona-styled-select" aria-label="Commentary Tone">
+            <option value="PROFESSIONAL" selected>Professional Mode</option>
+            <option value="BANTER">Naija Banter Mode</option>
+          </select>
+        </div>
+
         <!-- Notifications Icon Button -->
         <button class="nav-icon-btn" id="btnNavNotifications" title="Live Predictions &amp; Model Alerts">
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"
@@ -284,22 +298,14 @@
       <div class="notifications-popover" id="popoverNotifications">
         <div class="notif-popover-header">
           <span class="notif-popover-title">Live Model Intelligence</span>
-          <span style="font-size:0.68rem; color:#10b981; font-weight:700;">3 NEW</span>
+          <span style="font-size:0.68rem; color:#10b981; font-weight:700;" id="notifBadgeCount">LIVE ALERTS</span>
         </div>
-        <div class="notif-item">
-          <span class="notif-item-title">+8.4% EV Value Spike</span>
-          <span class="notif-item-desc">Liverpool vs Man City home edge confirmed under Poisson goal simulation.</span>
-          <span class="notif-item-time">10 mins ago</span>
-        </div>
-        <div class="notif-item">
-          <span class="notif-item-title">80%+ Banker Filter</span>
-          <span class="notif-item-desc">Arsenal or Draw (1X) qualified under multi-strategy safety filter.</span>
-          <span class="notif-item-time">25 mins ago</span>
-        </div>
-        <div class="notif-item">
-          <span class="notif-item-title">Over 2.5 Goals Radar</span>
-          <span class="notif-item-desc">Bayern vs Dortmund projected 3.45 xG total volume.</span>
-          <span class="notif-item-time">1 hour ago</span>
+        <div id="notifItemsContainer" style="display:flex; flex-direction:column; gap:0.55rem;">
+          <div class="notif-item">
+            <span class="notif-item-title">Model Radar Active</span>
+            <span class="notif-item-desc">Scanning authentic live fixtures for value spikes and banker clearances...</span>
+            <span class="notif-item-time">Active Feed</span>
+          </div>
         </div>
       </div>
     </header>
@@ -393,6 +399,18 @@
             <span>About Model</span>
           </a>
 
+          <div class="mobile-tone-toggle-row" style="padding: 0.85rem 1rem; margin-top: 0.5rem; background: rgba(30, 41, 59, 0.4); border-radius: 8px; border: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+              <span style="font-size: 0.82rem; color: #cbd5e1; font-weight: 600;">Commentary Tone</span>
+            </div>
+            <select id="personaSelectMobile" style="background: #0f172a; color: #38bdf8; border: 1px solid rgba(56,189,248,0.4); border-radius: 6px; padding: 0.35rem 0.65rem; font-size: 0.78rem; font-weight: 700;">
+              <option value="PROFESSIONAL">Professional</option>
+              <option value="BANTER">Naija Banter</option>
+            </select>
+          </div>
 
           <div class="mobile-nav-divider"></div>
 
@@ -2930,7 +2948,7 @@
       .then(function (data) { if (data) window.__teamForms = data; })
       .catch(function () { });
   </script>
-  <script src="/static/app.js?v=122"></script>
+  <script src="/static/app.js?v=123"></script>
 </body>
 
 </html>

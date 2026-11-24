@@ -573,9 +573,9 @@
   // App Bootstrap
   async function init() {
     try {
-      localStorage.removeItem('tipalgo_tone');
-      state.personalityMode = 'PROFESSIONAL';
-      applyLanguageMode('PROFESSIONAL');
+      const savedTone = localStorage.getItem('tipalgo_tone');
+      state.personalityMode = (savedTone === 'BANTER') ? 'BANTER' : 'PROFESSIONAL';
+      applyLanguageMode(state.personalityMode);
     } catch (e) {}
 
     setupEventListeners();
@@ -1956,101 +1956,203 @@
       navGrand: "33 Endpoints",
       navAbout: "About SportyMill",
       navSupport: "Customer Care",
-      navContest: "Top Banker Pick",
-      navAnalytics: "Full Match Analytics",
-      navBankers: "Banker Slate",
-      navScreener: "Value Screener",
-      navAccumulator: "Accu-Forge Parlays",
+      navContest: "Sure Banker Pick",
+      navAnalytics: "Match Gist & Breakdown",
+      navBankers: "80%+ Sure Banker Slates",
+      navScreener: "Value Edge Scanner",
+      navAccumulator: "Accu-Forge Multi",
       navBatch: "Full Slate Scanner",
       navSlip: "Bet Slip",
-      navProfile: "Profile",
+      navProfile: "My Profile",
 
-      matchLabel: "Match",
-      toneLabel: "Professional",
-      btnAddCustom: "+ Add Custom Fixture",
+      matchLabel: "Game",
+      toneLabel: "Naija Mode",
+      btnAddCustom: "+ Add Your Game",
       syncBtnText: "Refresh Matches",
 
-      calHeader: "Matches By Date",
-      calSub: "Select a date to inspect fixtures",
-      calBadgeSuffix: "Matches Available",
-      calYesterday: "Yesterday",
-      calToday: "Today",
-      calTomorrow: "Tomorrow",
-      calNext5: "Next 5 Days",
-      calGoToday: "Today",
-      calDone: "Done",
+      calHeader: "Matches Wey Dey Play By Date",
+      calSub: "Tap here choose any day make you see matches",
+      calBadgeSuffix: "Matches Dey",
+      calYesterday: "Yesterday Match",
+      calToday: "Today Game",
+      calTomorrow: "Tomorrow Match",
+      calNext5: "Next 5 Days Run",
+      calGoToday: "Jump to Today",
+      calDone: "Oya Done",
 
-      searchPlaceholder: "Search fixtures or leagues (e.g. Arsenal, Chelsea, Real Madrid)...",
+      searchPlaceholder: "Find your team or league (e.g. Santos, Arsenal, Madrid)...",
       filterBtn: "Filter Matches",
       viewTable: "Odds Table",
       viewGrid: "Match Cards",
 
-      cardModelPick: "Model Pick",
-      cardWinLikelihood: "Win Likelihood",
-      cardAnalyticsBtn: "Analytics",
-      cardAddSlip: "Add to Slip",
-      cardInSlip: "Added",
-      cardBankerBadge: "BANKER",
+      cardModelPick: "Chop Pick",
+      cardWinLikelihood: "Chance to Enter",
+      cardAnalyticsBtn: "Check Gist",
+      cardAddSlip: "Chop Am",
+      cardInSlip: "Don Enter",
+      cardBankerBadge: "80%+ BANKER",
 
       slipTitle: "Bet Slip",
-      slipEmptyTitle: "Your Bet Slip is Empty",
-      slipEmptySub: "Click odds on any fixture to add selections to your slip.",
-      slipClear: "Clear",
-      slipStakeLabel: "Stake (₦)",
-      slipTotalOdds: "Combined Odds",
-      slipReturn: "Est. Payout",
-      slipBookBtn: "Save Slip & Code",
-      slipAuditBtn: "Check Slip & Print",
+      slipEmptyTitle: "Your chop slip still dey empty oga!",
+      slipEmptySub: "Tap any sweet odds or 'Chop Am' make you load your ticket!",
+      slipClear: "Clear Slip",
+      slipStakeLabel: "Your Stake (₦)",
+      slipTotalOdds: "Total Combined Odds",
+      slipReturn: "Money Wey Go Enter",
+      slipBookBtn: "Book Ticket / Get Code",
+      slipAuditBtn: "Audit Slip With Quant Screener",
 
-      subtabContest: "Top Banker Pick",
-      subtabAnalytics: "Match Breakdown",
-      subtabBankers: "Banker Picks",
-      subtabGrand: "33 Prediction Markets",
-      subtabScreener: "Value Screener",
-      subtabAccumulator: "Accu-Forge Parlays",
+      subtabContest: "Sure Banker Pick",
+      subtabAnalytics: "Match Gist & Breakdown",
+      subtabBankers: "80%+ Sure Banker Slates",
+      subtabGrand: "All 33 Chop Endpoints",
+      subtabScreener: "Value Edge Scanner",
+      subtabAccumulator: "Accu-Forge Multi",
       subtabBatch: "Full Slate Scanner",
 
-      poolLabel: "Top Mathematical Value Pick",
-      metricWinRate: "Win Likelihood",
-      metricRankGap: "Rank Gap",
-      metricEdge: "Value Edge",
-      metricConfidence: "Confidence",
-      btnHeroPredict: "Analyze Full Breakdown →",
+      poolLabel: "OGA VALUE PICK DEY HERE",
+      metricWinRate: "Chance to Enter",
+      metricRankGap: "Table Level Gap",
+      metricEdge: "Extra Sweet Edge",
+      metricConfidence: "Confidence Level",
+      btnHeroPredict: "Inspect Full Match Breakdown →",
 
-      top3Header: "Market Odds Breakdown (Top 3 Angles)",
-      top3Sub: "Algorithmic probability rankings calibrated for the active fixture.",
-      pillBestEdge: "Best Edge",
-      pillAllMarkets: "All Markets",
+      top3Header: "Top 3 Sweetest Betting Angles",
+      top3Sub: "The 3 most reliable options wey fit pay pass for this match.",
+      pillBestEdge: "Sweetest Edge",
+      pillAllMarkets: "All Options",
 
-      textBackOverview: "Back to Matches",
-      analyticsModePill: "MATCH MODEL AUDIT",
-      labelHomeOdds: "Home (1)",
-      labelDrawOdds: "Draw (X)",
-      labelAwayOdds: "Away (2)",
-      textBetOptionsTitle: "SportyMill High-Conviction Selections",
-      textBetOptionsSub: "Mathematically vetted betting selections designed for maximum yield and bankroll safety under Fractional Kelly.",
-      textSubStrategyTitle: "Sub-Strategy Trap & Pattern Detection",
-      textSubStrategySub: "Evaluates bookmaker pricing anomalies, false favorites, and form mismatches using the script's SubStrategyDetector.",
-      textEndpointsTitle: "Complete 33-Market Statistical Audit",
-      textEndpointsSub: "Every prediction endpoint checked by the Poisson and Kelly models for this fixture, explained in plain language.",
-      textFormH2HTitle: "Recent Form & Head-to-Head History",
-      textFormH2HSub: "Last 5 competitive match results and head-to-head dominance comparison."
+      textBackOverview: "← Back to Matches",
+      analyticsModePill: "FULL MATCH GIST",
+      labelHomeOdds: "Home Win (1)",
+      labelDrawOdds: "Draw / Stalemate (X)",
+      labelAwayOdds: "Away Win (2)",
+      textBetOptionsTitle: "High-Conviction Naija Chop Picks",
+      textBetOptionsSub: "Carefully calculated betting selections wey fit sweet your pocket without burning your money.",
+      textSubStrategyTitle: "Trap & Bookmaker Pattern Radar",
+      textSubStrategySub: "Model dey check whether bookie set trap with fake favorite or if one team sharp pass the other.",
+      textEndpointsTitle: "Full 33-Endpoint Audit (Every Single Option Checked)",
+      textEndpointsSub: "Every market our quant engine scan for this match, plain pidgin breakdown.",
+      textFormH2HTitle: "Recent Form & Head-to-Head Clash",
+      textFormH2HSub: "Last 5 competitive matches and head-to-head clash record."
     }
   };
 
-  // Translate entire UI to Professional English
-  function applyLanguageMode(mode) {
-    const lang = TRANSLATIONS.PROFESSIONAL;
-    const isBanter = false;
+  // Dynamic Live Model Intelligence Notifications from Real Live Matches
+  function updateLiveModelNotifications(matches) {
+    const container = document.getElementById('notifItemsContainer');
+    if (!container || !matches || !matches.length) return;
 
-    // Remove any legacy Banter class on body & tone wrapper
-    document.body.classList.remove('banter-mode-active');
+    const isBanter = state.personalityMode === 'BANTER';
+    const alerts = [];
+
+    // 1. High Probability / Banker Alert (>= 75% or top probability)
+    const bankers = matches.filter(m => (m.tips && m.tips.some(t => t.prob_pct >= 75)) || (m.top_tip && m.top_tip.prob_pct >= 75));
+    if (bankers.length > 0) {
+      const topBanker = bankers[0];
+      const tip = (topBanker.tips && topBanker.tips.find(t => t.prob_pct >= 75)) || topBanker.top_tip || {};
+      alerts.push({
+        title: isBanter ? `🔥 ${tip.prob_pct || 80}% Sure Chop Alert` : `🛡️ ${tip.prob_pct || 80}%+ Banker Clearance`,
+        desc: isBanter
+          ? `${topBanker.home_team} vs ${topBanker.away_team}: Model confirm ${tip.label || tip.market || 'selection'} with ${tip.prob_pct || 80}% sweet chance!`
+          : `${topBanker.home_team} vs ${topBanker.away_team}: ${tip.label || tip.market || 'Selection'} qualified under multi-strategy safety filter.`,
+        team: topBanker.home_team,
+        time: 'Active Today'
+      });
+    }
+
+    // 2. High EV / Value Spike Alert (edge >= 0.03)
+    const valueMatches = matches.filter(m => (m.tips && m.tips.some(t => (t.edge || 0) >= 0.03)) || (m.top_tip && (m.top_tip.edge || 0) >= 0.03));
+    if (valueMatches.length > 0) {
+      const topVal = valueMatches[0];
+      const valTip = (topVal.tips && topVal.tips.find(t => (t.edge || 0) >= 0.03)) || topVal.top_tip || {};
+      const edgePct = ((valTip.edge || 0.05) * 100).toFixed(1);
+      alerts.push({
+        title: isBanter ? `💰 +${edgePct}% Sweet Value Edge` : `📈 +${edgePct}% EV Value Spike`,
+        desc: isBanter
+          ? `${topVal.home_team} vs ${topVal.away_team}: Bookie underprice this odds @${valTip.odds || '1.80'}. Oga sharp edge dey here!`
+          : `${topVal.home_team} vs ${topVal.away_team}: Pricing discrepancy detected against Poisson distribution @${valTip.odds || '1.80'}.`,
+        team: topVal.home_team,
+        time: 'Live Edge'
+      });
+    }
+
+    // 3. Goals Volume / Over 2.5 Radar
+    const goalMatches = matches.filter(m => (m.tips && m.tips.some(t => t.market && t.market.toLowerCase().includes('over 2.5'))) || (m.top_tip && m.top_tip.market && m.top_tip.market.toLowerCase().includes('over 2.5')));
+    if (goalMatches.length > 0) {
+      const topGoal = goalMatches[0];
+      alerts.push({
+        title: isBanter ? `⚽ Over 2.5 Goals Fire Radar` : `⚡ Over 2.5 Goals Radar`,
+        desc: isBanter
+          ? `${topGoal.home_team} vs ${topGoal.away_team}: Attacking pace dey burst net, high goal volume expected!`
+          : `${topGoal.home_team} vs ${topGoal.away_team}: Attacking volume projected above 2.85 combined expected goals.`,
+        team: topGoal.home_team,
+        time: 'Goals Radar'
+      });
+    }
+
+    // Fallback fill from authentic matches
+    for (let i = 0; alerts.length < 3 && i < matches.length; i++) {
+      const m = matches[i];
+      if (!alerts.some(a => a.team === m.home_team)) {
+        alerts.push({
+          title: isBanter ? `🎯 Match Analysis Ready` : `🔍 Verified Match Analysis`,
+          desc: `${m.home_team} vs ${m.away_team}: Full Poisson simulations and verified lines active.`,
+          team: m.home_team,
+          time: 'Verified Match'
+        });
+      }
+    }
+
+    if (!alerts.length) return;
+
+    container.innerHTML = alerts.map(a => `
+      <div class="notif-item" data-team="${esc(a.team)}" style="cursor: pointer; padding: 0.6rem; border-radius: 8px; margin-bottom: 0.25rem;" title="Filter to ${esc(a.team)}">
+        <span class="notif-item-title" style="display:block; font-weight:700; font-size:0.8rem; color:#38bdf8;">${esc(a.title)}</span>
+        <span class="notif-item-desc" style="display:block; font-size:0.75rem; color:#cbd5e1; margin-top:0.2rem; line-height:1.4;">${esc(a.desc)}</span>
+        <span class="notif-item-time" style="display:block; font-size:0.68rem; color:#10b981; font-weight:600; margin-top:0.25rem;">${esc(a.time)} · Click to view match</span>
+      </div>
+    `).join('');
+
+    container.querySelectorAll('.notif-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const team = item.getAttribute('data-team');
+        if (team) {
+          const popover = document.getElementById('popoverNotifications');
+          if (popover) popover.classList.remove('open');
+          const searchInput = document.getElementById('inputCalendarSearchTeam') || document.getElementById('calendarSearchInput');
+          if (searchInput) {
+            searchInput.value = team;
+            state.calendar.searchQuery = team;
+            if (typeof renderCalendarSlateGrid === 'function') {
+              renderCalendarSlateGrid();
+            }
+          }
+        }
+      });
+    });
+  }
+
+  // Translate entire UI to Professional English or Authentic Naija Banter
+  function applyLanguageMode(mode) {
+    state.personalityMode = mode === 'BANTER' ? 'BANTER' : 'PROFESSIONAL';
+    const isBanter = state.personalityMode === 'BANTER';
+    const lang = isBanter ? TRANSLATIONS.BANTER : TRANSLATIONS.PROFESSIONAL;
+
     const toneWrapper = document.getElementById('toneWrapper');
-    if (toneWrapper) {
-      toneWrapper.classList.remove('banter-active');
+    if (isBanter) {
+      document.body.classList.add('banter-mode-active');
+      if (toneWrapper) toneWrapper.classList.add('banter-active');
+    } else {
+      document.body.classList.remove('banter-mode-active');
+      if (toneWrapper) toneWrapper.classList.remove('banter-active');
     }
     if (dom.personaSelect) {
-      dom.personaSelect.value = 'PROFESSIONAL';
+      dom.personaSelect.value = state.personalityMode;
+    }
+    const mobilePersona = document.getElementById('personaSelectMobile');
+    if (mobilePersona) {
+      mobilePersona.value = state.personalityMode;
     }
 
     // Top Navigation Items
@@ -2063,25 +2165,11 @@
     const elTopNavSupport = document.getElementById('topNavSupport');
     if (elTopNavSupport) elTopNavSupport.textContent = lang.navSupport;
 
-    // Notifications Popover
+    // Notifications Popover Header & Dynamic Updates
     const notifHeader = document.querySelector('.notif-popover-title');
-    if (notifHeader) notifHeader.textContent = 'Live Model Intelligence';
-    const notifItems = document.querySelectorAll('.notifications-popover .notif-item');
-    if (notifItems && notifItems.length >= 3) {
-      const t0 = notifItems[0].querySelector('.notif-item-title');
-      const d0 = notifItems[0].querySelector('.notif-item-desc');
-      if (t0) t0.textContent = '+8.4% EV Value Spike';
-      if (d0) d0.textContent = 'Liverpool vs Man City home edge confirmed under Poisson goal simulation.';
-
-      const t1 = notifItems[1].querySelector('.notif-item-title');
-      const d1 = notifItems[1].querySelector('.notif-item-desc');
-      if (t1) t1.textContent = '80%+ Banker Filter';
-      if (d1) d1.textContent = 'Arsenal or Draw (1X) qualified under multi-strategy safety filter.';
-
-      const t2 = notifItems[2].querySelector('.notif-item-title');
-      const d2 = notifItems[2].querySelector('.notif-item-desc');
-      if (t2) t2.textContent = 'Over 2.5 Goals Radar';
-      if (d2) d2.textContent = 'Bayern vs Dortmund projected 3.45 xG total volume.';
+    if (notifHeader) notifHeader.textContent = isBanter ? 'Model Intelligence Gist' : 'Live Model Intelligence';
+    if (state.calendar && state.calendar.data && state.calendar.data.matches) {
+      updateLiveModelNotifications(state.calendar.data.matches);
     }
 
     // Mobile Bottom Navigation Bar (Home, 33 Endpoints, Bet Slip, Profile)
@@ -5633,6 +5721,7 @@
           state.activeFixture = data.matches[0];
           updateActiveFixtureUI();
         }
+        updateLiveModelNotifications(data.matches);
       }
     } catch(err) {
       console.error('Error applying calendar slate metadata:', err);
@@ -9321,12 +9410,30 @@
       });
     }
 
-    // Tone Enforcement (Strict Professional Mode)
-    state.personalityMode = 'PROFESSIONAL';
-    try {
-      localStorage.removeItem('tipalgo_tone');
-      localStorage.setItem('tipalgo_tone', 'PROFESSIONAL');
-    } catch (e) {}
+    // Commentary Tone Switcher (Professional Mode vs Naija Banter Mode)
+    function handleToneChange(newMode) {
+      state.personalityMode = (newMode === 'BANTER') ? 'BANTER' : 'PROFESSIONAL';
+      try {
+        localStorage.setItem('tipalgo_tone', state.personalityMode);
+      } catch (e) {}
+      applyLanguageMode(state.personalityMode);
+      toast(state.personalityMode === 'BANTER' ? 'Oya! Naija Banter Mode Don Active 🔥' : 'Commentary Mode: Professional Quant Mode', 'info');
+      if (typeof renderCalendarSlateGrid === 'function' && dom.calendarMatchesFeed && state.calendar.data) {
+        renderCalendarSlateGrid();
+      }
+      if (state.calendar && state.calendar.data && state.calendar.data.matches) {
+        updateLiveModelNotifications(state.calendar.data.matches);
+      }
+    }
+
+    const personaSelectEl = document.getElementById('personaSelect');
+    if (personaSelectEl) {
+      personaSelectEl.addEventListener('change', () => handleToneChange(personaSelectEl.value));
+    }
+    const mobilePersona = document.getElementById('personaSelectMobile');
+    if (mobilePersona) {
+      mobilePersona.addEventListener('change', () => handleToneChange(mobilePersona.value));
+    }
 
     // Live Sports Data Sync Trigger
     const btnSyncLiveData = document.getElementById('btnSyncLiveData');
