@@ -182,26 +182,8 @@ async def seed():
                 ))
             print(f"Seeded {len(hist_matches)} historical matches for form and training.")
 
-        # 5. Seed Upcoming Fixtures (Quarantined to TEST environment only - never leaked to production)
-        import os, sys
-        seed_test = os.getenv("SEED_TEST_FIXTURES", "false").lower() == "true" or "--test" in sys.argv
-        if seed_test:
-            res_fut = await db.execute(select(HistoricalMatch).where(HistoricalMatch.match_date > now))
-            if len(res_fut.scalars().all()) < 5:
-                upcoming = [
-                    ("TEST-FUT-001", "Arsenal", "Chelsea", "PL", now + timedelta(days=2), 1.65, 4.80, 4.10),
-                    ("TEST-FUT-002", "Manchester City", "Aston Villa", "PL", now + timedelta(days=2, hours=3), 1.30, 8.50, 5.50),
-                    ("TEST-FUT-003", "Liverpool", "Tottenham", "PL", now + timedelta(days=3), 1.55, 5.20, 4.60),
-                ]
-                for u in upcoming:
-                    db.add(HistoricalMatch(
-                        external_id=u[0], home_team=u[1], away_team=u[2], league_id=u[3],
-                        match_date=u[4], home_odds=u[5], away_odds=u[6], draw_odds=u[7],
-                        status="scheduled", home_score=None, away_score=None
-                    ))
-                print(f"Seeded {len(upcoming)} test-only upcoming fixtures.")
-        else:
-            print("Production mode: Skipping artificial upcoming fixture generation. Live data will be populated by FootballDataService.")
+        # 5. Upcoming fixtures: API-only policy strictly enforced. No artificial fixture records permitted.
+        print("SportyMill Data Integrity: Fixture seeding disabled. Upcoming matches retrieved dynamically via API feeds.")
 
         # 6. Seed Head-To-Head records
         res_h2h = await db.execute(select(HeadToHead).limit(5))

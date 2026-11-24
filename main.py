@@ -701,7 +701,7 @@ venue_form_cache = TTLCache(ttl_seconds=config.VENUE_FORM_CACHE_TTL)
 league_table_cache = TTLCache(ttl_seconds=config.LEAGUE_TABLE_CACHE_TTL)
 recent_matches_cache = TTLCache(ttl_seconds=config.RECENT_MATCHES_CACHE_TTL)
 prediction_count_cache = TTLCache(ttl_seconds=config.PREDICTION_COUNT_TTL)
-calendar_slate_cache = TTLCache(ttl_seconds=86400)
+calendar_slate_cache = TTLCache(ttl_seconds=300)
 h2h_cache = TTLCache(ttl_seconds=86400)
 leagues_teams_cache = TTLCache(ttl_seconds=86400)
 upcoming_fixtures_cache = TTLCache(ttl_seconds=86400)
@@ -1026,6 +1026,48 @@ async def ensure_whitelisted_users(db: AsyncSession):
                 u.password_hash = hash_password(default_pwd)
     await db.commit()
     logger.info("TipAlgo whitelisted users (tip_algo, tip_partner) verified with Pro access.")
+
+async def purge_synthetic_records_on_startup(db: AsyncSession):
+    """
+    Production Data Integrity Enforcement:
+    Permanently purges synthetic, mock, or hardcoded fixtures from persistent storage on startup.
+    Ensures zero fabricated fixtures exist in production databases.
+    """
+    try:
+        from sqlalchemy import text
+        await db.execute(
+            text(
+                "DELETE FROM historical_matches "
+                "WHERE external_id LIKE 'ext_pl_%' "
+                "   OR external_id LIKE 'ext_ucl_%' "
+                "   OR external_id LIKE 'ext_uel_%' "
+                "   OR external_id LIKE 'ext_uecl_%' "
+                "   OR external_id LIKE 'ext_pd_%' "
+                "   OR external_id LIKE 'ext_sa_%' "
+                "   OR external_id LIKE 'ext_fl1_%' "
+                "   OR external_id LIKE 'ext_bl1_%' "
+                "   OR external_id LIKE 'ext_hist_%' "
+                "   OR external_id LIKE 'SYN%' "
+                "   OR external_id LIKE 'HM-GEN%' "
+                "   OR external_id LIKE 'auto_%' "
+                "   OR external_id LIKE 'demo_%' "
+                "   OR (external_id LIKE 'ext_%' AND external_id NOT LIKE 'extw%')"
+            )
+        )
+        await db.execute(
+            text(
+                "DELETE FROM prediction_logs "
+                "WHERE provider_fixture_id LIKE 'ext_%' "
+                "   OR provider_fixture_id LIKE 'SYN%' "
+                "   OR provider_fixture_id LIKE 'HM-GEN%' "
+                "   OR provider_fixture_id LIKE 'auto_%' "
+                "   OR provider_fixture_id LIKE 'demo_%'"
+            )
+        )
+        await db.commit()
+        logger.info("Production Data Integrity: Synthetic records purged successfully.")
+    except Exception as e:
+        logger.warning(f"Startup synthetic records purge notice: {e}")
 
 # ------------------------------------------------------------------
 # UTILITY FUNCTIONS
@@ -4337,6 +4379,19 @@ async def get_all_candidate_bets(db: AsyncSession, predictor: PredictorService,
         select(HistoricalMatch)
         .where(HistoricalMatch.match_date >= now)
         .where(HistoricalMatch.status.in_(["scheduled", "ns"]))
+        .where(HistoricalMatch.source_classification == "provider_verified")
+        .where(HistoricalMatch.external_id.notlike("ext_pl_%"))
+        .where(HistoricalMatch.external_id.notlike("ext_ucl_%"))
+        .where(HistoricalMatch.external_id.notlike("ext_uel_%"))
+        .where(HistoricalMatch.external_id.notlike("ext_uecl_%"))
+        .where(HistoricalMatch.external_id.notlike("ext_pd_%"))
+        .where(HistoricalMatch.external_id.notlike("ext_sa_%"))
+        .where(HistoricalMatch.external_id.notlike("ext_fl1_%"))
+        .where(HistoricalMatch.external_id.notlike("ext_bl1_%"))
+        .where(HistoricalMatch.external_id.notlike("ext_hist_%"))
+        .where(HistoricalMatch.external_id.notlike("SYN-%"))
+        .where(HistoricalMatch.external_id.notlike("auto_%"))
+        .where(HistoricalMatch.external_id.notlike("demo_%"))
         .where(HistoricalMatch.home_odds.isnot(None))
         .where(HistoricalMatch.away_odds.isnot(None))
         .where(HistoricalMatch.draw_odds.isnot(None))
@@ -4958,22 +5013,9 @@ async def lifespan(app: FastAPI):
                 try:
                     async with AsyncSessionLocal() as session:
                         await ensure_whitelisted_users(session)
-                        await seed_major_clubs_upcoming_fixtures(session)
-                    from seed_extended_standings import seed_extended_standings
-                    await asyncio.to_thread(seed_extended_standings)
-                    try:
-                        import glob
-                        from scratch.sync_offline_provider_artifacts import ingest_raw_file
-                        raw_files = sorted(glob.glob("reports/raw_provider_response_*.json"))
-                        for rf in raw_files:
-                            bf = os.path.basename(rf)
-                            dt_str = bf.replace("raw_provider_response_", "").replace(".json", "")
-                            if len(dt_str) == 10 and dt_str.count("-") == 2:
-                                await asyncio.to_thread(ingest_raw_file, rf, dt_str)
-                    except Exception as ingest_ex:
-                        logger.warning(f"Provider artifact sync notice: {ingest_ex}")
+                        await purge_synthetic_records_on_startup(session)
                 except Exception as e:
-                    logger.warning(f"Whitelisted user setup notice: {e}")
+                    logger.warning(f"Whitelisted user and startup purge setup notice: {e}")
                 break
             except Exception as e:
                 retries -= 1
@@ -7349,12 +7391,19 @@ async def get_calendar_daily_slate(
     db: AsyncSession = Depends(get_db),
     predictor: PredictorService = Depends(get_predictor)
 ):
+    """
+    STRICT API-ONLY CALENDAR SLATE RETRIEVAL
+    Production Data Integrity Enforcement:
+    1. Authenticates directly with configured live football data provider.
+    2. Positively verifies fixture provenance (rejects synthetic, mock, or generated IDs).
+    3. NEVER queries local database fallback or seeds to fabricate fixtures.
+    4. Accurately reports provider error states (403 insufficient credits, auth, timeout).
+    """
     lagos_now = now_lagos()
     today_str = lagos_now.strftime("%Y-%m-%d")
 
     safe_page = max(1, int(page or 1))
     safe_limit = max(1, min(500, int(limit or 100)))
-    offset = (safe_page - 1) * safe_limit
 
     raw_date = str(date or "").strip().lower()
     if not raw_date or raw_date in ["today", "undefined", "null", "none"]:
@@ -7364,7 +7413,7 @@ async def get_calendar_daily_slate(
     elif raw_date == "tomorrow":
         target_date = (lagos_now + timedelta(days=1)).strftime("%Y-%m-%d")
     elif raw_date in ["next-5-days", "upcoming"]:
-        target_date = raw_date
+        target_date = today_str
     else:
         try:
             datetime.strptime(str(date).strip(), "%Y-%m-%d")
@@ -7374,233 +7423,112 @@ async def get_calendar_daily_slate(
 
     ep_filter = endpoint or "all"
 
+    # UI limitless date navigation strip (-7 days to +7 days around today)
+    all_dates = [(lagos_now + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(-7, 8)]
+
+    endpoints_response = [
+        {
+            "id": ep["id"],
+            "name": ep["name"],
+            "category": ep["category"],
+            "icon": ep["icon"],
+            "count": 0
+        }
+        for ep in ALL_33_ENDPOINTS_METADATA
+    ]
+
     cache_key = f"slate:{target_date}:{ep_filter}:p{safe_page}:l{safe_limit}"
     cached_data = calendar_slate_cache.get(cache_key)
     if cached_data:
-        # Intercept cached slates marked unpersisted due to prior transient DB failure
-        if cached_data.get("live_recorded_persisted") is False:
-            try:
-                from settlement_engine import persist_slate_with_cache_retry
-                cached_data = await persist_slate_with_cache_retry(db, cached_data, PredictionLog)
-                calendar_slate_cache.set(cache_key, cached_data)
-                if ep_filter == "all" and safe_page == 1 and safe_limit == 100:
-                    calendar_slate_cache.set(f"slate:{target_date}:all", cached_data)
-            except Exception as retry_ex:
-                logger.warning(f"Live prediction snapshot cache retry warning: {retry_ex}")
         return Response(content=json.dumps(cached_data), media_type="application/json")
 
-    all_cached_data = calendar_slate_cache.get(f"slate:{target_date}:all")
-    if all_cached_data and ep_filter != "all":
-        filtered_cards = []
-        for orig_m in all_cached_data.get("matches", []):
-            if ep_filter in orig_m.get("qualified_endpoints", []):
-                m_copy = copy.deepcopy(orig_m)
-                if "endpoint_tips" in m_copy and ep_filter in m_copy["endpoint_tips"]:
-                    m_copy["top_tip"] = m_copy["endpoint_tips"][ep_filter]
-                    m_copy["top_prob"] = m_copy["top_tip"]["prob_pct"]
-                filtered_cards.append(m_copy)
+    # API-ONLY: Fetch authentic fixtures directly from football provider
+    from football_ingestion import FootballDataService, LiveFixtureItem
+    service = FootballDataService(api_key=config.FOOTBALL_API_KEY, base_url=config.FOOTBALL_API_BASE)
 
-        filtered_payload = {
-            "selected_date": target_date,
-            "available_dates": all_cached_data.get("available_dates", []),
-            "active_endpoint": ep_filter,
-            "endpoints": all_cached_data.get("endpoints", []),
-            "total_fixtures": all_cached_data.get("total_fixtures", len(filtered_cards)),
-            "matches_count": len(filtered_cards),
-            "matches": filtered_cards
-        }
-        calendar_slate_cache.set(cache_key, filtered_payload)
-        return Response(content=json.dumps(filtered_payload), media_type="application/json")
+    prov_result = await service.fetch_live_fixtures_with_provenance(target_date)
 
-    try:
-        cached_dates = recent_matches_cache.get("all_available_dates_lagos")
-        if cached_dates:
-            all_dates = cached_dates
-        else:
-            date_rows = await db.execute(
-                select(HistoricalMatch.match_date)
-                .where(HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"]))
-                .distinct()
-            )
-            wat_dates_set = set()
-            for r in date_rows.fetchall():
-                if r[0]:
-                    meta = format_fixture_datetime_meta(r[0])
-                    wat_dates_set.add(meta["match_date_wat"])
-            all_dates = sorted(list(wat_dates_set))
-            recent_matches_cache.set("all_available_dates_lagos", all_dates)
-
-        major_leagues = ["PL", "PD", "SA", "BL1", "FL1", "CL", "UEL", "UECL", "BSA", "ARG", "COL", "UNL", "PPL", "DED", "ELC", "TUR", "BEL", "SC0"]
-        priority_order = case({lid: i for i, lid in enumerate(major_leagues)}, value=HistoricalMatch.league_id, else_=99)
-
-        total_fixtures_count = 0
-        provider_err = None
-        provider_sync_pending = False
-        if target_date in ["next-5-days", "upcoming"]:
-            start_utc, _ = get_lagos_day_utc_bounds(today_str)
-            _, end_utc = get_lagos_day_utc_bounds((lagos_now + timedelta(days=5)).strftime("%Y-%m-%d"))
-            start_utc_str = start_utc.strftime("%Y-%m-%d %H:%M:%S")
-            end_utc_str = end_utc.strftime("%Y-%m-%d %H:%M:%S")
-
-            count_res = await db.execute(
-                select(func.count(HistoricalMatch.id)).where(
-                    and_(
-                        func.cast(HistoricalMatch.match_date, String) >= start_utc_str,
-                        func.cast(HistoricalMatch.match_date, String) <= end_utc_str,
-                        HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"])
-                    )
-                )
-            )
-            total_fixtures_count = count_res.scalar() or 0
-            res = await db.execute(
-                select(HistoricalMatch).where(
-                    and_(
-                        func.cast(HistoricalMatch.match_date, String) >= start_utc_str,
-                        func.cast(HistoricalMatch.match_date, String) <= end_utc_str,
-                        HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"])
-                    )
-                ).order_by(priority_order, HistoricalMatch.match_date.asc(), HistoricalMatch.id.asc()).offset(offset).limit(safe_limit)
-            )
-            fixtures = res.scalars().all()
-        else:
-            start_utc, end_utc = get_lagos_day_utc_bounds(target_date)
-            start_utc_str = start_utc.strftime("%Y-%m-%d %H:%M:%S")
-            end_utc_str = end_utc.strftime("%Y-%m-%d %H:%M:%S")
-
-            count_res = await db.execute(
-                select(func.count(HistoricalMatch.id)).where(
-                    and_(
-                        func.cast(HistoricalMatch.match_date, String) >= start_utc_str,
-                        func.cast(HistoricalMatch.match_date, String) <= end_utc_str,
-                        HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"])
-                    )
-                )
-            )
-            total_fixtures_count = count_res.scalar() or 0
-
-            if total_fixtures_count == 0 and target_date not in ["next-5-days", "upcoming"]:
-                try:
-                    from football_ingestion import FootballDataService
-                    service = FootballDataService(api_key=config.FOOTBALL_API_KEY, base_url=config.FOOTBALL_API_BASE)
-                    if service.is_configured:
-                        class AppModels: pass
-                        m_models = AppModels()
-                        m_models.LeagueTable = LeagueTable
-                        m_models.HistoricalMatch = HistoricalMatch
-                        m_models.PredictionLog = PredictionLog
-                        try:
-                            sync_res = await asyncio.wait_for(
-                                service.sync_all_leagues_to_db(db, m_models, target_date=target_date),
-                                timeout=9.0
-                            )
-                            if sync_res and sync_res.get("status") == "error":
-                                provider_err = sync_res.get("message")
-                        except asyncio.TimeoutError:
-                            logger.info(f"Live calendar sync timed out after 9.0s for {target_date} - continuing background sync.")
-                            provider_sync_pending = True
-                            provider_err = "Data Provider Notice: Live sync in progress. Operating on verified records."
-                        
-                        count_res = await db.execute(
-                            select(func.count(HistoricalMatch.id)).where(
-                                and_(
-                                    func.cast(HistoricalMatch.match_date, String) >= start_utc_str,
-                                    func.cast(HistoricalMatch.match_date, String) <= end_utc_str,
-                                    HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"])
-                                )
-                            )
-                        )
-                        total_fixtures_count = count_res.scalar() or 0
-                    else:
-                        provider_err = "FOOTBALL_API_KEY is not configured on this server."
-                except Exception as e:
-                    logger.warning(f"Auto-sync live calendar fixtures failed: {e}")
-                    provider_err = f"Data Provider Notice: Live sync unavailable ({e}). Operating on local database records."
-                    try:
-                        await db.rollback()
-                    except Exception:
-                        pass
-
-            res = await db.execute(
-                select(HistoricalMatch).where(
-                    and_(
-                        func.cast(HistoricalMatch.match_date, String) >= start_utc_str,
-                        func.cast(HistoricalMatch.match_date, String) <= end_utc_str,
-                        HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"])
-                    )
-                ).order_by(priority_order, HistoricalMatch.match_date.asc(), HistoricalMatch.id.asc()).offset(offset).limit(safe_limit)
-            )
-            fixtures = res.scalars().all()
-        
-        match_cards, endpoint_counts = await format_fixture_cards_helper(fixtures, db, predictor, ep_filter)
-            
-        endpoints_response = [
-            {
-                "id": ep["id"],
-                "name": ep["name"],
-                "category": ep["category"],
-                "icon": ep["icon"],
-                "count": endpoint_counts.get(ep["id"], 0)
-            }
-            for ep in ALL_33_ENDPOINTS_METADATA
-        ]
-        
-        if provider_err and len(match_cards) > 0:
-            p_status = "degraded"
-            p_msg = f"Data Provider Notice: Live sync unavailable. Displaying {len(match_cards)} verified local records."
-        else:
-            p_status = "ok"
-            p_msg = None if len(match_cards) > 0 else f"No matches scheduled or recorded for {target_date}."
-
-        total_pages = math.ceil(total_fixtures_count / safe_limit) if total_fixtures_count > 0 else 1
-        has_more = safe_page < total_pages
-
-        response_payload = {
+    if not prov_result.success:
+        # Transparent provider failure reporting. ZERO fake matches. NO database fallback.
+        err_payload = {
+            "status": "error",
+            "provider_status": "error",
+            "provider_error_code": prov_result.error_code,
+            "provider_message": prov_result.user_message,
             "selected_date": target_date,
             "available_dates": all_dates,
-            "active_endpoint": endpoint or "all",
+            "active_endpoint": ep_filter,
             "endpoints": endpoints_response,
             "page": safe_page,
             "limit": safe_limit,
-            "total_pages": total_pages,
-            "has_more": has_more,
-            "total_fixtures": total_fixtures_count,
-            "matches_count": len(match_cards),
-            "matches": match_cards,
-            "provider_status": p_status,
-            "provider_sync_pending": provider_sync_pending,
-            "provider_message": p_msg
+            "total_pages": 1,
+            "has_more": False,
+            "total_fixtures": 0,
+            "matches_count": 0,
+            "matches": []
         }
-        # Idempotently persist genuine pre-kickoff predictions with cache retry handling
-        if match_cards and p_status != "error":
-            try:
-                from settlement_engine import persist_slate_with_cache_retry
-                response_payload = await persist_slate_with_cache_retry(db, response_payload, PredictionLog)
-            except Exception as batch_ex:
-                logger.warning(f"Live prediction snapshot batch persistence warning: {batch_ex}")
+        calendar_slate_cache.set(cache_key, err_payload)
+        return Response(content=json.dumps(err_payload), media_type="application/json")
 
-        if not provider_err:
-            calendar_slate_cache.set(cache_key, response_payload)
-            if ep_filter == "all":
-                calendar_slate_cache.set(f"slate:{target_date}:all", response_payload)
-        return Response(content=json.dumps(response_payload), media_type="application/json")
-    except (SQLAlchemyError, DBAPIError) as e:
-        logger.error(f"Database operational error in get_calendar_daily_slate: {e}")
-        try:
-            await db.rollback()
-        except Exception:
-            pass
-        raise HTTPException(
-            status_code=503,
-            detail="Database Service Unavailable: Database connectivity error while compiling match slate. Please retry shortly."
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected internal error in get_calendar_daily_slate: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Internal Server Error: Failed to compile daily calendar slate ({e})."
-        )
+    raw_matches = prov_result.matches
+    if not raw_matches:
+        empty_payload = {
+            "status": "ok",
+            "provider_status": "ok",
+            "provider_message": prov_result.user_message or f"No matches scheduled or recorded for {target_date}.",
+            "selected_date": target_date,
+            "available_dates": all_dates,
+            "active_endpoint": ep_filter,
+            "endpoints": endpoints_response,
+            "page": safe_page,
+            "limit": safe_limit,
+            "total_pages": 1,
+            "has_more": False,
+            "total_fixtures": 0,
+            "matches_count": 0,
+            "matches": []
+        }
+        calendar_slate_cache.set(cache_key, empty_payload)
+        return Response(content=json.dumps(empty_payload), media_type="application/json")
+
+    # Convert genuine provider fixtures to verified LiveFixtureItem objects
+    fixture_items = [LiveFixtureItem(m, provider=service.provider) for m in raw_matches]
+    
+    # Process through statistical model & 33 prediction endpoints
+    match_cards, endpoint_counts = await format_fixture_cards_helper(fixture_items, db, predictor, ep_filter)
+
+    for ep_entry in endpoints_response:
+        ep_entry["count"] = endpoint_counts.get(ep_entry["id"], 0)
+
+    total_fixtures_count = len(match_cards)
+    total_pages = math.ceil(total_fixtures_count / safe_limit) if total_fixtures_count > 0 else 1
+    offset = (safe_page - 1) * safe_limit
+    paginated_cards = match_cards[offset:offset + safe_limit]
+    has_more = safe_page < total_pages
+
+    response_payload = {
+        "status": "ok",
+        "selected_date": target_date,
+        "available_dates": all_dates,
+        "active_endpoint": ep_filter,
+        "endpoints": endpoints_response,
+        "page": safe_page,
+        "limit": safe_limit,
+        "total_pages": total_pages,
+        "has_more": has_more,
+        "total_fixtures": total_fixtures_count,
+        "matches_count": len(paginated_cards),
+        "matches": paginated_cards,
+        "provider_status": "ok",
+        "provider_sync_pending": False,
+        "provider_message": prov_result.user_message
+    }
+
+    calendar_slate_cache.set(cache_key, response_payload)
+    if ep_filter == "all" and safe_page == 1:
+        calendar_slate_cache.set(f"slate:{target_date}:all", response_payload)
+
+    return Response(content=json.dumps(response_payload), media_type="application/json")
 
 TEAM_SEARCH_ALIASES = {
     "man utd": ["Manchester United", "Man United"],
@@ -7636,233 +7564,6 @@ TEAM_SEARCH_ALIASES = {
     "aston villa": ["Aston Villa"],
     "villa": ["Aston Villa"],
 }
-
-UPCOMING_MAJOR_FIXTURES_DATA = [
-    # Tuesday Nov 24, 2026
-    ("ext_pl_20261124_mun_eve", "Manchester United", "Everton", "PL", "2026-11-24 20:00:00", 1.70, 3.80, 4.80, 1.95, 0.90, 5.8, 4.2),
-    ("ext_ucl_20261124_mci_fey", "Manchester City", "Feyenoord", "PL", "2026-11-24 21:00:00", 1.20, 7.00, 13.00, 2.85, 0.65, 7.5, 3.2),
-    ("ext_ucl_20261124_spo_ars", "Sporting CP", "Arsenal", "PL", "2026-11-24 21:00:00", 3.40, 3.50, 2.10, 1.25, 1.75, 4.8, 5.9),
-    ("ext_ucl_20261124_bar_bre", "Barcelona", "Brest", "PD", "2026-11-24 21:00:00", 1.22, 6.80, 11.50, 2.90, 0.70, 7.2, 3.5),
-    # Wednesday Nov 25, 2026
-    ("ext_ucl_20261125_liv_rma", "Liverpool", "Real Madrid", "PL", "2026-11-25 21:00:00", 2.15, 3.60, 3.25, 1.85, 1.55, 6.2, 5.6),
-    ("ext_ucl_20261125_avl_juv", "Aston Villa", "Juventus", "PL", "2026-11-25 21:00:00", 2.30, 3.35, 3.15, 1.55, 1.40, 5.4, 4.8),
-    # Thursday Nov 26, 2026
-    ("ext_uel_20261126_mun_bod", "Manchester United", "FK Bodø/Glimt", "PL", "2026-11-26 21:00:00", 1.35, 5.20, 8.50, 2.40, 0.85, 6.5, 3.8),
-    ("ext_uecl_20261126_hei_che", "Heidenheim", "Chelsea", "PL", "2026-11-26 18:45:00", 5.50, 4.20, 1.55, 1.05, 2.15, 3.8, 6.4),
-    ("ext_uel_20261126_tot_rom", "Tottenham", "Roma", "PL", "2026-11-26 21:00:00", 1.85, 3.80, 3.90, 2.10, 1.35, 6.1, 4.9),
-    # Friday Nov 27, 2026
-    ("ext_pl_20261127_bha_sou", "Brighton", "Southampton", "PL", "2026-11-27 20:00:00", 1.55, 4.20, 5.60, 2.10, 0.95, 6.2, 3.8),
-    ("ext_pd_20261127_get_elc", "Getafe", "Elche", "PD", "2026-11-27 21:00:00", 2.05, 3.10, 3.90, 1.35, 0.85, 4.8, 4.1),
-    ("ext_sa_20261127_com_mon", "Como", "Monza", "SA", "2026-11-27 20:45:00", 2.15, 3.20, 3.50, 1.40, 1.05, 5.1, 4.5),
-    ("ext_fl1_20261127_ren_ste", "Rennes", "Saint-Etienne", "FL1", "2026-11-27 21:00:00", 1.65, 3.90, 5.20, 1.90, 1.05, 5.7, 4.0),
-    ("ext_bl1_20261127_mnz_hof", "Mainz", "Hoffenheim", "BL1", "2026-11-27 20:30:00", 2.25, 3.60, 2.95, 1.70, 1.55, 5.4, 5.2),
-    # Saturday Nov 28, 2026
-    ("ext_pl_20261128_whu_ars", "West Ham", "Arsenal", "PL", "2026-11-28 18:30:00", 4.80, 3.90, 1.70, 1.10, 2.10, 4.2, 6.2),
-    ("ext_pl_20261128_cry_new", "Crystal Palace", "Newcastle", "PL", "2026-11-28 16:00:00", 2.70, 3.35, 2.60, 1.35, 1.45, 4.9, 5.2),
-    ("ext_pl_20261128_wol_bou", "Wolves", "Bournemouth", "PL", "2026-11-28 16:00:00", 2.45, 3.40, 2.85, 1.40, 1.35, 5.1, 4.9),
-    ("ext_pl_20261128_bre_lei", "Brentford", "Leicester", "PL", "2026-11-28 16:00:00", 1.75, 3.80, 4.40, 1.95, 1.15, 5.8, 4.4),
-    ("ext_pl_20261128_nfo_ips", "Nottingham Forest", "Ipswich", "PL", "2026-11-28 16:00:00", 1.85, 3.50, 4.20, 1.75, 1.05, 5.5, 4.2),
-    ("ext_pd_20261128_bar_lpa", "Barcelona", "Las Palmas", "PD", "2026-11-28 14:00:00", 1.18, 7.50, 13.50, 3.10, 0.55, 7.8, 3.1),
-    ("ext_pd_20261128_esp_cel", "Espanyol", "Celta Vigo", "PD", "2026-11-28 16:15:00", 2.60, 3.25, 2.75, 1.25, 1.30, 4.6, 4.7),
-    ("ext_sa_20261128_mil_emp", "AC Milan", "Empoli", "SA", "2026-11-28 18:00:00", 1.40, 4.80, 7.50, 2.30, 0.75, 6.5, 3.5),
-    ("ext_bl1_20261128_dor_bay", "Borussia Dortmund", "Bayern Munich", "BL1", "2026-11-28 18:30:00", 3.25, 3.90, 2.05, 1.65, 2.35, 5.5, 6.8),
-    # Sunday Nov 29, 2026
-    ("ext_pl_20261129_che_avl", "Chelsea", "Aston Villa", "PL", "2026-11-29 14:30:00", 1.95, 3.70, 3.60, 1.85, 1.35, 5.8, 4.8),
-    ("ext_pl_20261129_liv_mci", "Liverpool", "Manchester City", "PL", "2026-11-29 17:00:00", 2.30, 3.60, 2.95, 1.90, 1.75, 6.4, 6.0),
-    ("ext_pl_20261129_tot_ful", "Tottenham", "Fulham", "PL", "2026-11-29 14:30:00", 1.70, 4.00, 4.60, 2.10, 1.15, 6.2, 4.5),
-    ("ext_pd_20261129_rma_get", "Real Madrid", "Getafe", "PD", "2026-11-29 21:00:00", 1.30, 5.50, 9.50, 2.50, 0.70, 6.9, 3.4),
-    ("ext_pd_20261129_soc_bet", "Real Sociedad", "Real Betis", "PD", "2026-11-29 18:30:00", 2.10, 3.25, 3.60, 1.45, 1.10, 5.2, 4.4),
-    ("ext_sa_20261129_fio_int", "Fiorentina", "Inter Milan", "SA", "2026-11-29 18:00:00", 3.40, 3.45, 2.10, 1.30, 1.80, 4.7, 5.8),
-    # Monday Nov 30, 2026
-    ("ext_pl_20261130_bou_wol", "Bournemouth", "Wolves", "PL", "2026-11-30 20:00:00", 2.10, 3.45, 3.40, 1.65, 1.25, 5.6, 4.6),
-    ("ext_pd_20261130_sev_osa", "Sevilla", "Osasuna", "PD", "2026-11-30 21:00:00", 2.00, 3.30, 3.80, 1.50, 1.05, 5.3, 4.2),
-    ("ext_sa_20261130_cag_ver", "Cagliari", "Verona", "SA", "2026-11-30 20:45:00", 2.20, 3.20, 3.40, 1.35, 1.10, 4.9, 4.5),
-    ("ext_fl1_20261130_ang_hav", "Angers", "Le Havre", "FL1", "2026-11-30 19:00:00", 2.35, 3.10, 3.20, 1.25, 1.15, 4.5, 4.4),
-    ("ext_sa_20261130_bol_ven", "Bologna", "Venezia", "SA", "2026-11-30 18:30:00", 1.65, 3.80, 5.40, 1.85, 0.90, 5.9, 3.8),
-    # Tuesday Dec 01, 2026
-    ("ext_pd_20261201_mll_bar", "Mallorca", "Barcelona", "PD", "2026-12-01 19:00:00", 5.20, 4.10, 1.62, 1.05, 2.15, 3.9, 6.5),
-    ("ext_pl_20261201_ips_cry", "Ipswich", "Crystal Palace", "PL", "2026-12-01 20:30:00", 2.80, 3.30, 2.55, 1.30, 1.45, 4.8, 5.1),
-    # Wednesday Dec 02, 2026
-    ("ext_pl_20261202_mci_nfo", "Manchester City", "Nottingham Forest", "PL", "2026-12-02 20:30:00", 1.25, 6.20, 11.00, 2.75, 0.70, 7.4, 3.4),
-    ("ext_pl_20261202_new_liv", "Newcastle", "Liverpool", "PL", "2026-12-02 20:30:00", 3.20, 3.60, 2.15, 1.45, 1.95, 5.1, 6.0),
-    ("ext_pl_20261202_sou_che", "Southampton", "Chelsea", "PL", "2026-12-02 20:30:00", 5.00, 4.10, 1.65, 1.05, 2.10, 3.8, 6.3),
-    ("ext_pl_20261202_ars_mun", "Arsenal", "Manchester United", "PL", "2026-12-02 21:15:00", 1.80, 3.75, 4.30, 2.05, 1.20, 6.2, 4.5),
-    ("ext_pd_20261202_ath_rma", "Athletic Club", "Real Madrid", "PD", "2026-12-02 21:00:00", 3.60, 3.50, 2.05, 1.25, 1.85, 4.8, 6.1),
-    # Thursday Dec 03, 2026
-    ("ext_pl_20261203_lei_whu", "Leicester", "West Ham", "PL", "2026-12-03 20:15:00", 2.65, 3.40, 2.60, 1.45, 1.50, 5.2, 5.1),
-    ("ext_pl_20261203_eve_wol", "Everton", "Wolves", "PL", "2026-12-03 19:30:00", 2.25, 3.30, 3.25, 1.45, 1.15, 5.3, 4.6),
-    # Friday Dec 04, 2026
-    ("ext_pl_20261204_ful_bha", "Fulham", "Brighton", "PL", "2026-12-04 20:30:00", 2.50, 3.50, 2.70, 1.55, 1.60, 5.4, 5.5),
-    ("ext_pl_20261204_bou_tot", "Bournemouth", "Tottenham", "PL", "2026-12-04 21:00:00", 3.10, 3.65, 2.20, 1.50, 1.95, 5.2, 6.1),
-    # Saturday Dec 05, 2026
-    ("ext_pl_20261205_cry_mci", "Crystal Palace", "Manchester City", "PL", "2026-12-05 16:00:00", 6.50, 4.60, 1.48, 0.95, 2.45, 3.6, 6.9),
-    ("ext_pl_20261205_mun_nfo", "Manchester United", "Nottingham Forest", "PL", "2026-12-05 18:30:00", 1.62, 4.00, 5.25, 2.15, 1.05, 6.3, 4.2),
-    ("ext_pl_20261205_avl_sou", "Aston Villa", "Southampton", "PL", "2026-12-05 16:00:00", 1.50, 4.40, 6.20, 2.20, 0.95, 6.4, 3.8),
-    ("ext_pl_20261205_bre_new", "Brentford", "Newcastle", "PL", "2026-12-05 16:00:00", 2.75, 3.45, 2.50, 1.50, 1.65, 5.3, 5.4),
-    ("ext_pd_20261205_bet_bar", "Real Betis", "Barcelona", "PD", "2026-12-05 16:15:00", 4.10, 3.90, 1.80, 1.30, 2.15, 4.6, 6.4),
-    ("ext_pd_20261205_val_vil", "Valencia", "Villarreal", "PD", "2026-12-05 18:30:00", 2.80, 3.35, 2.50, 1.35, 1.55, 4.8, 5.2),
-    # Sunday Dec 06, 2026
-    ("ext_pl_20261206_ful_ars", "Fulham", "Arsenal", "PL", "2026-12-06 15:00:00", 4.50, 3.80, 1.75, 1.15, 2.05, 4.3, 6.1),
-    ("ext_pl_20261206_eve_liv", "Everton", "Liverpool", "PL", "2026-12-06 17:30:00", 4.20, 3.70, 1.82, 1.20, 2.00, 4.5, 6.0),
-    ("ext_pl_20261206_tot_che", "Tottenham", "Chelsea", "PL", "2026-12-06 17:30:00", 2.65, 3.60, 2.50, 1.70, 1.65, 5.6, 5.5),
-    ("ext_pd_20261206_gir_rma", "Girona", "Real Madrid", "PD", "2026-12-06 16:15:00", 3.80, 3.75, 1.90, 1.35, 2.00, 4.9, 6.2),
-    ("ext_sa_20261206_ata_mil", "Atalanta", "AC Milan", "SA", "2026-12-06 20:45:00", 2.35, 3.45, 2.95, 1.75, 1.55, 5.8, 5.2),
-    # Monday Dec 07, 2026
-    ("ext_pl_20261207_whu_wol", "West Ham", "Wolves", "PL", "2026-12-07 20:00:00", 1.95, 3.50, 3.80, 1.70, 1.15, 5.5, 4.5),
-    ("ext_pd_20261207_get_esp", "Getafe", "Espanyol", "PD", "2026-12-07 21:00:00", 2.10, 3.15, 3.70, 1.30, 0.95, 4.7, 4.2),
-    ("ext_sa_20261207_mnz_udi", "Monza", "Udinese", "SA", "2026-12-07 20:45:00", 2.30, 3.20, 3.20, 1.35, 1.15, 4.8, 4.6),
-    # Tuesday Dec 08, 2026 (UEFA Champions League)
-    ("ext_ucl_20261208_ata_rma", "Atalanta", "Real Madrid", "PD", "2026-12-08 21:00:00", 3.10, 3.60, 2.20, 1.55, 1.95, 5.4, 6.2),
-    ("ext_ucl_20261208_lev_int", "Bayer Leverkusen", "Inter Milan", "SA", "2026-12-08 21:00:00", 2.25, 3.50, 3.10, 1.80, 1.50, 5.7, 5.3),
-    ("ext_ucl_20261208_rbl_avl", "RB Leipzig", "Aston Villa", "PL", "2026-12-08 21:00:00", 2.15, 3.55, 3.25, 1.75, 1.50, 5.5, 5.1),
-    # Wednesday Dec 09, 2026 (UEFA Champions League)
-    ("ext_ucl_20261209_ars_mon", "Arsenal", "Monaco", "PL", "2026-12-09 21:00:00", 1.38, 5.00, 7.80, 2.35, 0.85, 6.7, 3.8),
-    ("ext_ucl_20261209_dor_bar", "Borussia Dortmund", "Barcelona", "PD", "2026-12-09 21:00:00", 3.10, 3.75, 2.15, 1.65, 2.10, 5.6, 6.5),
-    ("ext_ucl_20261209_juv_mci", "Juventus", "Manchester City", "PL", "2026-12-09 21:00:00", 3.60, 3.50, 2.05, 1.30, 1.85, 4.8, 6.2),
-    # Thursday Dec 10, 2026 (UEFA Europa League)
-    ("ext_uel_20261210_ran_tot", "Rangers", "Tottenham", "PL", "2026-12-10 21:00:00", 3.80, 3.65, 1.92, 1.35, 1.95, 4.9, 6.1),
-    ("ext_uel_20261210_aja_laz", "Ajax", "Lazio", "SA", "2026-12-10 21:00:00", 2.35, 3.45, 2.95, 1.65, 1.55, 5.6, 5.2)
-]
-
-HISTORICAL_MAJOR_FIXTURES_DATA = [
-    # 2026-11-01
-    ('ext_hist_20261101_new_ars', 'Newcastle', 'Arsenal', 'PL', '2026-11-01 13:30:00', 3.80, 3.50, 2.00, 1, 0, 1.45, 1.85, 4.8, 6.2),
-    ('ext_hist_20261101_bou_mci', 'Bournemouth', 'Manchester City', 'PL', '2026-11-01 16:00:00', 5.50, 4.50, 1.55, 2, 1, 1.35, 2.45, 4.5, 7.8),
-    ('ext_hist_20261101_liv_bha', 'Liverpool', 'Brighton', 'PL', '2026-11-01 16:00:00', 1.42, 5.00, 7.00, 2, 1, 2.25, 1.45, 6.5, 4.8),
-    ('ext_hist_20261101_wol_cry', 'Wolves', 'Crystal Palace', 'PL', '2026-11-01 18:30:00', 2.65, 3.30, 2.75, 2, 2, 1.30, 1.25, 5.1, 4.9),
-    ('ext_hist_20261101_vil_ray', 'Villarreal', 'Rayo Vallecano', 'PD', '2026-11-01 18:30:00', 1.75, 3.80, 4.60, 3, 1, 1.95, 1.10, 5.8, 4.2),
-    ('ext_hist_20261101_val_rma', 'Valencia', 'Real Madrid', 'PD', '2026-11-01 21:00:00', 5.00, 4.00, 1.65, 1, 2, 1.15, 2.15, 4.2, 6.5),
-    ('ext_hist_20261101_bol_lec', 'Bologna', 'Lecce', 'SA', '2026-11-01 15:00:00', 1.62, 3.75, 5.80, 1, 0, 1.60, 0.85, 5.5, 3.6),
-    ('ext_hist_20261101_udi_juv', 'Udinese', 'Juventus', 'SA', '2026-11-01 18:00:00', 4.10, 3.40, 1.95, 0, 2, 1.10, 1.70, 4.4, 5.6),
-    ('ext_hist_20261101_mon_mil', 'Monza', 'AC Milan', 'SA', '2026-11-01 20:45:00', 5.25, 3.90, 1.68, 0, 1, 1.05, 1.95, 4.0, 6.1),
-    # 2026-11-02
-    ('ext_hist_20261102_tot_avl', 'Tottenham', 'Aston Villa', 'PL', '2026-11-02 15:00:00', 1.95, 3.80, 3.60, 4, 1, 2.15, 1.55, 6.4, 5.2),
-    ('ext_hist_20261102_mun_che', 'Manchester United', 'Chelsea', 'PL', '2026-11-02 17:30:00', 2.55, 3.60, 2.65, 1, 1, 1.65, 1.75, 5.6, 5.8),
-    ('ext_hist_20261102_atm_lvp', 'Atletico Madrid', 'Las Palmas', 'PD', '2026-11-02 14:00:00', 1.30, 5.50, 10.00, 2, 0, 2.05, 0.75, 6.2, 3.4),
-    ('ext_hist_20261102_bar_esp', 'Barcelona', 'Espanyol', 'PD', '2026-11-02 16:15:00', 1.15, 8.50, 15.00, 3, 1, 3.20, 0.65, 7.8, 3.1),
-    ('ext_hist_20261102_nap_ata', 'Napoli', 'Atalanta', 'SA', '2026-11-02 12:30:00', 2.05, 3.50, 3.60, 0, 3, 1.85, 1.75, 5.8, 5.5),
-    ('ext_hist_20261102_tor_fio', 'Torino', 'Fiorentina', 'SA', '2026-11-02 15:00:00', 3.10, 3.25, 2.40, 0, 1, 1.20, 1.60, 4.6, 5.1),
-    ('ext_hist_20261102_ver_rom', 'Verona', 'Roma', 'SA', '2026-11-02 18:00:00', 4.20, 3.60, 1.85, 3, 2, 1.15, 1.65, 4.3, 5.7),
-    ('ext_hist_20261102_int_ven', 'Inter Milan', 'Venezia', 'SA', '2026-11-02 20:45:00', 1.18, 7.50, 14.00, 1, 0, 2.45, 0.65, 7.2, 3.2),
-    # 2026-11-03
-    ('ext_hist_20261103_ful_bre', 'Fulham', 'Brentford', 'PL', '2026-11-03 21:00:00', 2.05, 3.60, 3.50, 2, 1, 1.70, 1.45, 5.8, 4.9),
-    ('ext_hist_20261103_cel_get', 'Celta Vigo', 'Getafe', 'PD', '2026-11-03 21:00:00', 1.95, 3.20, 4.30, 1, 0, 1.50, 0.90, 5.2, 3.9),
-    ('ext_hist_20261103_emp_com', 'Empoli', 'Como', 'SA', '2026-11-03 18:30:00', 2.45, 3.15, 3.10, 1, 0, 1.25, 1.15, 4.7, 4.6),
-    ('ext_hist_20261103_par_gen', 'Parma', 'Genoa', 'SA', '2026-11-03 18:30:00', 2.25, 3.30, 3.25, 0, 1, 1.35, 1.20, 5.0, 4.8),
-    ('ext_hist_20261103_laz_cag', 'Lazio', 'Cagliari', 'SA', '2026-11-03 20:45:00', 1.50, 4.20, 6.80, 2, 1, 2.05, 0.95, 6.2, 3.8),
-    # 2026-11-04
-    ('ext_hist_20261104_psv_gir', 'PSV Eindhoven', 'Girona', 'PL', '2026-11-04 18:45:00', 1.75, 4.00, 4.30, 4, 0, 2.20, 1.15, 6.1, 4.4),
-    ('ext_hist_20261104_slo_zag', 'Slovan Bratislava', 'Dinamo Zagreb', 'PL', '2026-11-04 18:45:00', 3.60, 3.50, 2.05, 1, 4, 1.10, 1.85, 4.5, 5.8),
-    ('ext_hist_20261104_bol_mon', 'Bologna', 'Monaco', 'SA', '2026-11-04 21:00:00', 2.80, 3.35, 2.55, 0, 1, 1.25, 1.50, 5.1, 5.2),
-    ('ext_hist_20261104_dor_stu', 'Borussia Dortmund', 'Sturm Graz', 'BL1', '2026-11-04 21:00:00', 1.20, 7.00, 13.00, 1, 0, 2.65, 0.65, 7.4, 3.1),
-    ('ext_hist_20261104_cel_lei', 'Celtic', 'RB Leipzig', 'PL', '2026-11-04 21:00:00', 3.30, 3.75, 2.10, 3, 1, 1.65, 1.95, 5.4, 6.0),
-    ('ext_hist_20261104_lil_juv', 'Lille', 'Juventus', 'FL1', '2026-11-04 21:00:00', 3.10, 3.25, 2.40, 1, 1, 1.40, 1.55, 4.9, 5.3),
-    ('ext_hist_20261104_liv_lev', 'Liverpool', 'Bayer Leverkusen', 'PL', '2026-11-04 21:00:00', 1.70, 4.20, 4.50, 4, 0, 2.40, 1.45, 6.8, 5.1),
-    ('ext_hist_20261104_spo_mci', 'Sporting CP', 'Manchester City', 'PL', '2026-11-04 21:00:00', 4.20, 3.90, 1.80, 4, 1, 1.95, 2.20, 5.5, 6.5),
-    ('ext_hist_20261104_rma_mil', 'Real Madrid', 'AC Milan', 'PD', '2026-11-04 21:00:00', 1.50, 4.80, 5.80, 1, 3, 2.30, 1.65, 6.9, 5.0),
-    # 2026-11-05
-    ('ext_hist_20261105_bru_avl', 'Club Brugge', 'Aston Villa', 'PL', '2026-11-05 18:45:00', 3.40, 3.45, 2.15, 1, 0, 1.30, 1.65, 4.8, 5.4),
-    ('ext_hist_20261105_shk_yb', 'Shakhtar Donetsk', 'Young Boys', 'PL', '2026-11-05 18:45:00', 2.05, 3.60, 3.50, 2, 1, 1.65, 1.35, 5.3, 4.7),
-    ('ext_hist_20261105_bay_ben', 'Bayern Munich', 'Benfica', 'BL1', '2026-11-05 21:00:00', 1.30, 6.00, 9.00, 1, 0, 2.85, 0.90, 7.8, 3.5),
-    ('ext_hist_20261105_fey_sal', 'Feyenoord', 'Salzburg', 'PL', '2026-11-05 21:00:00', 1.55, 4.50, 5.50, 1, 3, 2.10, 1.25, 6.4, 4.2),
-    ('ext_hist_20261105_int_ars', 'Inter Milan', 'Arsenal', 'SA', '2026-11-05 21:00:00', 2.65, 3.25, 2.75, 1, 0, 1.55, 1.60, 5.2, 5.5),
-    ('ext_hist_20261105_psg_atm', 'Paris Saint-Germain', 'Atletico Madrid', 'FL1', '2026-11-05 21:00:00', 1.72, 3.80, 4.80, 1, 2, 2.05, 1.35, 6.2, 4.6),
-    ('ext_hist_20261105_zve_bar', 'Red Star Belgrade', 'Barcelona', 'PD', '2026-11-05 21:00:00', 13.00, 7.50, 1.18, 2, 5, 0.85, 3.25, 3.2, 7.9),
-    ('ext_hist_20261105_stu_ata', 'Stuttgart', 'Atalanta', 'BL1', '2026-11-05 21:00:00', 2.35, 3.65, 2.85, 0, 2, 1.65, 1.70, 5.5, 5.6),
-    # 2026-11-06
-    ('ext_hist_20261106_bod_qab', 'FK Bodø/Glimt', 'Qarabag', 'PL', '2026-11-06 18:45:00', 1.55, 4.40, 5.50, 1, 2, 2.15, 1.15, 6.3, 4.1),
-    ('ext_hist_20261106_ein_sla', 'Eintracht Frankfurt', 'Slavia Prague', 'BL1', '2026-11-06 18:45:00', 1.75, 3.90, 4.40, 1, 0, 1.95, 1.25, 5.8, 4.6),
-    ('ext_hist_20261106_gal_tot', 'Galatasaray', 'Tottenham', 'PL', '2026-11-06 18:45:00', 2.40, 3.75, 2.70, 3, 2, 1.85, 1.90, 5.7, 5.8),
-    ('ext_hist_20261106_nic_tww', 'Nice', 'Twente', 'FL1', '2026-11-06 18:45:00', 1.95, 3.60, 3.80, 2, 2, 1.70, 1.30, 5.4, 4.7),
-    ('ext_hist_20261106_mun_pao', 'Manchester United', 'PAOK', 'PL', '2026-11-06 21:00:00', 1.25, 6.20, 11.00, 2, 0, 2.50, 0.70, 7.1, 3.3),
-    ('ext_hist_20261106_laz_por', 'Lazio', 'Porto', 'SA', '2026-11-06 21:00:00', 2.45, 3.35, 2.90, 2, 1, 1.60, 1.45, 5.3, 5.1),
-    # 2026-11-14
-    ('ext_hist_20261114_bel_ita', 'Belgium', 'Italy', 'PL', '2026-11-14 20:45:00', 2.65, 3.30, 2.70, 0, 1, 1.50, 1.55, 5.3, 5.2),
-    ('ext_hist_20261114_fra_isr', 'France', 'Israel', 'FL1', '2026-11-14 20:45:00', 1.12, 9.50, 19.00, 0, 0, 2.80, 0.40, 7.8, 2.4),
-    ('ext_hist_20261114_gre_eng', 'Greece', 'England', 'PL', '2026-11-14 20:45:00', 4.20, 3.45, 1.92, 0, 3, 1.10, 1.95, 4.2, 6.3),
-    ('ext_hist_20261114_irl_fin', 'Republic of Ireland', 'Finland', 'PL', '2026-11-14 20:45:00', 1.70, 3.60, 5.40, 1, 0, 1.55, 0.90, 5.4, 3.9),
-    ('ext_hist_20261114_svn_nor', 'Slovenia', 'Norway', 'PL', '2026-11-14 20:45:00', 3.20, 3.25, 2.30, 1, 4, 1.20, 1.75, 4.5, 5.6),
-    # 2026-11-19
-    ('ext_hist_20261119_bos_ned', 'Bosnia & Herzegovina', 'Netherlands', 'PL', '2026-11-19 20:45:00', 7.50, 4.80, 1.40, 1, 1, 0.95, 2.25, 3.8, 6.8),
-    ('ext_hist_20261119_hun_ger', 'Hungary', 'Germany', 'BL1', '2026-11-19 20:45:00', 5.50, 4.20, 1.55, 1, 1, 1.15, 2.15, 4.1, 6.5),
-    ('ext_hist_20261119_alb_ukr', 'Albania', 'Ukraine', 'PL', '2026-11-19 20:45:00', 3.10, 3.20, 2.40, 1, 2, 1.20, 1.50, 4.6, 5.0),
-    ('ext_hist_20261119_mon_tur', 'Montenegro', 'Turkey', 'PL', '2026-11-19 20:45:00', 6.20, 4.10, 1.55, 3, 1, 0.90, 1.95, 3.9, 6.1),
-    ('ext_hist_20261119_wal_isl', 'Wales', 'Iceland', 'PL', '2026-11-19 20:45:00', 1.65, 3.75, 5.50, 4, 1, 1.85, 1.05, 5.8, 4.1),
-    # 2026-11-20
-    ('ext_hist_20261120_mon_bre', 'Monaco', 'Brest', 'FL1', '2026-11-20 19:00:00', 1.52, 4.50, 5.80, 3, 2, 2.15, 1.25, 6.2, 4.3),
-    ('ext_hist_20261120_psg_tou', 'Paris Saint-Germain', 'Toulouse', 'FL1', '2026-11-20 21:00:00', 1.35, 5.50, 8.00, 3, 0, 2.65, 0.85, 7.3, 3.4),
-    ('ext_hist_20261120_get_val', 'Getafe', 'Valladolid', 'PD', '2026-11-20 21:00:00', 1.72, 3.40, 5.80, 2, 0, 1.55, 0.80, 5.3, 3.7),
-    ('ext_hist_20261120_bay_aug', 'Bayern Munich', 'Augsburg', 'BL1', '2026-11-20 20:30:00', 1.15, 8.50, 16.00, 3, 0, 3.10, 0.60, 8.1, 2.9),
-    # 2026-11-21
-    ('ext_hist_20261121_lei_che', 'Leicester', 'Chelsea', 'PL', '2026-11-21 13:30:00', 5.50, 4.40, 1.55, 1, 2, 1.20, 2.15, 4.2, 6.5),
-    ('ext_hist_20261121_ars_nfo', 'Arsenal', 'Nottingham Forest', 'PL', '2026-11-21 16:00:00', 1.35, 5.00, 8.50, 3, 0, 2.30, 0.85, 6.8, 3.8),
-    ('ext_hist_20261121_avl_cry', 'Aston Villa', 'Crystal Palace', 'PL', '2026-11-21 16:00:00', 1.62, 4.20, 5.25, 2, 2, 2.05, 1.25, 6.1, 4.6),
-    ('ext_hist_20261121_bou_bha', 'Bournemouth', 'Brighton', 'PL', '2026-11-21 16:00:00', 2.35, 3.65, 2.85, 1, 2, 1.65, 1.70, 5.5, 5.6),
-    ('ext_hist_20261121_ful_wol', 'Fulham', 'Wolves', 'PL', '2026-11-21 16:00:00', 1.70, 3.90, 4.80, 1, 4, 1.85, 1.15, 5.7, 4.5),
-    ('ext_hist_20261121_eve_bre', 'Everton', 'Brentford', 'PL', '2026-11-21 16:00:00', 2.40, 3.35, 2.95, 0, 0, 1.45, 1.35, 5.2, 5.0),
-    ('ext_hist_20261121_mci_tot', 'Manchester City', 'Tottenham', 'PL', '2026-11-21 18:30:00', 1.50, 4.80, 5.50, 0, 4, 2.45, 1.75, 7.2, 5.4),
-    ('ext_hist_20261121_atm_ala', 'Atletico Madrid', 'Alaves', 'PD', '2026-11-21 16:15:00', 1.35, 5.00, 9.50, 2, 1, 2.10, 0.80, 6.4, 3.5),
-    ('ext_hist_20261121_cel_bar', 'Celta Vigo', 'Barcelona', 'PD', '2026-11-21 21:00:00', 4.40, 4.20, 1.70, 2, 2, 1.45, 2.50, 4.8, 6.8),
-    ('ext_hist_20261121_ver_int', 'Verona', 'Inter Milan', 'SA', '2026-11-21 15:00:00', 8.50, 5.25, 1.35, 0, 5, 0.85, 2.65, 3.5, 7.5),
-    ('ext_hist_20261121_mil_juv', 'AC Milan', 'Juventus', 'SA', '2026-11-21 18:00:00', 2.20, 3.20, 3.50, 0, 0, 1.65, 1.40, 5.4, 5.1)
-]
-
-async def seed_major_clubs_upcoming_fixtures(session: AsyncSession):
-    try:
-        inserted = 0
-        for ext_id, ht, at, lid, m_date, ho, do, ao, h_rate, a_rate, h_corn, a_corn in UPCOMING_MAJOR_FIXTURES_DATA:
-            stmt = select(HistoricalMatch).where(HistoricalMatch.external_id == ext_id)
-            res = await session.execute(stmt)
-            if not res.scalar_one_or_none():
-                session.add(HistoricalMatch(
-                    external_id=ext_id,
-                    home_team=ht,
-                    away_team=at,
-                    league_id=lid,
-                    match_date=datetime.fromisoformat(m_date),
-                    home_odds=ho,
-                    draw_odds=do,
-                    away_odds=ao,
-                    home_home_scoring_rate=h_rate,
-                    away_away_scoring_rate=a_rate,
-                    home_corners=h_corn,
-                    away_corners=a_corn,
-                    status="scheduled",
-                    source_classification="provider_verified",
-                    provider="football-data-org"
-                ))
-                inserted += 1
-
-        for ext_id, ht, at, lid, m_date, ho, do_odd, ao, hs, ascore, h_rate, a_rate, h_corn, a_corn in HISTORICAL_MAJOR_FIXTURES_DATA:
-            stmt = select(HistoricalMatch).where(HistoricalMatch.external_id == ext_id)
-            res = await session.execute(stmt)
-            if not res.scalar_one_or_none():
-                session.add(HistoricalMatch(
-                    external_id=ext_id,
-                    home_team=ht,
-                    away_team=at,
-                    league_id=lid,
-                    match_date=datetime.fromisoformat(m_date),
-                    home_odds=ho,
-                    draw_odds=do_odd,
-                    away_odds=ao,
-                    home_score=hs,
-                    away_score=ascore,
-                    home_home_scoring_rate=h_rate,
-                    away_away_scoring_rate=a_rate,
-                    home_corners=h_corn,
-                    away_corners=a_corn,
-                    status="FINISHED",
-                    source_classification="provider_verified",
-                    provider="football-data-org"
-                ))
-                inserted += 1
-
-        if inserted > 0:
-            await session.commit()
-            logger.info(f"Verified & seeded {inserted} major club fixtures into slate.")
-    except Exception as e:
-        logger.warning(f"Major clubs fixture seeding check: {e}")
 
 @app.get("/api/calendar/search-team")
 async def search_team_all_dates(
@@ -7901,7 +7602,19 @@ async def search_team_all_dates(
     combined_filter = or_(*team_conditions)
     base_filter = and_(
         combined_filter,
-        HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached", "seed", "unverified"])
+        HistoricalMatch.source_classification == "provider_verified",
+        HistoricalMatch.external_id.notlike("ext_pl_%"),
+        HistoricalMatch.external_id.notlike("ext_ucl_%"),
+        HistoricalMatch.external_id.notlike("ext_uel_%"),
+        HistoricalMatch.external_id.notlike("ext_uecl_%"),
+        HistoricalMatch.external_id.notlike("ext_pd_%"),
+        HistoricalMatch.external_id.notlike("ext_sa_%"),
+        HistoricalMatch.external_id.notlike("ext_fl1_%"),
+        HistoricalMatch.external_id.notlike("ext_bl1_%"),
+        HistoricalMatch.external_id.notlike("ext_hist_%"),
+        HistoricalMatch.external_id.notlike("SYN-%"),
+        HistoricalMatch.external_id.notlike("auto_%"),
+        HistoricalMatch.external_id.notlike("demo_%")
     )
     
     # 4. Partition search results into UPCOMING (>= Lagos today 00:00) and PAST (< Lagos today)
@@ -7963,7 +7676,19 @@ async def get_calendar_league_slate(
     clean_lid = league_id.strip()
     conditions = [
         HistoricalMatch.league_id == clean_lid,
-        HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached", "seed"])
+        HistoricalMatch.source_classification == "provider_verified",
+        HistoricalMatch.external_id.notlike("ext_pl_%"),
+        HistoricalMatch.external_id.notlike("ext_ucl_%"),
+        HistoricalMatch.external_id.notlike("ext_uel_%"),
+        HistoricalMatch.external_id.notlike("ext_uecl_%"),
+        HistoricalMatch.external_id.notlike("ext_pd_%"),
+        HistoricalMatch.external_id.notlike("ext_sa_%"),
+        HistoricalMatch.external_id.notlike("ext_fl1_%"),
+        HistoricalMatch.external_id.notlike("ext_bl1_%"),
+        HistoricalMatch.external_id.notlike("ext_hist_%"),
+        HistoricalMatch.external_id.notlike("SYN-%"),
+        HistoricalMatch.external_id.notlike("auto_%"),
+        HistoricalMatch.external_id.notlike("demo_%")
     ]
     if date and date not in ["all", "any", "null", "undefined"]:
         start_utc, end_utc = get_lagos_day_utc_bounds(date)
@@ -8148,6 +7873,19 @@ async def get_dashboard_stats(
         select(HistoricalMatch)
         .where(
             and_(
+                HistoricalMatch.source_classification == "provider_verified",
+                HistoricalMatch.external_id.notlike("ext_pl_%"),
+                HistoricalMatch.external_id.notlike("ext_ucl_%"),
+                HistoricalMatch.external_id.notlike("ext_uel_%"),
+                HistoricalMatch.external_id.notlike("ext_uecl_%"),
+                HistoricalMatch.external_id.notlike("ext_pd_%"),
+                HistoricalMatch.external_id.notlike("ext_sa_%"),
+                HistoricalMatch.external_id.notlike("ext_fl1_%"),
+                HistoricalMatch.external_id.notlike("ext_bl1_%"),
+                HistoricalMatch.external_id.notlike("ext_hist_%"),
+                HistoricalMatch.external_id.notlike("auto_%"),
+                HistoricalMatch.external_id.notlike("SYN-%"),
+                HistoricalMatch.external_id.notlike("demo_%"),
                 HistoricalMatch.home_odds.isnot(None),
                 HistoricalMatch.draw_odds.isnot(None),
                 HistoricalMatch.away_odds.isnot(None)
@@ -8355,8 +8093,19 @@ async def get_upcoming_fixtures(db: AsyncSession = Depends(get_db)):
         .where(
             HistoricalMatch.status == "scheduled",
             HistoricalMatch.match_date >= now.replace(tzinfo=None),
+            HistoricalMatch.source_classification == "provider_verified",
+            HistoricalMatch.external_id.notlike("ext_pl_%"),
+            HistoricalMatch.external_id.notlike("ext_ucl_%"),
+            HistoricalMatch.external_id.notlike("ext_uel_%"),
+            HistoricalMatch.external_id.notlike("ext_uecl_%"),
+            HistoricalMatch.external_id.notlike("ext_pd_%"),
+            HistoricalMatch.external_id.notlike("ext_sa_%"),
+            HistoricalMatch.external_id.notlike("ext_fl1_%"),
+            HistoricalMatch.external_id.notlike("ext_bl1_%"),
+            HistoricalMatch.external_id.notlike("ext_hist_%"),
             HistoricalMatch.external_id.notlike("auto_%"),
-            HistoricalMatch.external_id.notlike("SYN-%")
+            HistoricalMatch.external_id.notlike("SYN-%"),
+            HistoricalMatch.external_id.notlike("demo_%")
         )
         .order_by(priority_order, HistoricalMatch.match_date.asc())
         .limit(40)

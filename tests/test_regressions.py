@@ -493,22 +493,20 @@ class TestRegressions(unittest.IsolatedAsyncioTestCase):
     # REGRESSION-023: Provider Error Propagation Without Fabrication
     async def test_regression_023_provider_error_propagation_honest_empty_state(self):
         from unittest.mock import patch, AsyncMock
-        from football_ingestion import FootballDataService
+        from football_ingestion import FootballDataService, ProviderResult
         from main import calendar_slate_cache, app
         import httpx
 
         calendar_slate_cache.clear()
 
-        mock_service = FootballDataService(api_key="mock_suspended_key")
-        mock_service.last_error = "API-Sports: access: Your account is suspended"
-
-        with patch.object(FootballDataService, "sync_all_leagues_to_db", new_callable=AsyncMock) as mock_sync:
-            mock_sync.return_value = {
-                "source": "api-sports-live",
-                "status": "error",
-                "message": "API-Sports: access: Your account is suspended",
-                "synced_fixtures": 0
-            }
+        with patch.object(FootballDataService, "fetch_live_fixtures_with_provenance", new_callable=AsyncMock) as mock_fetch:
+            mock_fetch.return_value = ProviderResult(
+                success=False,
+                status_code=403,
+                error_code="INSUFFICIENT_CREDITS",
+                user_message="Live football data is currently unavailable because the football data provider has rejected the request due to insufficient API credits. Please replenish the provider account and try again.",
+                matches=[]
+            )
             # Query using in-process ASGI client so mock is active in test process
             async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as local_client:
                 resp = await local_client.get("/api/calendar/daily-slate?date=2029-12-31")
@@ -517,7 +515,7 @@ class TestRegressions(unittest.IsolatedAsyncioTestCase):
                 # When provider fails, app must NOT fabricate fixtures
                 self.assertEqual(len(data.get("matches", [])), 0, "Must return honest empty matches list, never fabricate")
                 self.assertEqual(data.get("provider_status"), "error")
-                self.assertTrue(any(w in str(data.get("provider_message")) for w in ["API-Sports", "suspended", "Free plans"]))
+                self.assertTrue("insufficient API credits" in str(data.get("provider_message")))
 
 
     # REGRESSION-024: Authoritative Provider Fixture Identity and Pair Integrity

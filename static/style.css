@@ -14733,7 +14733,9 @@ body.light-theme-mode .btn-validate-print-slip[disabled] {
   }
 
   @keyframes circularFabFloatPulse {
-    0%, 100% {
+
+    0%,
+    100% {
       transform: scale(1);
       box-shadow: 0 8px 24px rgba(0, 214, 101, 0.55), 0 4px 12px rgba(0, 0, 0, 0.6);
     }

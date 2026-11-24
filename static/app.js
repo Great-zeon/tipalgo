@@ -5670,6 +5670,15 @@
       } catch (e) {}
     }
 
+    // Purge any residual synthetic cache entries from older sessions
+    if (cached && Array.isArray(cached.matches)) {
+      if (cached.matches.some(m => m.external_id && (m.external_id.startsWith('ext_') || m.external_id.startsWith('SYN-') || m.external_id.startsWith('auto_') || m.external_id.startsWith('demo_')))) {
+        cached = null;
+        clientSlateMemoryCache.delete(cacheKey);
+        try { sessionStorage.removeItem(`sportymill_slate_${cacheKey}`); } catch (e) {}
+      }
+    }
+
     if (cached && Array.isArray(cached.matches) && cached.matches.length > 0) {
       applyCalendarSlateData(cached);
     } else {
@@ -5689,7 +5698,10 @@
         const data = await api(url);
         if (!data) return;
 
-        if (data && Array.isArray(data.matches) && data.matches.length > 0) {
+        if (data.provider_status === 'error' || data.status === 'error') {
+          clientSlateMemoryCache.delete(cacheKey);
+          try { sessionStorage.removeItem(`sportymill_slate_${cacheKey}`); } catch (e) {}
+        } else if (data && Array.isArray(data.matches) && data.matches.length > 0) {
           clientSlateMemoryCache.set(cacheKey, data);
           try {
             sessionStorage.setItem(`sportymill_slate_${cacheKey}`, JSON.stringify(data));
@@ -7054,8 +7066,8 @@
       let emptyMsg = `No matches are scheduled or recorded for <strong>${esc(dateTitle)}</strong>.`;
 
       if (isProviderError) {
-        emptyTitle = 'Unable to Retrieve Fixtures';
-        emptyMsg = `Unable to retrieve fixtures. The external data provider could not be reached. Please retry.`;
+        emptyTitle = 'Live Football Provider Offline';
+        emptyMsg = providerMsg ? esc(providerMsg) : `Live football data is currently unavailable from our data provider. Please check provider account credits or connectivity.`;
       } else if (state.calendar.searchQuery) {
         emptyMsg = `No matches match your search "<strong>${esc(state.calendar.searchQuery)}</strong>" on ${esc(dateTitle)}.`;
       } else if (hasActiveFilters) {
@@ -7943,7 +7955,6 @@
     }
   }
 
-  window.addToSlip = addToSlip;
   function addToSlip(pick) {
     if (!pick || !pick.match || !pick.market) return false;
 
@@ -8019,6 +8030,7 @@
     renderCalendarMatchesFeed();
     return true;
   }
+  window.addToSlip = addToSlip;
 
   function removeFromSlip(index) {
     if (index >= 0 && index < state.betslip.items.length) {
