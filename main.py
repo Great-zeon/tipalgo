@@ -4369,42 +4369,37 @@ async def batch_scan_handler(db, user, matches, min_edge, predictor: PredictorSe
     }
 
 _candidate_cache = {}
-_CANDIDATE_CACHE_TTL = 60
+_CANDIDATE_CACHE_TTL = 180
 
 async def get_all_candidate_bets(db: AsyncSession, predictor: PredictorService,
                                  min_edge: float = 0.01, min_prob: float = 0.55,
                                  max_odds: float = 20.0) -> List[Dict]:
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
     cache_key = f"candidate_bets:{min_edge:.3f}:{min_prob:.3f}:{max_odds:.1f}"
     cached = _candidate_cache.get(cache_key)
     if cached and time.time() - cached['ts'] < _CANDIDATE_CACHE_TTL:
         return cached['data']
-    result = await db.execute(
-        select(HistoricalMatch)
-        .where(HistoricalMatch.match_date >= now)
-        .where(HistoricalMatch.status.in_(["scheduled", "ns"]))
-        .where(HistoricalMatch.source_classification == "provider_verified")
-        .where(HistoricalMatch.external_id.notlike("ext_pl_%"))
-        .where(HistoricalMatch.external_id.notlike("ext_ucl_%"))
-        .where(HistoricalMatch.external_id.notlike("ext_uel_%"))
-        .where(HistoricalMatch.external_id.notlike("ext_uecl_%"))
-        .where(HistoricalMatch.external_id.notlike("ext_pd_%"))
-        .where(HistoricalMatch.external_id.notlike("ext_sa_%"))
-        .where(HistoricalMatch.external_id.notlike("ext_fl1_%"))
-        .where(HistoricalMatch.external_id.notlike("ext_bl1_%"))
-        .where(HistoricalMatch.external_id.notlike("ext_hist_%"))
-        .where(HistoricalMatch.external_id.notlike("SYN-%"))
-        .where(HistoricalMatch.external_id.notlike("auto_%"))
-        .where(HistoricalMatch.external_id.notlike("demo_%"))
-        .where(HistoricalMatch.home_odds.isnot(None))
-        .where(HistoricalMatch.away_odds.isnot(None))
-        .where(HistoricalMatch.draw_odds.isnot(None))
-        .order_by(HistoricalMatch.match_date)
-        .limit(100)
-    )
-    fixtures = result.scalars().all()
+
+    # API-ONLY: Retrieve authentic upcoming fixtures directly from provider feed
+    from football_ingestion import FootballDataService, LiveFixtureItem
+    service = FootballDataService(api_key=config.FOOTBALL_API_KEY, base_url=config.FOOTBALL_API_BASE)
+    lagos_now = now_lagos()
+    today_str = lagos_now.strftime("%Y-%m-%d")
+    tomorrow_str = (lagos_now + timedelta(days=1)).strftime("%Y-%m-%d")
+
+    raw_matches = []
+    res_today = await service.fetch_live_fixtures_with_provenance(today_str)
+    if res_today.success and res_today.matches:
+        raw_matches.extend(res_today.matches)
+    res_tomorrow = await service.fetch_live_fixtures_with_provenance(tomorrow_str)
+    if res_tomorrow.success and res_tomorrow.matches:
+        raw_matches.extend(res_tomorrow.matches)
+
+    fixtures = [LiveFixtureItem(m, provider=service.provider) for m in raw_matches]
     all_bets = []
     for fixture in fixtures:
+        # Skip finished or cancelled matches
+        if str(fixture.status).lower() in ["finished", "ft", "aet", "cancelled", "postponed"]:
+            continue
         home = fixture.home_team
         away = fixture.away_team
         league = fixture.league_id
@@ -7590,86 +7585,62 @@ async def search_team_all_dates(
         if key == q_lower or key in q_lower or q_lower in key:
             aliases.extend(mapped)
     aliases = list(dict.fromkeys(aliases))
+    alias_lowers = [a.lower() for a in aliases]
     
     # 2. Check if query matches a league name or country
     matched_league_ids = []
     for lid, meta in LEAGUE_METADATA.items():
         name, country = meta[0], meta[1]
         if q_lower in name.lower() or q_lower in country.lower() or q_lower == lid.lower():
-            matched_league_ids.append(lid)
+            matched_league_ids.append(lid.lower())
     
-    # 3. Build search conditions
-    team_conditions = []
-    for term in aliases:
-        pat = f"%{term}%"
-        team_conditions.append(HistoricalMatch.home_team.ilike(pat))
-        team_conditions.append(HistoricalMatch.away_team.ilike(pat))
+    # 3. API-ONLY: Retrieve authentic fixtures across the rolling calendar window
+    from football_ingestion import FootballDataService, LiveFixtureItem
+    service = FootballDataService(api_key=config.FOOTBALL_API_KEY, base_url=config.FOOTBALL_API_BASE)
+    lagos_now = now_lagos()
     
-    if matched_league_ids:
-        team_conditions.append(HistoricalMatch.league_id.in_(matched_league_ids))
-        
-    combined_filter = or_(*team_conditions)
-    base_filter = and_(
-        combined_filter,
-        HistoricalMatch.source_classification == "provider_verified",
-        HistoricalMatch.external_id.notlike("ext_pl_%"),
-        HistoricalMatch.external_id.notlike("ext_ucl_%"),
-        HistoricalMatch.external_id.notlike("ext_uel_%"),
-        HistoricalMatch.external_id.notlike("ext_uecl_%"),
-        HistoricalMatch.external_id.notlike("ext_pd_%"),
-        HistoricalMatch.external_id.notlike("ext_sa_%"),
-        HistoricalMatch.external_id.notlike("ext_fl1_%"),
-        HistoricalMatch.external_id.notlike("ext_bl1_%"),
-        HistoricalMatch.external_id.notlike("ext_hist_%"),
-        HistoricalMatch.external_id.notlike("SYN-%"),
-        HistoricalMatch.external_id.notlike("auto_%"),
-        HistoricalMatch.external_id.notlike("demo_%")
-    )
+    # Search dates across past 1 day to next 5 days
+    target_dates = [(lagos_now + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(-1, 6)]
     
-    # 4. Partition search results into UPCOMING (>= Lagos today 00:00) and PAST (< Lagos today)
-    now_lagos_dt = now_lagos()
-    today_start_lagos = now_lagos_dt.replace(hour=0, minute=0, second=0, microsecond=0)
-    today_start_utc = today_start_lagos.astimezone(timezone.utc).replace(tzinfo=None)
+    raw_candidates = []
+    seen_fixture_ids = set()
+    for dt in target_dates:
+        prov_res = await service.fetch_live_fixtures_with_provenance(dt)
+        if prov_res.success and prov_res.matches:
+            for m in prov_res.matches:
+                m_id = str(m.get("id") or "")
+                if m_id and m_id in seen_fixture_ids:
+                    continue
+                
+                home_n = str(m.get("home", {}).get("name", "")).lower()
+                away_n = str(m.get("away", {}).get("name", "")).lower()
+                lg_n = str(m.get("league", {}).get("name", "")).lower()
+                country_n = str(m.get("league", {}).get("country", "")).lower()
+                lg_id_str = str(m.get("league", {}).get("id", "")).lower()
+                
+                # Check team, league or country match
+                matched = any(term in home_n or term in away_n or term in lg_n or term in country_n for term in alias_lowers)
+                if not matched and matched_league_ids:
+                    matched = any(lid in lg_id_str or lid in lg_n for lid in matched_league_ids)
+                    
+                if matched:
+                    if m_id:
+                        seen_fixture_ids.add(m_id)
+                    raw_candidates.append(m)
+                    
+    fixture_items = [LiveFixtureItem(m, provider=service.provider) for m in raw_candidates]
+    match_cards, endpoint_counts = await format_fixture_cards_helper(fixture_items, db, predictor, endpoint or "all")
     
-    # A) Upcoming fixtures ordered chronologically ASCENDING (soonest match first)
-    stmt_upcoming = (
-        select(HistoricalMatch)
-        .where(
-            and_(
-                base_filter,
-                HistoricalMatch.match_date >= today_start_utc
-            )
-        )
-        .order_by(HistoricalMatch.match_date.asc())
-        .limit(60)
-    )
-    res_up = await db.execute(stmt_upcoming)
-    upcoming_fixtures = res_up.scalars().all()
+    today_str = lagos_now.strftime("%Y-%m-%d")
+    upcoming_cards = [c for c in match_cards if str(c.get("match_date_wat", "")) >= today_str]
+    past_cards = [c for c in match_cards if str(c.get("match_date_wat", "")) < today_str]
     
-    # B) Past fixtures ordered chronologically DESCENDING (most recent first)
-    stmt_past = (
-        select(HistoricalMatch)
-        .where(
-            and_(
-                base_filter,
-                HistoricalMatch.match_date < today_start_utc
-            )
-        )
-        .order_by(HistoricalMatch.match_date.desc())
-        .limit(40)
-    )
-    res_past = await db.execute(stmt_past)
-    past_fixtures = res_past.scalars().all()
-    
-    all_fixtures = list(upcoming_fixtures) + list(past_fixtures)
-    
-    match_cards, endpoint_counts = await format_fixture_cards_helper(all_fixtures, db, predictor, endpoint or "all")
     return Response(
         content=json.dumps({
             "query": clean_q,
             "total_matches": len(match_cards),
-            "upcoming_count": len(upcoming_fixtures),
-            "past_count": len(past_fixtures),
+            "upcoming_count": len(upcoming_cards),
+            "past_count": len(past_cards),
             "matches": match_cards
         }),
         media_type="application/json"
@@ -7683,45 +7654,23 @@ async def get_calendar_league_slate(
     predictor: PredictorService = Depends(get_predictor)
 ):
     clean_lid = league_id.strip()
-    conditions = [
-        HistoricalMatch.league_id == clean_lid,
-        HistoricalMatch.source_classification == "provider_verified",
-        HistoricalMatch.external_id.notlike("ext_pl_%"),
-        HistoricalMatch.external_id.notlike("ext_ucl_%"),
-        HistoricalMatch.external_id.notlike("ext_uel_%"),
-        HistoricalMatch.external_id.notlike("ext_uecl_%"),
-        HistoricalMatch.external_id.notlike("ext_pd_%"),
-        HistoricalMatch.external_id.notlike("ext_sa_%"),
-        HistoricalMatch.external_id.notlike("ext_fl1_%"),
-        HistoricalMatch.external_id.notlike("ext_bl1_%"),
-        HistoricalMatch.external_id.notlike("ext_hist_%"),
-        HistoricalMatch.external_id.notlike("SYN-%"),
-        HistoricalMatch.external_id.notlike("auto_%"),
-        HistoricalMatch.external_id.notlike("demo_%")
-    ]
-    if date and date not in ["all", "any", "null", "undefined"]:
-        start_utc, end_utc = get_lagos_day_utc_bounds(date)
-        start_utc_str = start_utc.strftime("%Y-%m-%d %H:%M:%S")
-        end_utc_str = end_utc.strftime("%Y-%m-%d %H:%M:%S")
-        conditions.append(func.cast(HistoricalMatch.match_date, String) >= start_utc_str)
-        conditions.append(func.cast(HistoricalMatch.match_date, String) <= end_utc_str)
-        
-    stmt = (
-        select(HistoricalMatch)
-        .where(and_(*conditions))
-        .order_by(HistoricalMatch.match_date.asc())
-        .limit(100)
-    )
-    res = await db.execute(stmt)
-    fixtures = res.scalars().all()
-        
-    match_cards, endpoint_counts = await format_fixture_cards_helper(fixtures, db, predictor, "all")
+    target_date = str(date or now_lagos().strftime("%Y-%m-%d")).strip()
+    
+    from football_ingestion import FootballDataService, LiveFixtureItem
+    service = FootballDataService(api_key=config.FOOTBALL_API_KEY, base_url=config.FOOTBALL_API_BASE)
+    prov_res = await service.fetch_live_fixtures_with_provenance(target_date)
+    raw_matches = prov_res.matches if prov_res.success else []
+    
+    items = [LiveFixtureItem(m, provider=service.provider) for m in raw_matches]
+    matched = [f for f in items if str(f.league_id).lower() == clean_lid.lower() or clean_lid.lower() in str(getattr(f, "league_name", "")).lower()]
+    
+    match_cards, endpoint_counts = await format_fixture_cards_helper(matched, db, predictor, "all")
     return Response(
         content=json.dumps({
             "league_id": clean_lid,
             "league_name": format_league_display_name(clean_lid),
             "country": get_league_country(clean_lid),
-            "date": date or "all",
+            "date": target_date,
             "total_matches": len(match_cards),
             "matches": match_cards
         }),
@@ -8075,49 +8024,30 @@ async def get_leagues_and_teams(db: AsyncSession = Depends(get_db)):
 
 @app.get("/api/upcoming-fixtures")
 async def get_upcoming_fixtures(db: AsyncSession = Depends(get_db)):
-    now = datetime.now(timezone.utc)
     cached = upcoming_fixtures_cache.get("all")
     if cached is not None:
-        try:
-            cached_list = json.loads(cached)
-            def _parse_fixture_date(ds: str) -> datetime:
-                d = datetime.fromisoformat(ds.replace("Z", "+00:00"))
-                if d.tzinfo is None:
-                    d = d.replace(tzinfo=timezone.utc)
-                return d
-            valid_cached = [
-                f for f in cached_list
-                if _parse_fixture_date(f["match_date"]) >= now
-            ]
-            if valid_cached:
-                return JSONResponse(content=valid_cached)
-        except Exception:
-            pass
-    major_leagues = ["PL", "PD", "SA", "BL1", "FL1", "CL", "UNL", "BSA", "ARG", "COL", "ELC", "DED", "PPL"]
-    priority_order = case({lid: i for i, lid in enumerate(major_leagues)}, value=HistoricalMatch.league_id, else_=99)
-    res = await db.execute(
-        select(HistoricalMatch)
-        .where(
-            HistoricalMatch.status == "scheduled",
-            HistoricalMatch.match_date >= now.replace(tzinfo=None),
-            HistoricalMatch.source_classification == "provider_verified",
-            HistoricalMatch.external_id.notlike("ext_pl_%"),
-            HistoricalMatch.external_id.notlike("ext_ucl_%"),
-            HistoricalMatch.external_id.notlike("ext_uel_%"),
-            HistoricalMatch.external_id.notlike("ext_uecl_%"),
-            HistoricalMatch.external_id.notlike("ext_pd_%"),
-            HistoricalMatch.external_id.notlike("ext_sa_%"),
-            HistoricalMatch.external_id.notlike("ext_fl1_%"),
-            HistoricalMatch.external_id.notlike("ext_bl1_%"),
-            HistoricalMatch.external_id.notlike("ext_hist_%"),
-            HistoricalMatch.external_id.notlike("auto_%"),
-            HistoricalMatch.external_id.notlike("SYN-%"),
-            HistoricalMatch.external_id.notlike("demo_%")
-        )
-        .order_by(priority_order, HistoricalMatch.match_date.asc())
-        .limit(40)
-    )
-    scheduled_fixtures = res.scalars().all()
+        return Response(content=cached, media_type="application/json")
+
+    from football_ingestion import FootballDataService, LiveFixtureItem
+    service = FootballDataService(api_key=config.FOOTBALL_API_KEY, base_url=config.FOOTBALL_API_BASE)
+    lagos_now = now_lagos()
+    today_str = lagos_now.strftime("%Y-%m-%d")
+    tomorrow_str = (lagos_now + timedelta(days=1)).strftime("%Y-%m-%d")
+
+    raw_fixtures = []
+    res_today = await service.fetch_live_fixtures_with_provenance(today_str)
+    if res_today.success and res_today.matches:
+        raw_fixtures.extend(res_today.matches)
+    res_tomorrow = await service.fetch_live_fixtures_with_provenance(tomorrow_str)
+    if res_tomorrow.success and res_tomorrow.matches:
+        raw_fixtures.extend(res_tomorrow.matches)
+
+    items = [LiveFixtureItem(m, provider=service.provider) for m in raw_fixtures]
+    upcoming = [
+        f for f in items
+        if str(f.status).lower() not in ["finished", "ft", "aet", "cancelled", "postponed"]
+    ]
+
     result = [{
         "external_id": f.external_id,
         "home_team": f.home_team,
@@ -8128,7 +8058,7 @@ async def get_upcoming_fixtures(db: AsyncSession = Depends(get_db)):
         "home_odds": f.home_odds,
         "away_odds": f.away_odds,
         "draw_odds": f.draw_odds,
-    } for f in scheduled_fixtures]
+    } for f in upcoming[:50]]
     serialized = json.dumps(result)
     upcoming_fixtures_cache.set("all", serialized)
     return Response(content=serialized, media_type="application/json")
