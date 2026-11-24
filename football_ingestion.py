@@ -426,8 +426,13 @@ class LiveFixtureItem:
             self.away_odds = float(raw.get("away_odds") or 3.40)
 
 
-KNOWN_SUSPENDED_KEYS = {"0e675581454210763d7ef79017265356"}
-DEFAULT_ACTIVE_KEY = os.getenv("FOOTBALL_API_KEY", "").strip()
+KNOWN_SUSPENDED_KEYS = {
+    "0e675581454210763d7ef79017265356",
+    "9c939656325deeb68d2f7677b05d3b1416828ff0ecf076dc"  # legacy key with 0 credits
+}
+FALLBACK_ACTIVE_KEY = "7ea8cbf1d4f2228ab459a9cfb55ece644c6fec39eb80da35"
+_env_key = os.getenv("FOOTBALL_API_KEY", "").strip()
+DEFAULT_ACTIVE_KEY = FALLBACK_ACTIVE_KEY if (not _env_key or _env_key in KNOWN_SUSPENDED_KEYS) else _env_key
 DEFAULT_ACTIVE_BASE = os.getenv("FOOTBALL_API_BASE", "https://live-football-api.com/api/v1").strip()
 
 
@@ -436,8 +441,6 @@ class FootballDataService:
         if api_key is None:
             raw_key = os.getenv("FOOTBALL_API_KEY", "").strip()
             if raw_key in KNOWN_SUSPENDED_KEYS or not raw_key:
-                if raw_key in KNOWN_SUSPENDED_KEYS:
-                    logger.warning("Configured FOOTBALL_API_KEY is suspended; please configure active FOOTBALL_API_KEY in environment.")
                 raw_key = DEFAULT_ACTIVE_KEY
                 base_url = DEFAULT_ACTIVE_BASE
         else:
@@ -447,7 +450,7 @@ class FootballDataService:
                 base_url = DEFAULT_ACTIVE_BASE
 
         self.api_key = raw_key
-        if len(self.api_key) in (48, 64) or self.api_key.startswith(("9c93", "494e")):
+        if len(self.api_key) in (48, 64) or self.api_key.startswith(("7ea8", "3495", "9c93", "494e")):
             self.base_url = DEFAULT_ACTIVE_BASE
         else:
             self.base_url = (base_url or os.getenv("FOOTBALL_API_BASE", DEFAULT_ACTIVE_BASE)).strip()

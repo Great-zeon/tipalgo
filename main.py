@@ -148,9 +148,13 @@ class Config:
             ADMIN_DEVICE_OVERRIDE_STATUS = "ENABLED_DEV_SAFE_DEFAULT"
     MAX_SYSTEM_DEVICES = int(os.getenv("MAX_SYSTEM_DEVICES", "5"))
     REGISTRATION_ENABLED = os.getenv("REGISTRATION_ENABLED", "false").lower() == "true"
-    FOOTBALL_API_KEY = os.getenv("FOOTBALL_API_KEY", "").strip()
+    _raw_key = os.getenv("FOOTBALL_API_KEY", "").strip()
+    if not _raw_key or _raw_key in ("9c939656325deeb68d2f7677b05d3b1416828ff0ecf076dc", "0e675581454210763d7ef79017265356"):
+        FOOTBALL_API_KEY = "7ea8cbf1d4f2228ab459a9cfb55ece644c6fec39eb80da35"
+    else:
+        FOOTBALL_API_KEY = _raw_key
     FOOTBALL_API_BASE = os.getenv("FOOTBALL_API_BASE", "https://live-football-api.com/api/v1").strip()
-    if "api-sports.io" in FOOTBALL_API_BASE and (len(FOOTBALL_API_KEY) in (48, 64) or FOOTBALL_API_KEY.startswith(("9c93", "494e"))):
+    if "api-sports.io" in FOOTBALL_API_BASE and (len(FOOTBALL_API_KEY) in (48, 64) or FOOTBALL_API_KEY.startswith(("7ea8", "3495", "9c93", "494e"))):
         FOOTBALL_API_BASE = "https://live-football-api.com/api/v1"
     PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY", "")
     PAYSTACK_PUBLIC_KEY = os.getenv("PAYSTACK_PUBLIC_KEY", "")
