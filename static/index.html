@@ -36,7 +36,7 @@
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet">
 
-  <link rel="stylesheet" href="/static/style.css?v=127">
+  <link rel="stylesheet" href="/static/style.css?v=128">
 </head>
 
 <body class="light-platform">
@@ -319,7 +319,8 @@
     </header>
 
     <!-- Main Content Area -->
-    <main class="content-area">
+    <main class="content-area has-desktop-slip" id="mainContentArea">
+      <div class="workspace-views-col" id="workspaceViewsCol">
 
       <!-- ===================================================================
            View 0: Primary Matches Feed & Banker Slate (PRIMARY VIEW)
@@ -381,7 +382,7 @@
                   <button type="button" class="cal-shortcut-chip" data-shortcut="yesterday">Yesterday</button>
                   <button type="button" class="cal-shortcut-chip active" data-shortcut="today">Today</button>
                   <button type="button" class="cal-shortcut-chip" data-shortcut="tomorrow">Tomorrow</button>
-                  <button type="button" class="cal-shortcut-chip" data-shortcut="next-5-days">Next 5 Days</button>
+                  <button type="button" class="cal-shortcut-chip" data-shortcut="next-5-days">All Upcoming</button>
                 </div>
 
                 <!-- Month & Year Navigation Header (Limitless Navigation) -->
@@ -481,83 +482,10 @@
           <!-- Active Filter Notice Banner (if filtered or 0 matches) -->
           <div id="endpointFilterNotice" class="endpoint-notice-banner" style="display: none;"></div>
 
-          <!-- Matches & Bet Slip Split Layout (Always Docked on Desktop) -->
-          <div class="home-main-split">
-            <div class="home-feed-col">
-              <div class="calendar-matches-feed" id="calendarMatchesFeed">
-                <!-- Dynamically populated match cards -->
-              </div>
-            </div>
-            <div class="home-slip-col" id="homeSlipCol">
-              <!-- Prediction Platform Bet Slip (Faithful to Employer Canva Mockup) -->
-              <aside class="betslip-sidebar" id="betslipSidebar">
-                <div class="betslip-header">
-                  <div class="betslip-header-title-row">
-                    <div class="betslip-main-title">
-                      <span class="slip-title-text">Bet Slip</span>
-                      <span class="betslip-count-badge" id="slipPicksCount">0</span>
-                    </div>
-                    <div class="betslip-header-actions">
-                      <button type="button" class="btn-slip-history" id="btnOpenSlipHistory"
-                        title="View Past Validated Bet Slips">
-                        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor"
-                          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <circle cx="12" cy="12" r="10"></circle>
-                          <polyline points="12 6 12 12 16 14"></polyline>
-                        </svg>
-                        <span id="slipHistoryBtnLabel">History</span>
-                      </button>
-                      <button type="button" class="btn-clear-slip-simple" id="btnClearSlip"
-                        title="Clear all selections">Clear</button>
-                      <button type="button" class="btn-close-slip mobile-only" id="btnCloseBetslip"
-                        title="Close Bet Slip" aria-label="Close">&times;</button>
-                    </div>
-                  </div>
-                  <div class="betslip-header-underline"></div>
-                </div>
-
-                <div class="betslip-body">
-                  <div class="betslip-items-container" id="slipItemsContainer">
-                    <div class="slip-empty-state" id="slipEmptyState">
-                      <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#94a3b8" stroke-width="1.8"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                        <line x1="16" y1="13" x2="8" y2="13"></line>
-                        <line x1="16" y1="17" x2="8" y2="17"></line>
-                      </svg>
-                      <p>Your bet slip is empty</p>
-                      <span>Click the prediction box on any match to add to your ticket</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="betslip-footer">
-                  <div class="slip-summary-table">
-                    <div class="summary-row">
-                      <span id="slipAddedLabel">Games Added:</span>
-                      <strong id="slipTotalLegs">0 Picks</strong>
-                    </div>
-                    <div class="summary-row">
-                      <span id="slipOddsLabel">Combined Odds:</span>
-                      <strong id="slipTotalOdds" class="accent-odds">0.00</strong>
-                    </div>
-                  </div>
-
-                  <!-- Primary Action: Validate & Print per Employer Specification -->
-                  <button type="button" class="btn-validate-print-slip disabled" id="btnValidatePrintSlip"
-                    disabled="disabled" aria-disabled="true"
-                    title="Your bet slip is empty. Click odds on any prediction to add matches before validating.">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"
-                      stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                      <rect x="6" y="14" width="12" height="8"></rect>
-                    </svg>
-                    <span>Validate &amp; Print</span>
-                  </button>
-                </div>
-              </aside>
+          <!-- Matches Feed (Desktop Bet Slip lives in shared persistent workspace rail) -->
+          <div class="home-feed-col">
+            <div class="calendar-matches-feed" id="calendarMatchesFeed">
+              <!-- Dynamically populated match cards -->
             </div>
           </div>
         </div>
@@ -1843,6 +1771,99 @@
         </div>
       </section>
 
+      </div>
+
+      <!-- Shared Persistent Desktop Bet Slip Sidebar Rail (Visible across Matches & All Betting Tools) -->
+      <div class="home-slip-col" id="homeSlipCol">
+        <aside class="betslip-sidebar" id="betslipSidebar">
+          <div class="betslip-header">
+            <div class="betslip-header-title-row">
+              <div class="betslip-main-title">
+                <span class="slip-title-text">Bet Slip</span>
+                <span class="betslip-count-badge" id="slipPicksCount">0</span>
+              </div>
+              <div class="betslip-header-actions">
+                <button type="button" class="btn-slip-history" id="btnOpenSlipHistory"
+                  title="View Saved Bet Slips">
+                  <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                  <span id="slipHistoryBtnLabel">History</span>
+                </button>
+                <button type="button" class="btn-clear-slip-simple" id="btnClearSlip"
+                  title="Clear all selections">Clear</button>
+                <button type="button" class="btn-close-slip mobile-only" id="btnCloseBetslip"
+                  title="Close Bet Slip" aria-label="Close">&times;</button>
+              </div>
+            </div>
+            <div class="betslip-header-underline"></div>
+          </div>
+
+          <div class="active-saved-slip-banner" id="activeSavedSlipBanner" style="display:none;">
+            <span class="active-slip-code-label">Editing <strong id="activeSavedSlipCodeText">TIP-000</strong></span>
+            <button type="button" class="btn-detach-saved-slip" id="btnDetachSavedSlip" title="Start a fresh slip instead of updating this saved slip">&times; New Slip</button>
+          </div>
+
+          <div class="betslip-body">
+            <div class="betslip-items-container" id="slipItemsContainer">
+              <div class="slip-empty-state" id="slipEmptyState">
+                <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#94a3b8" stroke-width="1.8"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                </svg>
+                <p>Your bet slip is empty</p>
+                <span>Click the prediction box on any match to add to your ticket</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="betslip-footer">
+            <div class="slip-summary-table">
+              <div class="summary-row">
+                <span id="slipAddedLabel">Games Added:</span>
+                <strong id="slipTotalLegs">0 Picks</strong>
+              </div>
+              <div class="summary-row">
+                <span id="slipOddsLabel">Combined Odds:</span>
+                <strong id="slipTotalOdds" class="accent-odds">0.00</strong>
+              </div>
+            </div>
+
+            <div class="slip-footer-actions-stack">
+              <button type="button" class="btn-quick-save-slip disabled" id="btnQuickSaveSlip"
+                disabled="disabled" aria-disabled="true"
+                title="Save or update this bet slip so you can reload it later">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                  <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                <span id="btnQuickSaveSlipLabel">Save Slip</span>
+              </button>
+
+              <!-- Primary Action: Validate & Print per Employer Specification -->
+              <button type="button" class="btn-validate-print-slip disabled" id="btnValidatePrintSlip"
+                disabled="disabled" aria-disabled="true"
+                title="Your bet slip is empty. Click odds on any prediction to add matches before validating.">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                  <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+                <span>Check Slip &amp; Print</span>
+              </button>
+            </div>
+          </div>
+        </aside>
+      </div>
+
       </main>
 
   <!-- Circular Floating Bet Slip FAB for Mobile Phone View -->
@@ -2017,6 +2038,34 @@
 
     <!-- Body Content (Independently Scrollable) -->
     <div class="filter-sidebar-body" id="filterSidebarBody">
+      <!-- SECTION 0: Schedule Date Window (Single Day vs All Upcoming Multi-Day API) -->
+      <div class="filter-group-card">
+        <div class="filter-group-header">
+          <span class="filter-group-title" id="filterTitleDateScope">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round" class="filter-sec-icon">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            Schedule Date Range
+          </span>
+          <span class="filter-group-badge" id="selectedDateScopeDisplay">Selected Date</span>
+        </div>
+        <p class="filter-group-desc">Filter only today's board or scan future matches across all available upcoming days:</p>
+        <div class="filter-date-scope-grid" id="filterDateScopeGrid">
+          <button type="button" class="scope-chip active" data-scope="single">
+            <span class="scope-chip-title">Selected Date</span>
+            <span class="scope-chip-sub">Current calendar day</span>
+          </button>
+          <button type="button" class="scope-chip" data-scope="upcoming">
+            <span class="scope-chip-title">All Upcoming Days</span>
+            <span class="scope-chip-sub">Multi-day API window</span>
+          </button>
+        </div>
+      </div>
+
       <!-- SECTION 1: Competition & League -->
       <div class="filter-group-card">
         <div class="filter-group-header">
@@ -2951,7 +3000,7 @@
       .then(function (data) { if (data) window.__teamForms = data; })
       .catch(function () { });
   </script>
-  <script src="/static/app.js?v=127"></script>
+  <script src="/static/app.js?v=128"></script>
 </body>
 
 </html>

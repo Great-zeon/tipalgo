@@ -39,7 +39,10 @@
     betslip: {
       items: JSON.parse(localStorage.getItem('sportymill_betslip') || localStorage.getItem('tipalgo_betslip') || '[]'),
       stake: 1000,
-      bookingCode: ''
+      bookingCode: '',
+      activeBookingCode: (function() {
+        try { return localStorage.getItem('sportymill_active_slip_code') || null; } catch (e) { return null; }
+      })()
     },
 
     // Calendar Slate State
@@ -47,6 +50,7 @@
       selectedDate: getSystemTodayDateStr(),
       selectedEndpoint: 'all',
       selectedEndpoints: [],
+      filterDateScope: 'single',
       minProb: 'all',
       searchQuery: '',
       endpointSearchQuery: '',
@@ -56,6 +60,7 @@
       viewMode: (function() {
         try { return localStorage.getItem('sportymill_view_mode_v2') || 'table'; } catch(e) { return 'table'; }
       })(),
+      activeLeague: 'all',
       activeLeagueFilter: 'all',
       viewYear: new Date().getFullYear(),
       viewMonth: new Date().getMonth(),
@@ -1258,6 +1263,9 @@
         return;
       }
 
+      const isBanter = state.personalityMode === 'BANTER';
+      const slipItems = state.betslip?.items || [];
+
       dom.bankerCardsGrid.innerHTML = candidates.map(b => {
         const probPct = (b.model_prob * 100);
         const edgePct = (b.edge * 100);
@@ -1266,37 +1274,48 @@
         else if (probPct >= 70) badgeClass = 'high';
 
         const kellyAmt = formatNaira(state.user.bankroll * Math.max(0.01, (b.edge * 0.25)));
+        const marketName = b.market || b.selection || 'Banker Win';
+        const leagueLabel = b.league_name || (
+          b.league === 'PD' ? 'La Liga'
+          : b.league === 'SA' ? 'Serie A'
+          : b.league === 'BL1' ? 'Bundesliga'
+          : b.league === 'FL1' ? 'Ligue 1'
+          : b.league === 'CL' ? 'Champions League'
+          : b.league === 'PL' ? 'Premier League'
+          : (b.country && b.league ? `${b.country} · ${b.league}` : (b.league || 'Verified Slate'))
+        );
+        const inSlip = slipItems.some(i => i.match === b.match && (i.market === marketName || i.selection === b.selection));
 
         return `
           <div class="banker-card">
             <div>
               <div class="banker-card-header">
-                <span class="banker-league-tag">${b.league === 'PD' ? 'La Liga' : (b.league === 'SA' ? 'Serie A' : (b.league === 'BL1' ? 'Bundesliga' : 'Premier League'))}</span>
-                <span class="banker-prob-badge ${badgeClass}">${probPct.toFixed(1)}% WIN PROB</span>
+                <span class="banker-league-tag">${esc(leagueLabel)}</span>
+                <span class="banker-prob-badge ${badgeClass}">${probPct.toFixed(1)}% ${isBanter ? 'SURE' : 'WIN PROB'}</span>
               </div>
-              <div class="banker-match-title">${b.match}</div>
+              <div class="banker-match-title">${esc(b.match)}</div>
               <div class="banker-market-row">
-                <span class="banker-selection-name">Pick: <strong>${b.selection}</strong></span>
-                <span class="banker-odds-val">@${b.odds.toFixed(2)}</span>
+                <span class="banker-selection-name">${isBanter ? 'Game:' : 'Pick:'} <strong>${esc(b.selection)}</strong></span>
+                <span class="banker-odds-val">@${Number(b.odds || 1.45).toFixed(2)}</span>
               </div>
               <div class="banker-metrics-strip">
-                <span>Edge: <strong class="edge-green">+${edgePct.toFixed(1)}%</strong></span>
-                <span>Stake: <strong>${kellyAmt}</strong></span>
+                <span>${isBanter ? 'Gain:' : 'Edge:'} <strong class="edge-green">+${edgePct.toFixed(1)}%</strong></span>
+                <span>${isBanter ? 'Stake:' : 'Stake:'} <strong>${kellyAmt}</strong></span>
               </div>
             </div>
             <div style="display: flex; gap: 0.5rem; margin-top: 0.85rem; flex-wrap: wrap;">
-              <button class="btn-banker-add-slip" data-match="${esc(b.match)}" data-selection="${esc(b.selection)}" data-odds="${b.odds}" data-home="${esc(b.home || b.home_team || '')}" data-away="${esc(b.away || b.away_team || '')}" data-market="${esc(b.market || 'Banker Win')}" style="flex: 1;">
-                + Add to Slip
+              <button type="button" class="btn-banker-add-slip ${inSlip ? 'in-slip' : ''}" data-match="${esc(b.match)}" data-selection="${esc(b.selection)}" data-odds="${b.odds}" data-home="${esc(b.home || b.home_team || '')}" data-away="${esc(b.away || b.away_team || '')}" data-league="${esc(b.league || b.league_id || 'INTL')}" data-market="${esc(marketName)}" style="flex: 1;">
+                ${inSlip ? (isBanter ? 'Dey Slip ✓' : 'Added ✓') : (isBanter ? '+ Add to Chop Slip' : '+ Add to Slip')}
               </button>
-              <button class="btn-banker-copy" data-home="${esc(b.home || b.home_team || (b.match ? b.match.split(' vs ')[0] : 'Home'))}" data-away="${esc(b.away || b.away_team || (b.match ? b.match.split(' vs ')[1] : 'Away'))}" data-league="${esc(b.league || b.league_id || 'PL')}" data-odds="${b.odds}" style="flex: 1;">
-                <span>Analyze</span> <span>→</span>
+              <button type="button" class="btn-banker-copy" data-home="${esc(b.home || b.home_team || (b.match ? b.match.split(' vs ')[0] : 'Home'))}" data-away="${esc(b.away || b.away_team || (b.match ? b.match.split(' vs ')[1] : 'Away'))}" data-league="${esc(b.league || b.league_id || 'PL')}" data-odds="${b.odds}" style="flex: 1;">
+                <span>${isBanter ? 'Check Details' : 'Analyze'}</span> <span>→</span>
               </button>
             </div>
           </div>
         `;
       }).join('');
 
-      // Attach Add to Slip Handlers
+      // Attach Add to Slip Handlers (uses unified addToSlip for dedup, desktop rail, & mobile circular FAB)
       dom.bankerCardsGrid.querySelectorAll('.btn-banker-add-slip').forEach(btn => {
         btn.addEventListener('click', () => {
           const match = btn.getAttribute('data-match');
@@ -1304,18 +1323,22 @@
           const odds = parseFloat(btn.getAttribute('data-odds')) || 1.45;
           const home = btn.getAttribute('data-home');
           const away = btn.getAttribute('data-away');
-          const market = btn.getAttribute('data-market');
-          state.betslip.items.push({
+          const league = btn.getAttribute('data-league') || 'INTL';
+          const market = btn.getAttribute('data-market') || selection;
+          addToSlip({
             match,
             market,
             selection,
             odds,
             home_team: home,
-            away_team: away
+            away_team: away,
+            league_id: league,
+            date: 'Today'
           });
-          localStorage.setItem('sportymill_betslip', JSON.stringify(state.betslip.items));
-          renderSlip();
-          toggleSlip(true);
+          const nowBanter = state.personalityMode === 'BANTER';
+          const nowInSlip = (state.betslip.items || []).some(i => i.match === match && (i.market === market || i.selection === selection));
+          btn.classList.toggle('in-slip', nowInSlip);
+          btn.textContent = nowInSlip ? (nowBanter ? 'Dey Slip ✓' : 'Added ✓') : (nowBanter ? '+ Add to Chop Slip' : '+ Add to Slip');
         });
       });
 
@@ -1440,8 +1463,8 @@
 
           <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem;">
             ${isPatternMatched ? `
-              <button class="btn-hero-screener" id="btnScreenerAddSlip" style="flex: 1;">
-                + Add Pick to Slip
+              <button type="button" class="btn-hero-screener ${(state.betslip.items || []).some(i => i.match === matchTitle && (i.market === (res.selection || 'Value Screener +EV') || i.selection === res.selection)) ? 'in-slip' : ''}" id="btnScreenerAddSlip" data-match="${esc(matchTitle)}" data-market="${esc(res.selection || 'Value Screener +EV')}" style="flex: 1;">
+                ${(state.betslip.items || []).some(i => i.match === matchTitle && (i.market === (res.selection || 'Value Screener +EV') || i.selection === res.selection)) ? (state.personalityMode === 'BANTER' ? 'Dey Slip ✓' : 'Added to Slip ✓') : (state.personalityMode === 'BANTER' ? '+ Add Pick to Chop Slip' : '+ Add Pick to Slip')}
               </button>
             ` : ''}
             <button class="btn-pill-dark" id="btnAnalyzeScreenerMatch" style="flex: 1; padding: 0.75rem;">
@@ -1475,17 +1498,21 @@
       const btnAddSlip = document.getElementById('btnScreenerAddSlip');
       if (btnAddSlip && isPatternMatched) {
         btnAddSlip.addEventListener('click', () => {
-          state.betslip.items.push({
+          const marketName = res.selection || 'Value Screener +EV';
+          addToSlip({
             match: matchTitle,
-            market: 'Value Screener +EV',
+            market: marketName,
             selection: res.selection,
             odds: res.odds || 1.85,
             home_team: state.activeFixture?.home_team,
-            away_team: state.activeFixture?.away_team
+            away_team: state.activeFixture?.away_team,
+            league_id: state.activeFixture?.league_id || 'INTL',
+            date: 'Today'
           });
-          localStorage.setItem('sportymill_betslip', JSON.stringify(state.betslip.items));
-          renderSlip();
-          toggleSlip(true);
+          const nowBanter = state.personalityMode === 'BANTER';
+          const nowInSlip = (state.betslip.items || []).some(i => i.match === matchTitle && (i.market === marketName || i.selection === res.selection));
+          btnAddSlip.classList.toggle('in-slip', nowInSlip);
+          btnAddSlip.textContent = nowInSlip ? (nowBanter ? 'Dey Slip ✓' : 'Added to Slip ✓') : (nowBanter ? '+ Add Pick to Chop Slip' : '+ Add Pick to Slip');
         });
       }
 
@@ -1586,18 +1613,21 @@
       if (btnLoadAccu && res.legs) {
         btnLoadAccu.addEventListener('click', () => {
           res.legs.forEach(leg => {
-            state.betslip.items.push({
+            const marketName = leg.market || leg.selection || 'Accu-Forge Leg';
+            addToSlip({
               match: leg.match,
-              market: leg.market || 'Accu-Forge Leg',
+              market: marketName,
               selection: leg.selection,
-              odds: leg.odds,
+              odds: parseFloat(leg.odds) || 1.50,
               home_team: leg.home_team || (leg.match ? leg.match.split(' vs ')[0] : 'Home'),
-              away_team: leg.away_team || (leg.match ? leg.match.split(' vs ')[1] : 'Away')
+              away_team: leg.away_team || (leg.match ? leg.match.split(' vs ')[1] : 'Away'),
+              league_id: leg.league_id || 'INTL',
+              date: 'Today'
             });
           });
-          localStorage.setItem('sportymill_betslip', JSON.stringify(state.betslip.items));
-          renderSlip();
-          toggleSlip(true);
+          const nowBanter = state.personalityMode === 'BANTER';
+          btnLoadAccu.classList.add('in-slip');
+          btnLoadAccu.textContent = nowBanter ? 'All Legs Don Enter Slip ✓' : 'Ticket Loaded in Bet Slip ✓';
         });
       }
 
@@ -4566,6 +4596,18 @@
   // ===================================================================
   // UNIFIED VIEW SWITCHING ENGINE (Module Scoped)
   // ===================================================================
+  const BETTING_SLIP_VIEWS = new Set([
+    'view-calendar',
+    'view-grand',
+    'view-bankers',
+    'view-screener',
+    'view-accumulator',
+    'view-batch',
+    'view-match-analytics',
+    'view-slip-history',
+    'view-contest'
+  ]);
+
   function switchView(viewId, pushHistory = true) {
     // Robust View ID Normalization & Aliases
     if (viewId === 'view-banker') viewId = 'view-bankers';
@@ -4582,6 +4624,16 @@
     document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
     const targetView = document.getElementById(viewId);
     if (targetView) targetView.classList.add('active');
+
+    // Toggle shared desktop Bet Slip right rail across all betting tool views
+    const mainAreaEl = document.getElementById('mainContentArea');
+    if (mainAreaEl) {
+      mainAreaEl.classList.toggle('has-desktop-slip', BETTING_SLIP_VIEWS.has(viewId));
+    }
+    if (typeof syncBetslipPlacement === 'function') syncBetslipPlacement();
+    if (typeof window._enforceDesktopStickySlip === 'function') {
+      requestAnimationFrame(() => window._enforceDesktopStickySlip());
+    }
 
     // Ensure top navbar and mobile bottom nav are always visible across all views
     const siteTopNav = document.getElementById('siteTopNavbar');
@@ -5229,10 +5281,11 @@
             odds: odds,
             date: 'Today'
           });
+          const nowBanter = state.personalityMode === 'BANTER';
           const nowInSlip = state.betslip.items.some(i => i.match === `${home} vs ${away}` && i.market === market);
           sureBtn.classList.toggle('in-slip', nowInSlip);
           const sp = sureBtn.querySelector('span');
-          if (sp) sp.textContent = nowInSlip ? 'Added to Bet Slip' : '+ Add to Bet Slip';
+          if (sp) sp.textContent = nowInSlip ? (nowBanter ? 'Don Enter Slip' : 'Added to Bet Slip') : (nowBanter ? '+ Chop Am For Slip' : '+ Add to Bet Slip');
         };
       }
     }
@@ -5768,13 +5821,28 @@
       state.calendar.availableDates = data.available_dates || [];
       state.calendar.endpoints = data.endpoints || [];
 
+      const isMultiDay = data.selected_date === 'next-5-days' || data.selected_date === 'upcoming';
+      state.calendar.filterDateScope = isMultiDay ? 'upcoming' : 'single';
+      const scopeGrid = document.getElementById('filterDateScopeGrid');
+      if (scopeGrid) {
+        scopeGrid.querySelectorAll('.scope-chip').forEach(c => {
+          c.classList.toggle('active', c.getAttribute('data-scope') === state.calendar.filterDateScope);
+        });
+      }
+      const scopeDisplay = document.getElementById('selectedDateScopeDisplay');
+      if (scopeDisplay) {
+        scopeDisplay.textContent = isMultiDay ? 'All Upcoming Days' : 'Selected Date';
+      }
+
       // Update Date Header Banner
-      if (data.selected_date === 'next-5-days') {
+      if (isMultiDay) {
+        const countVal = data.total_fixtures || data.matches_count || (data.matches ? data.matches.length : 0);
+        const daysCovered = Array.isArray(data.dates_covered) && data.dates_covered.length ? data.dates_covered.length : (data.horizon_days || 7);
         if (dom.calendarBannerTitle) {
-          dom.calendarBannerTitle.innerHTML = `<span>Top Matches Across Next 5 Days</span> <span class="cal-badge-pill live">${data.total_fixtures || data.matches_count || (data.matches ? data.matches.length : 0)} Fixtures</span>`;
+          dom.calendarBannerTitle.innerHTML = `<span>All Upcoming Matches (${daysCovered}-Day API Window)</span> <span class="cal-badge-pill live">${countVal} Fixtures</span>`;
         }
         if (dom.calendarBannerSub) {
-          dom.calendarBannerSub.textContent = 'Vetted quantitative predictions calculated from bivariate Poisson expectancies and form indicators';
+          dom.calendarBannerSub.textContent = 'Direct Live Football API multi-day schedule across upcoming matchdays — filter by league, confidence, or market';
         }
       } else if (data.selected_date) {
         try {
@@ -5829,8 +5897,11 @@
 
     const targetDate = dateStr || state.calendar.selectedDate || getSystemTodayDateStr();
     const targetEndpoint = endpointId || 'all';
+    const isMultiDayTarget = (targetDate === 'next-5-days' || targetDate === 'upcoming');
     const curPage = Math.max(1, parseInt(page, 10) || 1);
-    const curLimit = Math.max(1, Math.min(500, parseInt(limit, 10) || 100));
+    const defaultLim = isMultiDayTarget ? 1000 : 100;
+    const maxCap = isMultiDayTarget ? 1000 : 500;
+    const curLimit = Math.max(1, Math.min(maxCap, parseInt(limit, 10) || defaultLim));
 
     state.calendar.selectedDate = targetDate;
     state.calendar.selectedEndpoint = targetEndpoint;
@@ -5933,9 +6004,13 @@
     const curr = state.calendar.selectedDate || todayStr;
     const totalMatches = state.calendar.data ? (state.calendar.data.total_fixtures || state.calendar.data.matches_count || 0) : 0;
 
-    if (curr === 'next-5-days') {
-      if (dom.calDropdownDateText) dom.calDropdownDateText.textContent = 'Next 5 Days (Upcoming Slate)';
-      if (dom.calDropdownDateSub) dom.calDropdownDateSub.textContent = 'Top 50 Predictions • Multi-Day View';
+    const isMultiDay = curr === 'next-5-days' || curr === 'upcoming';
+    if (isMultiDay) {
+      const daysCovered = Array.isArray(state.calendar.data?.dates_covered) && state.calendar.data.dates_covered.length
+        ? state.calendar.data.dates_covered.length
+        : (state.calendar.data?.horizon_days || 7);
+      if (dom.calDropdownDateText) dom.calDropdownDateText.textContent = `All Upcoming (${daysCovered}-Day Live API Window)`;
+      if (dom.calDropdownDateSub) dom.calDropdownDateSub.textContent = `${totalMatches} Upcoming Fixtures • Multi-Day View`;
     } else {
       const parts = curr.split('-').map(Number);
       if (parts.length === 3) {
@@ -5971,7 +6046,7 @@
       if (action === 'yesterday' && curr === yesterdayStr) isAct = true;
       if (action === 'today' && curr === todayStr) isAct = true;
       if (action === 'tomorrow' && curr === tomorrowStr) isAct = true;
-      if (action === 'next-5-days' && curr === 'next-5-days') isAct = true;
+      if (action === 'next-5-days' && (curr === 'next-5-days' || curr === 'upcoming')) isAct = true;
       chip.classList.toggle('active', isAct);
     });
   }
@@ -5984,16 +6059,17 @@
 
     if (nextState) {
       // Sync view year/month with current selection
-      const curr = state.calendar.selectedDate || '2026-10-09';
-      if (curr && curr !== 'next-5-days') {
+      const curr = state.calendar.selectedDate || getSystemTodayDateStr();
+      if (curr && curr !== 'next-5-days' && curr !== 'upcoming') {
         const parts = curr.split('-').map(Number);
         if (parts.length === 3) {
           state.calendar.viewYear = parts[0];
           state.calendar.viewMonth = parts[1] - 1;
         }
       } else {
-        state.calendar.viewYear = 2026;
-        state.calendar.viewMonth = 9; // October
+        const nowToday = new Date();
+        state.calendar.viewYear = nowToday.getFullYear();
+        state.calendar.viewMonth = nowToday.getMonth();
       }
 
       dom.calendarLimitlessDropdownMenu.style.display = 'block';
@@ -6271,14 +6347,16 @@
         });
       }
 
-      // If user selected Next 5 Days or a custom date outside the pills, include as an active pill
-      if (curr === 'next-5-days') {
+      // If user selected All Upcoming / Next 5 Days or a custom date outside the pills, include as an active pill
+      if (curr === 'next-5-days' || curr === 'upcoming') {
+        const matchCount = state.calendar.data ? (state.calendar.data.total_fixtures || state.calendar.data.matches_count || (state.calendar.data.matches && state.calendar.data.matches.length) || 0) : 0;
+        const daysCovered = Array.isArray(state.calendar.data?.dates_covered) && state.calendar.data.dates_covered.length ? state.calendar.data.dates_covered.length : (state.calendar.data?.horizon_days || 7);
         dates.push({
-          id: 'next-5-days',
-          top: isBanter ? 'NEXT 5' : 'UPCOMING',
-          day: '5-DAY',
-          sub: isBanter ? 'Run' : 'Top 50',
-          badge: '50',
+          id: curr,
+          top: isBanter ? 'UPCOMING' : 'MULTI-DAY',
+          day: `${daysCovered}D`,
+          sub: isBanter ? 'All Future' : 'Upcoming',
+          badge: matchCount ? `${matchCount}` : '',
           extraClass: 'pill-core'
         });
       } else if (!dates.some(d => d.id === curr) && curr) {
@@ -6328,9 +6406,11 @@
 
     // Update Calendar Picker Button Display
     if (dom.btnCalPicker && dom.calPickerBtnTitle && dom.calPickerBtnSub) {
-      if (curr === 'next-5-days') {
-        dom.calPickerBtnTitle.textContent = 'Top Matches Across Next 5 Days';
-        dom.calPickerBtnSub.textContent = 'Upcoming Slate • 50 Matches';
+      if (curr === 'next-5-days' || curr === 'upcoming') {
+        const totalCount = state.calendar.data ? (state.calendar.data.total_fixtures || state.calendar.data.matches_count || (state.calendar.data.matches ? state.calendar.data.matches.length : 0)) : 0;
+        const daysCovered = Array.isArray(state.calendar.data?.dates_covered) && state.calendar.data.dates_covered.length ? state.calendar.data.dates_covered.length : (state.calendar.data?.horizon_days || 7);
+        dom.calPickerBtnTitle.textContent = `All Upcoming (${daysCovered} Days)`;
+        dom.calPickerBtnSub.textContent = `Multi-Day Slate • ${totalCount} Matches`;
         dom.btnCalPicker.classList.remove('has-custom-date');
       } else {
         const parts = curr.split('-').map(Number);
@@ -6350,7 +6430,7 @@
     }
 
     if (dom.calendarDatePicker) {
-      dom.calendarDatePicker.value = curr === 'next-5-days' ? todayStr : curr;
+      dom.calendarDatePicker.value = (curr === 'next-5-days' || curr === 'upcoming') ? todayStr : curr;
     }
   }
 
@@ -8233,10 +8313,22 @@
     }
   }
 
+  function detachSavedSlipEditing() {
+    state.betslip.activeBookingCode = null;
+    state.betslip.bookingCode = '';
+    try {
+      localStorage.removeItem('sportymill_active_slip_code');
+    } catch (e) {}
+    renderSlip();
+  }
+
   function clearSlip() {
     state.betslip.items = [];
+    state.betslip.activeBookingCode = null;
+    state.betslip.bookingCode = '';
     try {
       localStorage.removeItem('sportymill_betslip');
+      localStorage.removeItem('sportymill_active_slip_code');
     } catch (e) {}
     renderSlip();
     renderCalendarMatchesFeed();
@@ -8247,9 +8339,40 @@
     renderSlip();
   }
 
+  function syncToolSlipButtons() {
+    const slipItems = state.betslip?.items || [];
+    const isBanter = state.personalityMode === 'BANTER';
+    document.querySelectorAll('.btn-banker-add-slip').forEach(btn => {
+      const m = btn.getAttribute('data-match');
+      const mkt = btn.getAttribute('data-market');
+      const sel = btn.getAttribute('data-selection');
+      const inSlip = slipItems.some(i => i.match === m && (i.market === mkt || i.selection === sel));
+      btn.classList.toggle('in-slip', inSlip);
+      btn.textContent = inSlip ? (isBanter ? 'Dey Slip ✓' : 'Added ✓') : (isBanter ? '+ Add to Chop Slip' : '+ Add to Slip');
+    });
+    const screenerBtn = document.getElementById('btnScreenerAddSlip');
+    if (screenerBtn) {
+      const m = screenerBtn.getAttribute('data-match');
+      const mkt = screenerBtn.getAttribute('data-market');
+      const inSlip = m ? slipItems.some(i => i.match === m && (!mkt || i.market === mkt || i.selection === mkt)) : false;
+      screenerBtn.classList.toggle('in-slip', inSlip);
+      screenerBtn.textContent = inSlip ? (isBanter ? 'Dey Slip ✓' : 'Added to Slip ✓') : (isBanter ? '+ Add Pick to Chop Slip' : '+ Add Pick to Slip');
+    }
+    document.querySelectorAll('.btn-sure-add-slip').forEach(btn => {
+      const home = btn.getAttribute('data-home');
+      const away = btn.getAttribute('data-away');
+      const mkt = btn.getAttribute('data-market');
+      const inSlip = slipItems.some(i => i.match === `${home} vs ${away}` && i.market === mkt);
+      btn.classList.toggle('in-slip', inSlip);
+      const sp = btn.querySelector('span');
+      if (sp) sp.textContent = inSlip ? (isBanter ? 'Don Enter Slip' : 'Added to Bet Slip') : (isBanter ? '+ Chop Am For Slip' : '+ Add to Bet Slip');
+    });
+  }
+
   function renderSlip() {
     const items = state.betslip.items || [];
     const count = items.length;
+    const activeCode = state.betslip.activeBookingCode || null;
 
     if (dom.slipPicksCount) dom.slipPicksCount.textContent = count;
     if (dom.mobileSlipCount) dom.mobileSlipCount.textContent = count;
@@ -8260,7 +8383,36 @@
     const bottomBadge = document.getElementById('bottomSlipBadge');
     if (bottomBadge) bottomBadge.textContent = count;
 
-    // Update Floating Slip Trigger Badge & Pulsing State for Mobile View
+    // Saved Slip Editing Banner & Quick Save / Update Button
+    const activeBanner = document.getElementById('activeSavedSlipBanner');
+    const activeCodeText = document.getElementById('activeSavedSlipCodeText');
+    if (activeBanner) {
+      activeBanner.style.display = activeCode ? 'flex' : 'none';
+    }
+    if (activeCodeText && activeCode) {
+      activeCodeText.textContent = activeCode;
+    }
+
+    const btnQuickSave = document.getElementById('btnQuickSaveSlip');
+    const btnQuickSaveLabel = document.getElementById('btnQuickSaveSlipLabel');
+    if (btnQuickSave) {
+      if (count > 0) {
+        btnQuickSave.disabled = false;
+        btnQuickSave.removeAttribute('disabled');
+        btnQuickSave.classList.remove('disabled');
+        btnQuickSave.removeAttribute('aria-disabled');
+      } else {
+        btnQuickSave.disabled = true;
+        btnQuickSave.setAttribute('disabled', 'disabled');
+        btnQuickSave.classList.add('disabled');
+        btnQuickSave.setAttribute('aria-disabled', 'true');
+      }
+    }
+    if (btnQuickSaveLabel) {
+      btnQuickSaveLabel.textContent = activeCode ? `Update ${activeCode}` : 'Save Slip';
+    }
+
+    // Update Floating Slip Trigger Badge & Circular FAB Visibility Across ALL Views
     const floatingBtn = document.getElementById('btnFloatingSlipTrigger');
     const floatingBadge = document.getElementById('floatingSlipCountBadge');
     if (floatingBadge) {
@@ -8268,20 +8420,15 @@
       floatingBadge.style.display = count > 0 ? 'inline-flex' : 'none';
     }
     if (floatingBtn) {
-      if (count > 0) {
-        floatingBtn.classList.add('has-items');
-      } else {
-        floatingBtn.classList.remove('has-items');
-      }
+      floatingBtn.classList.toggle('has-items', count > 0);
     }
     const floatingPopup = document.getElementById('mobileFloatingSlipPopup');
     if (floatingPopup) {
-      if (count > 0) {
-        floatingPopup.classList.add('has-items');
-      } else {
-        floatingPopup.classList.remove('has-items');
-      }
+      floatingPopup.classList.toggle('has-items', count > 0);
+      floatingPopup.classList.remove('visible');
     }
+
+    syncToolSlipButtons();
 
     if (!dom.slipItemsContainer) return;
 
@@ -8454,41 +8601,60 @@
     }
 
     let totalOdds = 1.0;
-    state.betslip.items.forEach(i => totalOdds *= i.odds);
+    state.betslip.items.forEach(i => totalOdds *= (parseFloat(i.odds) || 1.0));
     totalOdds = Math.round(totalOdds * 100) / 100;
     const stake = state.betslip.stake || 1000;
     const potentialWin = Math.round(stake * totalOdds);
+    const activeCode = state.betslip.activeBookingCode || null;
 
     try {
+      const payload = {
+        items: state.betslip.items,
+        stake: stake,
+        total_odds: totalOdds,
+        potential_payout: potentialWin
+      };
+      if (activeCode) {
+        payload.booking_code = activeCode;
+      }
+
       const res = await api('/api/slips/save', {
         method: 'POST',
-        body: JSON.stringify({
-          items: state.betslip.items,
-          stake: stake,
-          total_odds: totalOdds,
-          potential_payout: potentialWin
-        })
+        body: JSON.stringify(payload)
       });
 
       if (res && res.booking_code) {
         state.betslip.bookingCode = res.booking_code;
+        state.betslip.activeBookingCode = res.booking_code;
+        try {
+          localStorage.setItem('sportymill_active_slip_code', res.booking_code);
+        } catch (e) {}
         if (dom.displayBookingCode) {
           dom.displayBookingCode.textContent = res.booking_code;
         }
         try {
           const existing = JSON.parse(localStorage.getItem('sportymill_saved_slips') || '[]');
-          existing.unshift({
+          const updatedEntry = {
             booking_code: res.booking_code,
             created_at: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
             total_odds: totalOdds,
             stake: stake,
             potential_payout: potentialWin,
-            items: state.betslip.items
-          });
+            items: JSON.parse(JSON.stringify(state.betslip.items))
+          };
+          const matchIdx = existing.findIndex(s => (s.booking_code || s.slip_code) === res.booking_code);
+          if (matchIdx >= 0) {
+            existing.splice(matchIdx, 1);
+          }
+          existing.unshift(updatedEntry);
           localStorage.setItem('sportymill_saved_slips', JSON.stringify(existing.slice(0, 30)));
         } catch (e) {}
 
-        toast(`Slip saved! Booking Code: ${res.booking_code}`);
+        renderSlip();
+        if (document.getElementById('view-slip-history')?.classList.contains('active')) {
+          loadSlipHistory();
+        }
+        toast(res.updated ? `Slip ${res.booking_code} updated!` : `Slip saved! Booking Code: ${res.booking_code}`, 'success');
         if (dom.modalValidateSlip) {
           dom.modalValidateSlip.classList.remove('open');
         }
@@ -8519,28 +8685,30 @@
 
     container.innerHTML = `
       <div class="slips-cards-grid">
-        ${slips.map((s, idx) => {
+        ${slips.map((s) => {
           const legs = Array.isArray(s.items) ? s.items : [];
           const totalOdds = parseFloat(s.total_odds || 1.0).toFixed(2);
           const stake = parseFloat(s.stake || 1000);
           const payout = formatNaira(s.potential_payout || (stake * totalOdds));
           const bookingCode = s.booking_code || s.slip_code || `SM-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+          const legsJson = JSON.stringify(legs).replace(/'/g, "&apos;");
+          const isCurrentlyLoaded = (state.betslip?.activeBookingCode === bookingCode);
 
           return `
-            <div class="saved-slip-card">
+            <div class="saved-slip-card is-clickable ${isCurrentlyLoaded ? 'is-loaded' : ''}" data-code="${esc(bookingCode)}" data-stake="${stake}" data-items='${legsJson}' title="Click to load this slip and continue adding games">
               <div class="saved-slip-head">
                 <div class="saved-slip-badge-group">
-                  <span class="booking-code-chip" data-code="${bookingCode}" title="Click to copy code">
+                  <span class="booking-code-chip" data-code="${esc(bookingCode)}" title="Click to copy code">
                     <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                    ${bookingCode}
+                    ${esc(bookingCode)}
                   </span>
-                  <span class="saved-slip-date">${s.created_at || 'Recent Parlay'}</span>
+                  <span class="saved-slip-date">${esc(s.created_at || 'Recent Parlay')}</span>
                 </div>
                 <span class="saved-slip-odds">@${totalOdds}</span>
               </div>
 
               <div class="saved-slip-legs">
-                ${legs.map((leg, lIdx) => `
+                ${legs.map((leg) => `
                   <div class="saved-slip-leg-row">
                     <span class="leg-match-name">${esc(leg.match || `${leg.home_team || 'Team A'} vs ${leg.away_team || 'Team B'}`)}</span>
                     <span class="leg-pick-badge">${esc(leg.selection || leg.market || 'Pick')}</span>
@@ -8555,8 +8723,8 @@
                   <span class="slip-financial-win">Est. Win: <strong>${payout}</strong></span>
                 </div>
                 <div class="saved-slip-buttons">
-                  <button class="btn-copy-booking-code" data-code="${bookingCode}">Copy Code</button>
-                  <button class="btn-replay-saved-slip" data-items='${JSON.stringify(legs).replace(/'/g, "&apos;")}'>Re-load Slip →</button>
+                  <button type="button" class="btn-copy-booking-code" data-code="${esc(bookingCode)}">Copy Code</button>
+                  <button type="button" class="btn-replay-saved-slip" data-code="${esc(bookingCode)}" data-stake="${stake}" data-items='${legsJson}'>${isCurrentlyLoaded ? 'Continue Editing →' : 'Load &amp; Edit Slip →'}</button>
                 </div>
               </div>
             </div>
@@ -8566,7 +8734,8 @@
     `;
 
     container.querySelectorAll('.btn-copy-booking-code, .booking-code-chip').forEach(el => {
-      el.addEventListener('click', () => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
         const code = el.getAttribute('data-code');
         if (code) {
           navigator.clipboard.writeText(code).then(() => {
@@ -8578,17 +8747,39 @@
       });
     });
 
-    container.querySelectorAll('.btn-replay-saved-slip').forEach(btn => {
-      btn.addEventListener('click', () => {
+    function loadSavedSlipForEditing(el) {
+      try {
+        const items = JSON.parse(el.getAttribute('data-items') || '[]');
+        const code = el.getAttribute('data-code') || '';
+        const stakeVal = parseFloat(el.getAttribute('data-stake') || '1000') || 1000;
+        state.betslip.items = Array.isArray(items) ? items : [];
+        state.betslip.stake = stakeVal;
+        state.betslip.activeBookingCode = code || null;
+        state.betslip.bookingCode = code || '';
         try {
-          const items = JSON.parse(btn.getAttribute('data-items'));
-          state.betslip.items = items;
-          localStorage.setItem('sportymill_betslip', JSON.stringify(items));
-          renderSlip();
-          toggleSlip(true);
-        } catch (e) {
-          toast('Failed to load slip');
-        }
+          localStorage.setItem('sportymill_betslip', JSON.stringify(state.betslip.items));
+          if (code) localStorage.setItem('sportymill_active_slip_code', code);
+          else localStorage.removeItem('sportymill_active_slip_code');
+        } catch (storageErr) {}
+        renderSlip();
+        renderCalendarMatchesFeed();
+        switchView('view-calendar');
+      } catch (e) {
+        toast('Failed to load slip');
+      }
+    }
+
+    container.querySelectorAll('.saved-slip-card.is-clickable').forEach(card => {
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('.btn-copy-booking-code, .booking-code-chip, .btn-replay-saved-slip')) return;
+        loadSavedSlipForEditing(card);
+      });
+    });
+
+    container.querySelectorAll('.btn-replay-saved-slip').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        loadSavedSlipForEditing(btn);
       });
     });
 
@@ -9192,12 +9383,38 @@
       dom.filterBackdrop.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
     }
 
+    // Multi-day API Date Scope Toggle inside Filter Drawer ("Selected Date" vs "All Upcoming Days")
+    const filterScopeGrid = document.getElementById('filterDateScopeGrid');
+    const selectedDateScopeDisplay = document.getElementById('selectedDateScopeDisplay');
+    if (filterScopeGrid) {
+      filterScopeGrid.querySelectorAll('.scope-chip').forEach(chip => {
+        chip.addEventListener('click', async () => {
+          const scope = chip.getAttribute('data-scope') === 'upcoming' ? 'upcoming' : 'single';
+          state.calendar.filterDateScope = scope;
+          filterScopeGrid.querySelectorAll('.scope-chip').forEach(c => c.classList.toggle('active', c === chip));
+          if (selectedDateScopeDisplay) {
+            selectedDateScopeDisplay.textContent = scope === 'upcoming' ? 'All Upcoming Days' : 'Selected Date';
+          }
+          if (scope === 'upcoming' && state.calendar.selectedDate !== 'upcoming' && state.calendar.selectedDate !== 'next-5-days') {
+            if (selectedDateScopeDisplay) selectedDateScopeDisplay.textContent = 'Scanning upcoming days...';
+            await loadCalendarSlate('upcoming', 'all', 1, 1000);
+            if (selectedDateScopeDisplay) selectedDateScopeDisplay.textContent = 'All Upcoming Days';
+            updateFilterDrawerUI(false);
+          } else if (scope === 'single' && (state.calendar.selectedDate === 'upcoming' || state.calendar.selectedDate === 'next-5-days')) {
+            await loadCalendarSlate(getSystemTodayDateStr(), state.calendar.selectedEndpoint || 'all', 1, 100);
+            updateFilterDrawerUI(false);
+          }
+        });
+      });
+    }
+
     // "Reset All" button inside drawer
     if (dom.btnResetAllFilters) {
       dom.btnResetAllFilters.addEventListener('click', () => {
         state.calendar.minProb = 'all';
         state.calendar.selectedEndpoints = [];
         state.calendar.selectedEndpoint = 'all';
+        state.calendar.filterDateScope = 'single';
         state.calendar.searchQuery = '';
         state.calendar.endpointSearchQuery = '';
         state.calendar.activeLeague = 'all';
@@ -9214,10 +9431,15 @@
         const maxInp = document.getElementById('filterMaxStake');
         if (maxInp) maxInp.value = '';
         document.querySelectorAll('.stake-chip').forEach(c => c.classList.remove('active'));
+        if (filterScopeGrid) {
+          filterScopeGrid.querySelectorAll('.scope-chip').forEach(c => c.classList.toggle('active', c.getAttribute('data-scope') === 'single'));
+        }
+        if (selectedDateScopeDisplay) selectedDateScopeDisplay.textContent = 'Selected Date';
         renderEndpointsFilterDrawer();
         updateFilterDrawerUI(true);
-        if (state.calendar.data && state.calendar.data.active_endpoint && state.calendar.data.active_endpoint !== 'all') {
-          loadCalendarSlate(state.calendar.selectedDate || 'next-5-days', 'all');
+        const wasMultiDay = state.calendar.selectedDate === 'upcoming' || state.calendar.selectedDate === 'next-5-days';
+        if (wasMultiDay || (state.calendar.data && state.calendar.data.active_endpoint && state.calendar.data.active_endpoint !== 'all')) {
+          loadCalendarSlate(wasMultiDay ? getSystemTodayDateStr() : state.calendar.selectedDate, 'all');
         } else {
           renderCalendarMatchesFeed();
         }
@@ -9226,14 +9448,18 @@
 
     // "Apply Filters" button inside drawer
     if (dom.btnApplyAllFilters) {
-      dom.btnApplyAllFilters.addEventListener('click', () => {
+      dom.btnApplyAllFilters.addEventListener('click', async () => {
         const minInp = document.getElementById('filterMinStake');
         const maxInp = document.getElementById('filterMaxStake');
         state.calendar.minStake = minInp && minInp.value ? parseFloat(minInp.value) : null;
         state.calendar.maxStake = maxInp && maxInp.value ? parseFloat(maxInp.value) : null;
         toggleFilterDrawer(false);
         updateFilterDrawerUI(false);
-        renderCalendarMatchesFeed();
+        if (state.calendar.filterDateScope === 'upcoming' && state.calendar.selectedDate !== 'upcoming' && state.calendar.selectedDate !== 'next-5-days') {
+          await loadCalendarSlate('upcoming', 'all', 1, 1000);
+        } else {
+          renderCalendarMatchesFeed();
+        }
       });
     }
 
@@ -9242,6 +9468,7 @@
       state.calendar.minProb = 'all';
       state.calendar.selectedEndpoints = [];
       state.calendar.selectedEndpoint = 'all';
+      state.calendar.filterDateScope = 'single';
       state.calendar.searchQuery = '';
       state.calendar.endpointSearchQuery = '';
       state.calendar.activeLeague = 'all';
@@ -9258,9 +9485,14 @@
       const maxInp = document.getElementById('filterMaxStake');
       if (maxInp) maxInp.value = '';
       document.querySelectorAll('.stake-chip').forEach(c => c.classList.remove('active'));
+      if (filterScopeGrid) {
+        filterScopeGrid.querySelectorAll('.scope-chip').forEach(c => c.classList.toggle('active', c.getAttribute('data-scope') === 'single'));
+      }
+      if (selectedDateScopeDisplay) selectedDateScopeDisplay.textContent = 'Selected Date';
       updateFilterDrawerUI(true);
-      if (state.calendar.data && state.calendar.data.active_endpoint && state.calendar.data.active_endpoint !== 'all') {
-        loadCalendarSlate(state.calendar.selectedDate || 'next-5-days', 'all');
+      const wasMultiDay = state.calendar.selectedDate === 'upcoming' || state.calendar.selectedDate === 'next-5-days';
+      if (wasMultiDay || (state.calendar.data && state.calendar.data.active_endpoint && state.calendar.data.active_endpoint !== 'all')) {
+        loadCalendarSlate(wasMultiDay ? getSystemTodayDateStr() : state.calendar.selectedDate, 'all');
       } else {
         renderCalendarMatchesFeed();
       }
@@ -9402,6 +9634,21 @@
     if (dom.btnClearSlip) dom.btnClearSlip.addEventListener('click', clearSlip);
     if (dom.btnValidatePrintSlip) dom.btnValidatePrintSlip.addEventListener('click', validateSlip);
     if (dom.btnValidateSlip) dom.btnValidateSlip.addEventListener('click', validateSlip);
+    if (dom.btnSaveSlipFromModal) dom.btnSaveSlipFromModal.addEventListener('click', saveSlip);
+    const btnQuickSaveSlip = document.getElementById('btnQuickSaveSlip');
+    if (btnQuickSaveSlip) btnQuickSaveSlip.addEventListener('click', saveSlip);
+    const btnDetachSavedSlip = document.getElementById('btnDetachSavedSlip');
+    if (btnDetachSavedSlip) btnDetachSavedSlip.addEventListener('click', detachSavedSlipEditing);
+    const btnOpenSlipHistoryFromSlip = document.getElementById('btnOpenSlipHistory');
+    if (btnOpenSlipHistoryFromSlip) {
+      btnOpenSlipHistoryFromSlip.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (window.innerWidth <= 919 && typeof toggleSlip === 'function') {
+          toggleSlip(false);
+        }
+        switchView('view-slip-history');
+      });
+    }
 
     if (dom.btnPrintSlipModal) {
       dom.btnPrintSlipModal.addEventListener('click', () => {
@@ -9483,8 +9730,6 @@
     if (dom.btnCloseValidateModal) dom.btnCloseValidateModal.addEventListener('click', () => dom.modalValidateSlip.classList.remove('open'));
     if (dom.btnCloseValidateModalBtn) dom.btnCloseValidateModalBtn.addEventListener('click', () => dom.modalValidateSlip.classList.remove('open'));
     if (dom.btnCloseHistoryModal) dom.btnCloseHistoryModal.addEventListener('click', () => dom.modalSlipHistory.classList.remove('open'));
-    const btnOpenSlipHistory = document.getElementById('btnOpenSlipHistory');
-    if (btnOpenSlipHistory) btnOpenSlipHistory.addEventListener('click', loadSlipHistory);
     // Fixture Dropdown
     if (dom.fixtureSelect) {
       dom.fixtureSelect.addEventListener('change', (e) => {
@@ -9562,6 +9807,12 @@
       toast(state.personalityMode === 'BANTER' ? 'Oya! Naija Banter Mode Don Active 🔥' : 'Commentary Mode: Professional Quant Mode', 'info');
       if (typeof renderCalendarMatchesFeed === 'function') {
         renderCalendarMatchesFeed();
+      }
+      if (typeof syncToolSlipButtons === 'function') {
+        syncToolSlipButtons();
+      }
+      if (state.currentView === 'view-bankers' && typeof renderBankerSlate === 'function') {
+        renderBankerSlate(state.activeBankerProb || 0.80);
       }
       if (state.calendar && state.calendar.data && state.calendar.data.matches) {
         updateLiveModelNotifications(state.calendar.data.matches);
@@ -11669,10 +11920,24 @@
       btnSendAccuToBetSlip.addEventListener('click', () => {
         const tbody = document.getElementById('accuLegsTbody');
         const rows = tbody ? Array.from(tbody.querySelectorAll('tr')).filter(r => r.querySelectorAll('td').length >= 5) : [];
-        const count = rows.length;
-        if (count > 0) {
-          const popup = document.getElementById('mobileFloatingSlipPopup');
-          if (popup) popup.classList.add('visible');
+        if (rows.length > 0) {
+          rows.forEach(r => {
+            const cells = r.querySelectorAll('td');
+            const matchName = cells[0].textContent.trim();
+            const selectionName = cells[1].textContent.trim();
+            const oddsNum = parseFloat(String(cells[2].textContent || '').replace('@', '').trim()) || 1.50;
+            const parts = matchName.split(' vs ');
+            addToSlip({
+              match: matchName,
+              market: selectionName,
+              selection: selectionName,
+              odds: oddsNum,
+              home_team: parts[0] || 'Home',
+              away_team: parts[1] || 'Away',
+              league_id: 'INTL',
+              date: 'Today'
+            });
+          });
         } else {
           toast('No accumulator legs to send. Forge a ticket first.');
         }
@@ -11962,18 +12227,19 @@
   function initDesktopStickyBetSlip() {
     const col = document.getElementById('homeSlipCol');
     const sidebar = document.getElementById('betslipSidebar');
-    const split = document.querySelector('.home-main-split');
-    if (!col || !sidebar || !split) return;
+    const mainArea = document.getElementById('mainContentArea');
+    if (!col || !sidebar || !mainArea) return;
 
     let ticking = false;
 
     function enforceSticky() {
       // Mobile / Tablet portrait: leave styling to CSS media queries
-      if (window.innerWidth < 920) {
+      if (window.innerWidth < 920 || !mainArea.classList.contains('has-desktop-slip')) {
         if (col.dataset.fixedPinned === 'true') {
           col.style.position = '';
           col.style.top = '';
           col.style.right = '';
+          col.style.bottom = '';
           col.style.width = '';
           col.style.zIndex = '';
           delete col.dataset.fixedPinned;
@@ -11981,40 +12247,24 @@
         return;
       }
 
-      // Check if view-calendar matches slate is visible
-      const viewCal = document.getElementById('view-calendar');
-      if (viewCal && !viewCal.classList.contains('active')) {
-        if (col.dataset.fixedPinned === 'true') {
-          col.style.position = '';
-          col.style.top = '';
-          col.style.right = '';
-          col.style.width = '';
-          col.style.zIndex = '';
-          delete col.dataset.fixedPinned;
-        }
-        return;
-      }
-
-      const splitRect = split.getBoundingClientRect();
+      const areaRect = mainArea.getBoundingClientRect();
       const navTopOffset = 76; // height of pinned top-navbar + clearance
       const colHeight = col.offsetHeight || 500;
-      const rightMargin = Math.max(16, window.innerWidth - splitRect.right);
+      const rightMargin = Math.max(16, window.innerWidth - areaRect.right);
 
-      // If the top of the matches feed has scrolled past the sticky threshold
-      if (splitRect.top < navTopOffset) {
-        const bottomEdge = splitRect.bottom - colHeight - 20;
+      // If the top of the workspace has scrolled past the sticky threshold
+      if (areaRect.top < navTopOffset) {
+        const bottomEdge = areaRect.bottom - colHeight - 20;
 
         if (bottomEdge < navTopOffset) {
-          // Reached the bottom of the feed: pin at bottom of split container
           col.style.position = 'absolute';
-          col.style.top = Math.max(0, split.offsetHeight - colHeight) + 'px';
+          col.style.top = Math.max(0, mainArea.offsetHeight - colHeight) + 'px';
           col.style.bottom = 'auto';
           col.style.right = '0px';
           col.style.width = '340px';
           col.style.zIndex = '90';
           col.dataset.fixedPinned = 'true';
         } else {
-          // Normal vertical scroll: permanently pin beside feed at top: 76px
           col.style.position = 'fixed';
           col.style.top = navTopOffset + 'px';
           col.style.bottom = 'auto';
@@ -12024,7 +12274,6 @@
           col.dataset.fixedPinned = 'true';
         }
       } else {
-        // Scrolled back to top: natural grid flow
         if (col.dataset.fixedPinned === 'true') {
           col.style.position = '';
           col.style.top = '';
@@ -12036,6 +12285,8 @@
         }
       }
     }
+
+    window._enforceDesktopStickySlip = enforceSticky;
 
     function onScroll() {
       if (!ticking) {
@@ -12050,7 +12301,7 @@
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll, { passive: true });
     // Run on initial load
-    setTimeout(enforceSticky, 500);
+    setTimeout(enforceSticky, 300);
   }
 
   // ===================================================================

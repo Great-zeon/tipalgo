@@ -4798,6 +4798,7 @@ class SaveSlipRequest(BaseModel):
     stake: float = 1000.0
     total_odds: float
     potential_payout: float
+    booking_code: Optional[str] = None
 
 OTP_STORE: Dict[str, Dict[str, Any]] = {}
 
@@ -6177,7 +6178,34 @@ async def save_slip(req: SaveSlipRequest, db: AsyncSession = Depends(get_db), op
         res = await db.execute(select(User).limit(1))
         u = res.scalar_one_or_none()
         user_id = u.id if u else 1
-        
+
+    existing_slip = None
+    if req.booking_code and req.booking_code.strip():
+        code_clean = req.booking_code.strip()
+        stmt = select(BetSlip).where(BetSlip.slip_code == code_clean)
+        if optional_user:
+            stmt = stmt.where(BetSlip.user_id == optional_user.id)
+        res_ex = await db.execute(stmt.limit(1))
+        existing_slip = res_ex.scalar_one_or_none()
+
+    if existing_slip:
+        existing_slip.total_odds = round(req.total_odds, 2)
+        existing_slip.stake = round(req.stake, 2)
+        existing_slip.potential_payout = round(req.potential_payout, 2)
+        existing_slip.items = json.dumps(req.items)
+        await db.commit()
+        await db.refresh(existing_slip)
+        return {
+            "success": True,
+            "updated": True,
+            "booking_code": existing_slip.slip_code,
+            "slip_id": existing_slip.id,
+            "total_odds": existing_slip.total_odds,
+            "stake": existing_slip.stake,
+            "potential_payout": existing_slip.potential_payout,
+            "created_at": existing_slip.created_at.isoformat() if existing_slip.created_at else ""
+        }
+
     booking_code = f"TIP-{secrets.token_hex(3).upper()}"
     slip = BetSlip(
         user_id=user_id,
@@ -6191,9 +6219,10 @@ async def save_slip(req: SaveSlipRequest, db: AsyncSession = Depends(get_db), op
     db.add(slip)
     await db.commit()
     await db.refresh(slip)
-    
+
     return {
         "success": True,
+        "updated": False,
         "booking_code": booking_code,
         "slip_id": slip.id,
         "total_odds": slip.total_odds,
@@ -7391,6 +7420,20 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
         
     return match_cards, endpoint_counts
 
+async def _fetch_date_with_raw_cache(service: Any, target_date: str, refresh: bool = False):
+    raw_cache_key = f"raw_prov:{target_date}"
+    if not refresh:
+        cached = calendar_slate_cache.get(raw_cache_key)
+        if cached is not None:
+            return cached
+    prov_result = await service.fetch_live_fixtures_with_provenance(target_date)
+    if prov_result.success:
+        calendar_slate_cache.set(raw_cache_key, prov_result)
+    else:
+        calendar_slate_cache.delete(raw_cache_key)
+    return prov_result
+
+
 @app.get("/api/calendar/daily-slate")
 async def get_calendar_daily_slate(
     date: Optional[str] = None,
@@ -7413,17 +7456,19 @@ async def get_calendar_daily_slate(
     today_str = lagos_now.strftime("%Y-%m-%d")
 
     safe_page = max(1, int(page or 1))
-    safe_limit = max(1, min(500, int(limit or 100)))
-
     raw_date = str(date or "").strip().lower()
+    is_multi_day_upcoming = raw_date in ["next-5-days", "upcoming", "all-upcoming", "multi-day"]
+    max_allowed_limit = 1000 if is_multi_day_upcoming else 500
+    safe_limit = max(1, min(max_allowed_limit, int(limit or (500 if is_multi_day_upcoming else 100))))
+
     if not raw_date or raw_date in ["today", "undefined", "null", "none"]:
         target_date = today_str
     elif raw_date == "yesterday":
         target_date = (lagos_now - timedelta(days=1)).strftime("%Y-%m-%d")
     elif raw_date == "tomorrow":
         target_date = (lagos_now + timedelta(days=1)).strftime("%Y-%m-%d")
-    elif raw_date in ["next-5-days", "upcoming"]:
-        target_date = today_str
+    elif is_multi_day_upcoming:
+        target_date = "upcoming"
     else:
         try:
             datetime.strptime(str(date).strip(), "%Y-%m-%d")
@@ -7459,7 +7504,117 @@ async def get_calendar_daily_slate(
     from football_ingestion import FootballDataService, LiveFixtureItem
     service = FootballDataService(api_key=config.FOOTBALL_API_KEY, base_url=config.FOOTBALL_API_BASE)
 
-    prov_result = await service.fetch_live_fixtures_with_provenance(target_date)
+    if is_multi_day_upcoming:
+        # Fetch multi-day upcoming horizon as far as the API provides fixtures (up to 14 days)
+        wave1_dates = [(lagos_now + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(0, 7)]
+        wave1_results = await asyncio.gather(
+            *[_fetch_date_with_raw_cache(service, dt, refresh=refresh) for dt in wave1_dates]
+        )
+
+        # If first date failed (e.g. insufficient credits / auth failure), return transparent provider error
+        first_err = next((r for r in wave1_results if not r.success), None)
+        any_ok = any(r.success for r in wave1_results)
+        if not any_ok and first_err:
+            err_payload = {
+                "status": "error",
+                "provider_status": "error",
+                "provider_error_code": first_err.error_code,
+                "provider_message": first_err.user_message,
+                "selected_date": today_str,
+                "available_dates": all_dates,
+                "active_endpoint": ep_filter,
+                "endpoints": endpoints_response,
+                "page": safe_page,
+                "limit": safe_limit,
+                "total_pages": 1,
+                "has_more": False,
+                "total_fixtures": 0,
+                "matches_count": 0,
+                "matches": []
+            }
+            calendar_slate_cache.delete(cache_key)
+            return Response(content=json.dumps(err_payload), media_type="application/json")
+
+        all_results = list(wave1_results)
+        # Continue into days +7..+13 only if the end of week 1 still returned live schedule data
+        if any(r.success and r.matches for r in wave1_results[-2:]):
+            wave2_dates = [(lagos_now + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(7, 14)]
+            wave2_results = await asyncio.gather(
+                *[_fetch_date_with_raw_cache(service, dt, refresh=refresh) for dt in wave2_dates]
+            )
+            all_results.extend(wave2_results)
+
+        raw_matches = []
+        seen_ids = set()
+        dates_with_matches = []
+        for idx, r in enumerate(all_results):
+            if r.success and r.matches:
+                dt_label = (lagos_now + timedelta(days=idx)).strftime("%Y-%m-%d")
+                dates_with_matches.append(dt_label)
+                for m in r.matches:
+                    mid = str(m.get("id") or "")
+                    if mid and mid in seen_ids:
+                        continue
+                    if mid:
+                        seen_ids.add(mid)
+                    raw_matches.append(m)
+
+        if not raw_matches:
+            empty_payload = {
+                "status": "ok",
+                "provider_status": "ok",
+                "provider_message": "No upcoming fixtures were returned by the football data provider across the upcoming window.",
+                "selected_date": "upcoming",
+                "available_dates": all_dates,
+                "active_endpoint": ep_filter,
+                "endpoints": endpoints_response,
+                "page": safe_page,
+                "limit": safe_limit,
+                "total_pages": 1,
+                "has_more": False,
+                "total_fixtures": 0,
+                "matches_count": 0,
+                "matches": []
+            }
+            calendar_slate_cache.set(cache_key, empty_payload)
+            return Response(content=json.dumps(empty_payload), media_type="application/json")
+
+        fixture_items = [LiveFixtureItem(m, provider=service.provider) for m in raw_matches]
+        match_cards, endpoint_counts = await format_fixture_cards_helper(fixture_items, db, predictor, ep_filter)
+        match_cards.sort(key=lambda c: (str(c.get("match_date_wat") or "9999-99-99"), str(c.get("time_wat") or "99:99")))
+
+        for ep_entry in endpoints_response:
+            ep_entry["count"] = endpoint_counts.get(ep_entry["id"], 0)
+
+        total_fixtures_count = len(match_cards)
+        total_pages = math.ceil(total_fixtures_count / safe_limit) if total_fixtures_count > 0 else 1
+        offset = (safe_page - 1) * safe_limit
+        paginated_cards = match_cards[offset:offset + safe_limit]
+        has_more = safe_page < total_pages
+
+        response_payload = {
+            "status": "ok",
+            "selected_date": "upcoming",
+            "dates_covered": dates_with_matches,
+            "horizon_days": len(all_results),
+            "available_dates": all_dates,
+            "active_endpoint": ep_filter,
+            "endpoints": endpoints_response,
+            "page": safe_page,
+            "limit": safe_limit,
+            "total_pages": total_pages,
+            "has_more": has_more,
+            "total_fixtures": total_fixtures_count,
+            "matches_count": len(paginated_cards),
+            "matches": paginated_cards,
+            "provider_status": "ok",
+            "provider_sync_pending": False,
+            "provider_message": f"Retrieved {total_fixtures_count} upcoming fixtures across {len(dates_with_matches)} matchdays."
+        }
+        calendar_slate_cache.set(cache_key, response_payload)
+        return Response(content=json.dumps(response_payload), media_type="application/json")
+
+    prov_result = await _fetch_date_with_raw_cache(service, target_date, refresh=refresh)
 
     if not prov_result.success:
         # Transparent provider failure reporting. ZERO fake matches. NO database fallback.
@@ -7609,13 +7764,13 @@ async def search_team_all_dates(
     service = FootballDataService(api_key=config.FOOTBALL_API_KEY, base_url=config.FOOTBALL_API_BASE)
     lagos_now = now_lagos()
     
-    # Search dates across past 1 day to next 5 days
-    target_dates = [(lagos_now + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(-1, 6)]
-    
+    # Search dates across past 1 day to next 10 days concurrently (reusing raw date cache)
+    target_dates = [(lagos_now + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(-1, 10)]
+    prov_results = await asyncio.gather(*[_fetch_date_with_raw_cache(service, dt) for dt in target_dates])
+
     raw_candidates = []
     seen_fixture_ids = set()
-    for dt in target_dates:
-        prov_res = await service.fetch_live_fixtures_with_provenance(dt)
+    for prov_res in prov_results:
         if prov_res.success and prov_res.matches:
             for m in prov_res.matches:
                 m_id = str(m.get("id") or "")
