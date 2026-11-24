@@ -6839,6 +6839,17 @@
       }
       renderEndpointsFilterDrawer();
       updateFilterDrawerUI(false);
+      // Keep 33-checkbox tree collapsed by default on mobile unless markets are actively selected/searched
+      const treeBody = document.getElementById('endpointsTreeCollapsibleBody');
+      const toggleTreeBtn = document.getElementById('btnToggleEndpointsTree');
+      const toggleTreeLbl = document.getElementById('toggleEndpointsTreeLabel');
+      if (treeBody && toggleTreeBtn) {
+        const hasCheckedOrSearch = (state.calendar.selectedEndpoints && state.calendar.selectedEndpoints.length > 0) || Boolean(state.calendar.endpointSearchQuery);
+        const expandOnOpen = window.innerWidth > 768 || hasCheckedOrSearch;
+        treeBody.classList.toggle('is-mobile-collapsed', !expandOnOpen);
+        toggleTreeBtn.setAttribute('aria-expanded', expandOnOpen ? 'true' : 'false');
+        if (toggleTreeLbl) toggleTreeLbl.textContent = expandOnOpen ? 'Hide' : 'Expand';
+      }
       requestAnimationFrame(() => {
         dom.filterSidebar.classList.add('open');
         dom.filterBackdrop.classList.add('open');
@@ -9294,6 +9305,20 @@
           state.calendar.minProb = prob;
           updateFilterDrawerUI(false);
         });
+      });
+    }
+
+    // Mobile Expand / Collapse for 33-Market Multi-Checkbox Tree
+    const btnToggleEndpointsTree = document.getElementById('btnToggleEndpointsTree');
+    const endpointsTreeBody = document.getElementById('endpointsTreeCollapsibleBody');
+    const toggleEndpointsTreeLabel = document.getElementById('toggleEndpointsTreeLabel');
+    if (btnToggleEndpointsTree && endpointsTreeBody) {
+      btnToggleEndpointsTree.addEventListener('click', () => {
+        const isCurrentlyCollapsed = endpointsTreeBody.classList.contains('is-mobile-collapsed');
+        const nextExpanded = isCurrentlyCollapsed;
+        endpointsTreeBody.classList.toggle('is-mobile-collapsed', !nextExpanded);
+        btnToggleEndpointsTree.setAttribute('aria-expanded', nextExpanded ? 'true' : 'false');
+        if (toggleEndpointsTreeLabel) toggleEndpointsTreeLabel.textContent = nextExpanded ? 'Hide' : 'Expand';
       });
     }
 

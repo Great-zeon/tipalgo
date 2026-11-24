@@ -36,7 +36,7 @@
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet">
 
-  <link rel="stylesheet" href="/static/style.css?v=129">
+  <link rel="stylesheet" href="/static/style.css?v=130">
 </head>
 
 <body class="light-platform">
@@ -2179,46 +2179,55 @@
         </div>
         <div class="filter-stake-chips" id="filterStakeChips">
           <button type="button" class="stake-chip active" data-min="0" data-max="0">Any Stake</button>
-          <button type="button" class="stake-chip" data-min="1000" data-max="3000">₦1k - ₦3k (Safe Play)</button>
-          <button type="button" class="stake-chip" data-min="2500" data-max="5000">₦2.5k - ₦5k (Medium)</button>
-          <button type="button" class="stake-chip" data-min="5000" data-max="50000">₦5k+ (Sure Bankers)</button>
+          <button type="button" class="stake-chip" data-min="1000" data-max="3000">₦1k – ₦3k</button>
+          <button type="button" class="stake-chip" data-min="2500" data-max="5000">₦2.5k – ₦5k</button>
+          <button type="button" class="stake-chip" data-min="5000" data-max="50000">₦5k+ High</button>
         </div>
       </div>
 
       <!-- SECTION 5: 33 Betting Markets Multi-Select Tree -->
-      <div class="filter-group-card endpoints-group-card">
+      <div class="filter-group-card endpoints-group-card" id="endpointsGroupCard">
         <div class="filter-group-header">
-          <div style="display:flex; align-items:center; gap:0.55rem;">
+          <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
             <span class="filter-group-title" id="filterTitleTree">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"
                 stroke-linecap="round" stroke-linejoin="round" class="filter-sec-icon">
                 <path d="M4 6h16M4 12h16M4 18h7"></path>
               </svg>
-              Filter by Betting Markets
+              33 Market Checkboxes
             </span>
             <span class="endpoints-counter-pill" id="selectedEndpointsCounter">0 Selected</span>
           </div>
-          <div class="endpoints-quick-actions">
-            <button type="button" class="btn-endpoints-quick" id="btnSelectAllEndpoints">Select All</button>
-            <span class="quick-sep">&bull;</span>
-            <button type="button" class="btn-endpoints-quick" id="btnClearAllEndpoints">Clear</button>
-          </div>
+          <button type="button" class="btn-toggle-endpoints-tree" id="btnToggleEndpointsTree" aria-expanded="false">
+            <span id="toggleEndpointsTreeLabel">Expand</span>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
         </div>
         <p class="filter-group-desc">Select specific betting markets to display on today's fixtures:</p>
 
-        <!-- Search inside 33 Endpoints -->
-        <div class="filter-search-box">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          <input type="text" id="inputFilterSearchEndpoints" class="filter-search-input"
-            placeholder="Search 33 markets (e.g. Over 2.5, Both Teams Score, Home Win)..." aria-label="Search markets">
-        </div>
+        <div class="endpoints-tree-collapsible is-mobile-collapsed" id="endpointsTreeCollapsibleBody">
+          <div class="endpoints-quick-actions-row">
+            <div class="endpoints-quick-actions">
+              <button type="button" class="btn-endpoints-quick" id="btnSelectAllEndpoints">Select All</button>
+              <span class="quick-sep">&bull;</span>
+              <button type="button" class="btn-endpoints-quick" id="btnClearAllEndpoints">Clear</button>
+            </div>
+          </div>
 
-        <!-- Multi-Checkbox Tree of 33 Endpoints -->
-        <div class="endpoints-checkbox-tree" id="endpointsCheckboxTree">
-          <!-- Dynamically populated with 33 endpoint checkbox items -->
+          <!-- Search inside 33 Endpoints -->
+          <div class="filter-search-box">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="inputFilterSearchEndpoints" class="filter-search-input"
+              placeholder="Search 33 markets (e.g. Over 2.5, BTTS)..." aria-label="Search markets">
+          </div>
+
+          <!-- Multi-Checkbox Tree of 33 Endpoints -->
+          <div class="endpoints-checkbox-tree" id="endpointsCheckboxTree">
+            <!-- Dynamically populated with 33 endpoint checkbox items -->
+          </div>
         </div>
       </div>
     </div>
@@ -3000,7 +3009,7 @@
       .then(function (data) { if (data) window.__teamForms = data; })
       .catch(function () { });
   </script>
-  <script src="/static/app.js?v=129"></script>
+  <script src="/static/app.js?v=130"></script>
 </body>
 
 </html>
