@@ -5641,7 +5641,7 @@
     }
   }
 
-  async function loadCalendarSlate(dateStr, endpointId = 'all', page = 1, limit = 100) {
+  async function loadCalendarSlate(dateStr, endpointId = 'all', page = 1, limit = 100, isRefresh = false) {
     if (!dom.calendarMatchesFeed) return;
 
     const targetDate = dateStr || state.calendar.selectedDate || getSystemTodayDateStr();
@@ -5658,9 +5658,14 @@
 
     const thisRequestId = ++currentSlateRequestId;
 
+    if (isRefresh) {
+      clientSlateMemoryCache.delete(cacheKey);
+      try { sessionStorage.removeItem(`sportymill_slate_${cacheKey}`); } catch (e) {}
+    }
+
     // 1. Instant Cache Check (Memory -> SessionStorage) for 0ms fluid loading
-    let cached = clientSlateMemoryCache.get(cacheKey);
-    if (!cached) {
+    let cached = isRefresh ? null : clientSlateMemoryCache.get(cacheKey);
+    if (!cached && !isRefresh) {
       try {
         const stored = sessionStorage.getItem(`sportymill_slate_${cacheKey}`);
         if (stored) {
@@ -5685,8 +5690,8 @@
       renderShimmeringSkeletonCards();
     }
 
-    // 2. Prevent duplicate in-flight requests for the same date/market
-    if (activeSlateRequestKey === cacheKey && activeSlateRequestPromise) {
+    // 2. Prevent duplicate in-flight requests for the same date/market (unless forced refresh)
+    if (!isRefresh && activeSlateRequestKey === cacheKey && activeSlateRequestPromise) {
       return activeSlateRequestPromise;
     }
 
@@ -5694,7 +5699,8 @@
     activeSlateRequestKey = cacheKey;
     activeSlateRequestPromise = (async () => {
       try {
-        const url = `/api/calendar/daily-slate?date=${encodeURIComponent(targetDate)}&endpoint=${encodeURIComponent(targetEndpoint)}&page=${curPage}&limit=${curLimit}`;
+        const refreshParam = isRefresh ? `&refresh=1&_t=${Date.now()}` : '';
+        const url = `/api/calendar/daily-slate?date=${encodeURIComponent(targetDate)}&endpoint=${encodeURIComponent(targetEndpoint)}&page=${curPage}&limit=${curLimit}${refreshParam}`;
         const data = await api(url);
         if (!data) return;
 
@@ -5720,7 +5726,7 @@
             <div style="text-align: center; padding: 2.5rem; background: var(--bg-card); border-radius: 14px; border: 1px solid rgba(244,63,94,0.3);">
               <div style="color: #f43f5e; font-weight: 800; font-size: 1.05rem;">Failed to load calendar slate</div>
               <div style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.35rem;">${esc(err.message)}</div>
-              <button class="btn-pill-info" style="margin-top: 1rem; cursor: pointer;" onclick="if(window.loadCalendarSlate){window.loadCalendarSlate(getSystemTodayDateStr(), 'all');}else{location.reload();}">Reload Today's Slate</button>
+              <button class="btn-pill-info" style="margin-top: 1rem; cursor: pointer;" onclick="if(window.loadCalendarSlate){window.loadCalendarSlate(getSystemTodayDateStr(), 'all', 1, 100, true);}else{location.reload();}">Retry Today's Slate</button>
             </div>
           `;
         }
@@ -7084,8 +7090,8 @@
 
       const todayStr = getSystemTodayDateStr ? getSystemTodayDateStr() : 'today';
       dom.calendarMatchesFeed.innerHTML = `
-        <div class="calendar-empty-state-card ${isProviderError ? 'provider-error-state' : ''}">
-          <div class="empty-icon-box" style="${isProviderError ? 'background: rgba(244, 63, 94, 0.12); color: #f43f5e;' : ''}">
+        <div class="calendar-empty-state-card ${isProviderError ? 'provider-error-state' : ''}" style="${isProviderError ? 'border-color: rgba(244, 63, 94, 0.3); background: rgba(244, 63, 94, 0.04); padding: 2.5rem 1.5rem; text-align: center;' : ''}">
+          <div class="empty-icon-box" style="${isProviderError ? 'background: rgba(244, 63, 94, 0.12); color: #f43f5e; margin: 0 auto 1.25rem;' : ''}">
             ${isProviderError ? `
               <svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="#f43f5e" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
@@ -7103,48 +7109,26 @@
               </svg>
             `}
           </div>
-          <h3 class="empty-title" style="${isProviderError ? 'color: #f43f5e;' : ''}">${esc(emptyTitle)}</h3>
-          <p class="empty-sub">${emptyMsg}</p>
-          ${isProviderError ? `
-            <div class="provider-error-banner" style="margin: 0.85rem auto 1.15rem auto; max-width: 520px; padding: 0.85rem 1.1rem; background: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.35); border-radius: 8px; color: #f43f5e; font-size: 0.82rem; line-height: 1.45; text-align: left;">
-              <div style="font-weight: 700; display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.3rem;">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
-                <span>External Data Provider Offline</span>
-              </div>
-              <div style="color: #cbd5e1; font-size: 0.78rem;">
-                Unable to retrieve fixtures. The external data provider could not be reached. Please retry.
-              </div>
-              ${providerMsg ? `
-                <div style="margin-top: 0.45rem; padding-top: 0.45rem; border-top: 1px solid rgba(244, 63, 94, 0.2); font-family: var(--font-mono); font-size: 0.72rem; color: #fca5a5; word-break: break-all;">
-                  <strong>Provider Diagnostic:</strong> ${esc(providerMsg)}
-                </div>
-              ` : ''}
-            </div>
-          ` : ''}
-          <div class="empty-actions">
+          <h3 class="empty-title" style="${isProviderError ? 'color: #f43f5e; margin-bottom: 0.5rem;' : ''}">${esc(emptyTitle)}</h3>
+          <p class="empty-sub" style="max-width: 540px; margin: 0 auto 1.5rem; line-height: 1.55; color: var(--text-secondary); font-size: 0.88rem;">${emptyMsg}</p>
+          <div class="empty-actions" style="display: flex; justify-content: center; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
             ${isProviderError ? `
-              <button class="btn-empty-today" id="btnEmptyViewLatestSlate" style="background: #00d665; color: #052e16; font-weight: 800; border: none; display: inline-flex; align-items: center; gap: 0.45rem;">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
-                <span>View Latest Verified Slate</span>
+              <button class="btn-empty-today" id="btnEmptyRetrySync" style="background: #00d665; color: #052e16; font-weight: 800; border: none; padding: 0.65rem 1.4rem; border-radius: 8px; display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; transition: all 0.2s ease;">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                <span id="btnRetrySyncText">Retry Provider</span>
               </button>
-              <button class="btn-empty-today" id="btnEmptyRetrySync" style="background: rgba(255,255,255,0.08); color: #f8fafc; font-weight: 700; border: 1px solid rgba(255,255,255,0.15); display: inline-flex; align-items: center; gap: 0.45rem;">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-                <span>Retry Provider</span>
-              </button>
-            ` : ''}
-            ${(hasActiveFilters || state.calendar.searchQuery) ? `
-              <button class="btn-empty-today" id="btnEmptyResetFilters">
-                Reset Filters &amp; Show All
-              </button>
-            ` : (!isProviderError ? `
-              <button class="btn-empty-today" id="btnEmptyViewUpcomingSlate" style="background: #00d665; color: #052e16; font-weight: 800; border: none; display: inline-flex; align-items: center; gap: 0.45rem;">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
-                <span>View Verified Match Slate</span>
-              </button>
-            ` : '')}
-            <button class="btn-empty-pick" id="btnEmptyPickDate">
-              Pick Another Date
-            </button>
+            ` : `
+              ${(hasActiveFilters || state.calendar.searchQuery) ? `
+                <button class="btn-empty-today" id="btnEmptyResetFilters">
+                  Reset Filters &amp; Show All
+                </button>
+              ` : `
+                <button class="btn-empty-today" id="btnEmptyViewUpcomingSlate" style="background: #00d665; color: #052e16; font-weight: 800; border: none; display: inline-flex; align-items: center; gap: 0.45rem;">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                  <span>View Verified Match Slate</span>
+                </button>
+              `}
+            `}
           </div>
         </div>
       `;
@@ -7160,21 +7144,26 @@
         });
       }
 
-      const btnViewLatest = document.getElementById('btnEmptyViewLatestSlate');
-      if (btnViewLatest) {
-        btnViewLatest.addEventListener('click', () => {
-          const dates = state.calendar.availableDates || [];
-          const past = dates.filter(d => d <= getSystemTodayDateStr()).sort();
-          const target = past.length > 0 ? past[past.length - 1] : '2026-11-16';
-          selectCalendarDate(target);
-        });
-      }
-
       const btnRetry = document.getElementById('btnEmptyRetrySync');
       if (btnRetry) {
-        btnRetry.addEventListener('click', () => {
-          toast('Retrying provider connection...', 'info');
-          loadCalendarSlate(state.calendar.selectedDate, state.calendar.selectedEndpoint, true);
+        btnRetry.addEventListener('click', async () => {
+          const btnText = document.getElementById('btnRetrySyncText');
+          if (btnRetry.disabled) return;
+          btnRetry.disabled = true;
+          btnRetry.style.opacity = '0.7';
+          btnRetry.style.cursor = 'wait';
+          if (btnText) btnText.textContent = 'Connecting to Provider...';
+          toast('Checking live football provider...', 'info');
+          try {
+            await loadCalendarSlate(state.calendar.selectedDate, state.calendar.selectedEndpoint, 1, 100, true);
+          } finally {
+            if (btnRetry) {
+              btnRetry.disabled = false;
+              btnRetry.style.opacity = '1';
+              btnRetry.style.cursor = 'pointer';
+              if (btnText) btnText.textContent = 'Retry Provider';
+            }
+          }
         });
       }
 
@@ -7195,25 +7184,7 @@
           const btnClear = document.getElementById('btnClearCalSearch');
           if (btnClear) btnClear.style.display = 'none';
           updateFilterDrawerUI(true);
-          loadCalendarSlate(getSystemTodayDateStr(), 'all');
-        });
-      }
-
-      const btnToday = document.getElementById('btnEmptyGoToday');
-      if (btnToday) {
-        btnToday.addEventListener('click', () => {
-          loadCalendarSlate(getSystemTodayDateStr(), 'all');
-        });
-      }
-
-      const btnPick = document.getElementById('btnEmptyPickDate');
-      if (btnPick) {
-        btnPick.addEventListener('click', () => {
-          if (dom.calendarDatePicker) {
-            try { dom.calendarDatePicker.showPicker(); } catch(e) { dom.calendarDatePicker.focus(); }
-          }
-          const trigger = document.getElementById('btnCalendarDropdownTrigger');
-          if (trigger) trigger.click();
+          loadCalendarSlate(getSystemTodayDateStr(), 'all', 1, 100, true);
         });
       }
 
@@ -10289,10 +10260,10 @@
       const stats = await api('/api/dashboard/stats');
       if (stats && stats.status === 'success') {
         dashStatsLoaded = true;
-        if (statPlayable) statPlayable.textContent = `${stats.playable_matches_today || 181}`;
-        if (statPreds) statPreds.textContent = `${(stats.total_predictions_all_time || 14847).toLocaleString()}`;
+        if (statPlayable) statPlayable.textContent = `${stats.playable_matches_today != null ? stats.playable_matches_today : 0}`;
+        if (statPreds) statPreds.textContent = `${(stats.total_predictions_all_time || 0).toLocaleString()}`;
         if (statPrecision) statPrecision.textContent = stats.model_precision || '78.4%';
-        if (statLeagues) statLeagues.textContent = `${stats.total_leagues_tracked || 269}`;
+        if (statLeagues) statLeagues.textContent = `${stats.total_leagues_tracked != null ? stats.total_leagues_tracked : 0}`;
 
         // Render Clean Match Table
         if (fixturesContainer && stats.sample_fixtures && stats.sample_fixtures.length) {
@@ -10393,6 +10364,14 @@
               handleFixtureClick(stats.sample_fixtures[idx]);
             });
           });
+        } else if (fixturesContainer) {
+          fixturesContainer.innerHTML = `
+            <div style="text-align: center; padding: 2.5rem 1.5rem; background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.08); border-radius: 10px;">
+              <p style="margin: 0 0 0.5rem 0; color: #94a3b8; font-size: 0.9rem;">No scheduled fixtures currently loaded for today.</p>
+              <p style="margin: 0; color: #64748b; font-size: 0.8rem;">Live matches are retrieved directly from the external sports provider feed.</p>
+              <button type="button" class="btn-pill-info" style="margin-top: 1rem; cursor: pointer;" onclick="switchView('view-calendar')">Go to Matches Calendar →</button>
+            </div>
+          `;
         }
       }
     } catch (e) {
@@ -11754,8 +11733,18 @@
     // Dismiss all open dropdowns when clicking outside
     document.addEventListener('click', (e) => {
       if (!e.target.closest('.nav-dropdown')) {
-        document.querySelectorAll('.nav-dropdown').forEach(d => d.classList.remove('open'));
+        document.querySelectorAll('.nav-dropdown').forEach(d => {
+          d.classList.remove('open');
+          d.classList.remove('closed-by-click');
+        });
       }
+    });
+
+    // Remove closed-by-click when cursor leaves the dropdown
+    document.querySelectorAll('.nav-dropdown').forEach(d => {
+      d.addEventListener('mouseleave', () => {
+        d.classList.remove('closed-by-click');
+      });
     });
 
     // Toggle button click (useful for touch & accessibility)
@@ -11764,6 +11753,7 @@
         e.preventDefault();
         e.stopPropagation();
         const parent = btn.closest('.nav-dropdown');
+        if (parent) parent.classList.remove('closed-by-click');
         const wasOpen = parent ? parent.classList.contains('open') : false;
         document.querySelectorAll('.nav-dropdown').forEach(d => d.classList.remove('open'));
         if (!wasOpen && parent) parent.classList.add('open');
@@ -11775,6 +11765,11 @@
       link.addEventListener('click', (e) => {
         e.preventDefault();
         const target = link.getAttribute('data-tab-target');
+        const parentDropdown = link.closest('.nav-dropdown');
+        if (parentDropdown) {
+          parentDropdown.classList.remove('open');
+          parentDropdown.classList.add('closed-by-click');
+        }
         document.querySelectorAll('.nav-dropdown').forEach(d => d.classList.remove('open'));
         if (target) switchView(target);
       });
@@ -11785,6 +11780,11 @@
       link.addEventListener('click', (e) => {
         e.preventDefault();
         const ep = link.getAttribute('data-endpoint-target');
+        const parentDropdown = link.closest('.nav-dropdown');
+        if (parentDropdown) {
+          parentDropdown.classList.remove('open');
+          parentDropdown.classList.add('closed-by-click');
+        }
         document.querySelectorAll('.nav-dropdown').forEach(d => d.classList.remove('open'));
         switchView('view-calendar');
         if (state.calendar) {

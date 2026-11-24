@@ -17965,10 +17965,14 @@ body.light-theme-mode .footer-bottom-row {
   -webkit-backdrop-filter: blur(20px);
 }
 
-.nav-dropdown:hover .nav-dropdown-menu,
-.nav-dropdown.open .nav-dropdown-menu {
+.nav-dropdown:hover:not(.closed-by-click) .nav-dropdown-menu,
+.nav-dropdown.open:not(.closed-by-click) .nav-dropdown-menu {
   display: block;
   animation: dropdownFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nav-dropdown.closed-by-click .nav-dropdown-menu {
+  display: none !important;
 }
 
 @keyframes dropdownFadeIn {

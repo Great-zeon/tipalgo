@@ -7388,6 +7388,7 @@ async def get_calendar_daily_slate(
     endpoint: Optional[str] = None,
     page: int = 1,
     limit: int = 100,
+    refresh: bool = False,
     db: AsyncSession = Depends(get_db),
     predictor: PredictorService = Depends(get_predictor)
 ):
@@ -7438,9 +7439,12 @@ async def get_calendar_daily_slate(
     ]
 
     cache_key = f"slate:{target_date}:{ep_filter}:p{safe_page}:l{safe_limit}"
-    cached_data = calendar_slate_cache.get(cache_key)
-    if cached_data:
-        return Response(content=json.dumps(cached_data), media_type="application/json")
+    if not refresh:
+        cached_data = calendar_slate_cache.get(cache_key)
+        if cached_data:
+            return Response(content=json.dumps(cached_data), media_type="application/json")
+    else:
+        calendar_slate_cache.delete(cache_key)
 
     # API-ONLY: Fetch authentic fixtures directly from football provider
     from football_ingestion import FootballDataService, LiveFixtureItem
@@ -7467,7 +7471,8 @@ async def get_calendar_daily_slate(
             "matches_count": 0,
             "matches": []
         }
-        calendar_slate_cache.set(cache_key, err_payload)
+        # CRITICAL: Never cache provider errors so retries always query the live provider fresh
+        calendar_slate_cache.delete(cache_key)
         return Response(content=json.dumps(err_payload), media_type="application/json")
 
     raw_matches = prov_result.matches
@@ -7833,56 +7838,53 @@ async def get_dashboard_stats(
     now = datetime.now(timezone.utc)
     today_str = now.strftime("%Y-%m-%d")
     
-    # 1. Matches playable today with odds
+    # 1. Matches playable today with odds (genuine scheduled matches from provider)
     today_res = await db.execute(
         select(func.count(HistoricalMatch.id))
         .where(
             and_(
                 func.substr(HistoricalMatch.match_date, 1, 10) == today_str,
+                HistoricalMatch.status.in_(["scheduled", "ns", "timed"]),
+                HistoricalMatch.source_classification == "provider_verified",
+                HistoricalMatch.external_id.notlike("ext_%"),
+                HistoricalMatch.external_id.notlike("SYN-%"),
+                HistoricalMatch.external_id.notlike("auto_%"),
+                HistoricalMatch.external_id.notlike("demo_%"),
                 HistoricalMatch.home_odds.isnot(None),
                 HistoricalMatch.away_odds.isnot(None)
             )
         )
     )
     playable_today = today_res.scalar() or 0
-    if playable_today == 0:
-        next_48h = (now + timedelta(days=3)).strftime("%Y-%m-%d")
-        upcoming_res = await db.execute(
-            select(func.count(HistoricalMatch.id))
-            .where(
-                and_(
-                    func.substr(HistoricalMatch.match_date, 1, 10) >= today_str,
-                    func.substr(HistoricalMatch.match_date, 1, 10) <= next_48h,
-                    HistoricalMatch.home_odds.isnot(None)
-                )
-            )
-        )
-        playable_today = upcoming_res.scalar() or 8
 
     # 2. Total predictions logged across all endpoints & leagues
     pred_res = await db.execute(select(func.count(PredictionLog.id)))
     logged_preds = pred_res.scalar() or 0
-    total_preds = max(logged_preds + 14820, 14820)
 
-    # 3. Leagues count
-    league_res = await db.execute(select(func.count(func.distinct(HistoricalMatch.league_id))))
-    leagues_count = league_res.scalar() or 18
+    # 3. Leagues count (from provider-verified matches)
+    league_res = await db.execute(
+        select(func.count(func.distinct(HistoricalMatch.league_id)))
+        .where(
+            and_(
+                HistoricalMatch.source_classification == "provider_verified",
+                HistoricalMatch.external_id.notlike("ext_%"),
+                HistoricalMatch.external_id.notlike("SYN-%"),
+                HistoricalMatch.external_id.notlike("auto_%"),
+                HistoricalMatch.external_id.notlike("demo_%")
+            )
+        )
+    )
+    leagues_count = league_res.scalar() or 0
 
-    # 4. Top sample fixtures for quick testing / selection
+    # 4. Top sample fixtures: ONLY genuine scheduled future matches (never past database records)
     cand_res = await db.execute(
         select(HistoricalMatch)
         .where(
             and_(
                 HistoricalMatch.source_classification == "provider_verified",
-                HistoricalMatch.external_id.notlike("ext_pl_%"),
-                HistoricalMatch.external_id.notlike("ext_ucl_%"),
-                HistoricalMatch.external_id.notlike("ext_uel_%"),
-                HistoricalMatch.external_id.notlike("ext_uecl_%"),
-                HistoricalMatch.external_id.notlike("ext_pd_%"),
-                HistoricalMatch.external_id.notlike("ext_sa_%"),
-                HistoricalMatch.external_id.notlike("ext_fl1_%"),
-                HistoricalMatch.external_id.notlike("ext_bl1_%"),
-                HistoricalMatch.external_id.notlike("ext_hist_%"),
+                HistoricalMatch.status.in_(["scheduled", "ns", "timed"]),
+                func.substr(HistoricalMatch.match_date, 1, 10) >= today_str,
+                HistoricalMatch.external_id.notlike("ext_%"),
                 HistoricalMatch.external_id.notlike("auto_%"),
                 HistoricalMatch.external_id.notlike("SYN-%"),
                 HistoricalMatch.external_id.notlike("demo_%"),
@@ -7891,7 +7893,7 @@ async def get_dashboard_stats(
                 HistoricalMatch.away_odds.isnot(None)
             )
         )
-        .order_by(HistoricalMatch.match_date.desc())
+        .order_by(HistoricalMatch.match_date.asc())
         .limit(8)
     )
     fixtures_sample = cand_res.scalars().all()
@@ -7901,6 +7903,7 @@ async def get_dashboard_stats(
             "home_team": f.home_team,
             "away_team": f.away_team,
             "league_id": f.league_id,
+            "league_name": format_league_display_name(f.league_id),
             "home_odds": f.home_odds,
             "draw_odds": f.draw_odds,
             "away_odds": f.away_odds,
@@ -7910,7 +7913,7 @@ async def get_dashboard_stats(
     return {
         "status": "success",
         "playable_matches_today": playable_today,
-        "total_predictions_all_time": total_preds,
+        "total_predictions_all_time": logged_preds,
         "total_leagues_tracked": leagues_count,
         "model_status": "ML Logistic Ensemble v2.1 (Active)",
         "model_precision": "78.4%",

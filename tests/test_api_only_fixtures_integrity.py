@@ -230,3 +230,91 @@ async def test_authentic_provider_fixtures_rendered_cleanly():
             assert card["top_prob"] > 0
             assert len(card["tips"]) > 0
             assert len(card["qualified_endpoints"]) > 0
+
+
+@pytest.mark.asyncio
+async def test_retry_bypasses_cache_and_errors_are_not_cached():
+    """
+    Verification of Retry & Cache-Busting:
+    1. A provider error must NOT be cached in calendar_slate_cache.
+    2. Calling with refresh=True forcefully re-queries the provider.
+    3. If credits are replenished on retry, the authentic matches return immediately.
+    """
+    calendar_slate_cache.clear()
+    target_date = "2026-11-25"
+
+    # Step 1: Simulate 403 insufficient credits
+    mock_403_body = json.dumps({
+        "success": False,
+        "message": "Access denied. Possible reasons: Invalid key, insufficient credits."
+    })
+    mock_resp_403 = AsyncMock()
+    mock_resp_403.status = 403
+    mock_resp_403.text = AsyncMock(return_value=mock_403_body)
+    mock_resp_403.__aenter__ = AsyncMock(return_value=mock_resp_403)
+    mock_resp_403.__aexit__ = AsyncMock(return_value=None)
+
+    transport = ASGITransport(app=app)
+    with patch("aiohttp.ClientSession.get", return_value=mock_resp_403):
+        async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+            resp1 = await client.get(f"/api/calendar/daily-slate?date={target_date}")
+            assert resp1.status_code == 200
+            assert resp1.json()["status"] == "error"
+
+    # Verify error payload was NOT cached
+    cache_key = f"slate:{target_date}:all:p1:l100"
+    assert calendar_slate_cache.get(cache_key) is None
+
+    # Step 2: Now simulate replenished credits on user clicking "Retry Provider"
+    genuine_matches = [
+        {
+            "id": "replenished_match_77",
+            "date": target_date,
+            "kickoff": "19:00",
+            "status": "NS",
+            "home": {"id": "10", "name": "Real Madrid", "score": None},
+            "away": {"id": "20", "name": "Barcelona", "score": None},
+            "league": {"id": "140", "name": "La Liga", "country": "Spain"},
+            "odds": {"home": 2.10, "draw": 3.40, "away": 3.20}
+        }
+    ]
+    mock_200_body = json.dumps({
+        "success": True,
+        "credits_remaining": 500,
+        "data": {"matches": genuine_matches}
+    })
+    mock_resp_200 = AsyncMock()
+    mock_resp_200.status = 200
+    mock_resp_200.text = AsyncMock(return_value=mock_200_body)
+    mock_resp_200.__aenter__ = AsyncMock(return_value=mock_resp_200)
+    mock_resp_200.__aexit__ = AsyncMock(return_value=None)
+
+    with patch("aiohttp.ClientSession.get", return_value=mock_resp_200):
+        async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+            resp2 = await client.get(f"/api/calendar/daily-slate?date={target_date}&refresh=true")
+            assert resp2.status_code == 200
+            data2 = resp2.json()
+            assert data2["status"] == "ok"
+            assert data2["total_fixtures"] == 1
+            assert data2["matches"][0]["external_id"] == "replenished_match_77"
+
+
+@pytest.mark.asyncio
+async def test_dashboard_stats_never_pulls_past_matches_as_today_fixtures():
+    """
+    Verification of Dashboard Stats Integrity:
+    Dashboard endpoint must not select past historical matches to represent today's fixtures.
+    """
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+        resp = await client.get("/api/dashboard/stats")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "success"
+        # Since no future fixtures have been ingested from provider yet, sample_fixtures must be empty
+        assert isinstance(data["sample_fixtures"], list)
+        for f in data["sample_fixtures"]:
+            assert f["match_date"] is not None
+            # Every sample fixture must be scheduled for today or the future, never in the past
+            today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            assert f["match_date"][:10] >= today_str
