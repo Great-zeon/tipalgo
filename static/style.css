@@ -22074,3 +22074,26 @@ body.light-theme-mode .dash-mobile-conf {
     gap: 0.5rem !important;
   }
 }
+
+/* Responsive Skeleton Loading Grid & Light Mode */
+@media (max-width: 1024px) {
+  .skeleton-loading-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .skeleton-loading-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+body.light-theme-mode .skeleton-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+body.light-theme-mode .sk-shimmer {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+}

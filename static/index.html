@@ -36,7 +36,7 @@
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet">
 
-  <link rel="stylesheet" href="/static/style.css?v=139">
+  <link rel="stylesheet" href="/static/style.css?v=140">
 </head>
 
 <body class="light-platform">
@@ -494,7 +494,15 @@
             <!-- Matches Feed (Desktop Bet Slip lives in shared persistent workspace rail) -->
             <div class="home-feed-col">
               <div class="calendar-matches-feed" id="calendarMatchesFeed">
-                <!-- Dynamically populated match cards -->
+                <div class="cards-view-container">
+                  <div class="skeleton-header-shimmer-wrap"><div class="sk-shimmer sk-title-bar"></div></div>
+                  <div class="skeleton-loading-grid">
+                    <div class="skeleton-card"><div class="sk-top-bar"><div class="sk-shimmer sk-badge"></div><div class="sk-shimmer sk-time"></div></div><div class="sk-teams-block"><div class="sk-team-row"><div class="sk-shimmer sk-crest"></div><div class="sk-shimmer sk-name"></div></div><div class="sk-team-row"><div class="sk-shimmer sk-crest"></div><div class="sk-shimmer sk-name"></div></div></div><div class="sk-shimmer sk-tip-bar"></div></div>
+                    <div class="skeleton-card"><div class="sk-top-bar"><div class="sk-shimmer sk-badge"></div><div class="sk-shimmer sk-time"></div></div><div class="sk-teams-block"><div class="sk-team-row"><div class="sk-shimmer sk-crest"></div><div class="sk-shimmer sk-name"></div></div><div class="sk-team-row"><div class="sk-shimmer sk-crest"></div><div class="sk-shimmer sk-name"></div></div></div><div class="sk-shimmer sk-tip-bar"></div></div>
+                    <div class="skeleton-card"><div class="sk-top-bar"><div class="sk-shimmer sk-badge"></div><div class="sk-shimmer sk-time"></div></div><div class="sk-teams-block"><div class="sk-team-row"><div class="sk-shimmer sk-crest"></div><div class="sk-shimmer sk-name"></div></div><div class="sk-team-row"><div class="sk-shimmer sk-crest"></div><div class="sk-shimmer sk-name"></div></div></div><div class="sk-shimmer sk-tip-bar"></div></div>
+                    <div class="skeleton-card"><div class="sk-top-bar"><div class="sk-shimmer sk-badge"></div><div class="sk-shimmer sk-time"></div></div><div class="sk-teams-block"><div class="sk-team-row"><div class="sk-shimmer sk-crest"></div><div class="sk-shimmer sk-name"></div></div><div class="sk-team-row"><div class="sk-shimmer sk-crest"></div><div class="sk-shimmer sk-name"></div></div></div><div class="sk-shimmer sk-tip-bar"></div></div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -3138,7 +3146,7 @@
       .then(function (data) { if (data) window.__teamForms = data; })
       .catch(function () { });
   </script>
-  <script src="/static/app.js?v=139"></script>
+  <script src="/static/app.js?v=140"></script>
 </body>
 
 </html>

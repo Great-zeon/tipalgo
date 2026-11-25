@@ -68,7 +68,8 @@
       expandedLeagues: new Set(),
       leagueFullSlates: {},
       isClubSearchActive: false,
-      teamSearchResults: null
+      teamSearchResults: null,
+      isLoading: true
     },
 
     // All 33 Algo Models in main.py
@@ -577,6 +578,9 @@
 
   // App Bootstrap
   async function init() {
+    if (typeof renderShimmeringSkeletonCards === 'function') {
+      renderShimmeringSkeletonCards();
+    }
     try {
       const savedTone = localStorage.getItem('tipalgo_tone');
       state.personalityMode = (savedTone === 'BANTER') ? 'BANTER' : 'PROFESSIONAL';
