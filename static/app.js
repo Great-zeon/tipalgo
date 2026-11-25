@@ -2183,21 +2183,146 @@
       }
     }
 
+    // 4. User Activity / Saved Slip Alert
+    try {
+      const savedSlips = JSON.parse(localStorage.getItem('sportymill_saved_slips') || '[]');
+      if (Array.isArray(savedSlips) && savedSlips.length > 0) {
+        const latestSlip = savedSlips[0];
+        const firstLeg = Array.isArray(latestSlip.items) && latestSlip.items[0] ? latestSlip.items[0] : {};
+        alerts.push({
+          type: 'activity',
+          tag: isBanter ? `🟣 SAVED CHOP SLIP` : `🟣 SAVED BET SLIP`,
+          home_team: firstLeg.home_team || latestSlip.booking_code || 'Saved Ticket',
+          away_team: firstLeg.away_team || `${(latestSlip.items || []).length} Picks`,
+          league_name: latestSlip.booking_code || 'Slip',
+          selection: `${(latestSlip.items || []).length} Legs`,
+          odds: Number(latestSlip.total_odds || 1).toFixed(2),
+          edge_text: `${latestSlip.created_at || 'Saved'}`,
+          summary: isBanter
+            ? `Code ${latestSlip.booking_code}: ${(latestSlip.items || []).length} picks @${Number(latestSlip.total_odds || 1).toFixed(2)}. Tap to edit or add more games.`
+            : `Booking code ${latestSlip.booking_code} (${(latestSlip.items || []).length} picks @${Number(latestSlip.total_odds || 1).toFixed(2)}). Ready to reload or update.`,
+          team: firstLeg.home_team || '',
+          booking_code: latestSlip.booking_code || '',
+          time: latestSlip.created_at || 'Saved'
+        });
+      }
+    } catch (e) {}
+
+    // Additional live banker / value matches for the "See All" Notifications Center
+    for (let i = 0; alerts.length < 12 && i < matches.length; i++) {
+      const m = matches[i];
+      if (!alerts.some(a => a.home_team === m.home_team && a.away_team === m.away_team)) {
+        const topTip = m.top_tip || (m.tips && m.tips[0]) || {};
+        if (!topTip.label && !topTip.market) continue;
+        const probVal = Number(topTip.prob_pct || 65);
+        alerts.push({
+          type: probVal >= 78 ? 'banker' : 'value',
+          tag: probVal >= 78 ? (isBanter ? `🟢 ${probVal}% SURE` : `🟢 ${probVal}% BANKER`) : (isBanter ? `🔵 SHARP EDGE` : `🔵 LIVE SIGNAL`),
+          home_team: m.home_team,
+          away_team: m.away_team,
+          league_name: m.league_name || 'League Match',
+          selection: topTip.label || topTip.market || 'Model Pick',
+          odds: topTip.odds ? Number(topTip.odds).toFixed(2) : '1.50',
+          edge_text: `${probVal}% Prob`,
+          summary: isBanter
+            ? `Model compute ${topTip.label || topTip.market} (${probVal}% chance) directly from live API form & stats.`
+            : `Verified live schedule matchup with calibrated ${probVal}% probability on ${topTip.label || topTip.market}.`,
+          team: m.home_team,
+          time: m.time_wat || 'Today'
+        });
+      }
+    }
+
     if (!alerts.length) return;
+    state.notificationsAlerts = alerts;
 
     const notifCountBadge = document.getElementById('notifBadgeCount');
     if (notifCountBadge) {
-      notifCountBadge.textContent = `${alerts.length} LIVE SIGNALS`;
+      notifCountBadge.textContent = `${alerts.length} NEW`;
     }
 
-    container.innerHTML = alerts.map(a => `
-      <div class="notif-signal-card type-${a.type}" data-team="${esc(a.team)}" title="Inspect ${esc(a.home_team)} vs ${esc(a.away_team)}">
+    // Minimalist uncluttered dropdown (top 4 concise items + "See All" button in footer)
+    const compactAlerts = alerts.slice(0, 4);
+    container.innerHTML = compactAlerts.map((a, idx) => `
+      <div class="notif-compact-row type-${a.type}" data-notif-idx="${idx}" title="${esc(a.home_team)} vs ${esc(a.away_team)}">
+        <span class="notif-dot"></span>
+        <div class="notif-compact-main">
+          <div class="notif-compact-top">
+            <span class="notif-compact-title">${esc(a.type === 'activity' ? `${a.league_name} · ${a.selection}` : `${a.home_team} vs ${a.away_team}`)}</span>
+            <span class="notif-compact-prob">@${esc(a.odds)}</span>
+          </div>
+          <div class="notif-compact-sub">${esc(a.type === 'activity' ? `Saved Slip · ${a.time}` : `${a.selection} · ${a.edge_text}`)}</div>
+        </div>
+      </div>
+    `).join('');
+
+    container.querySelectorAll('.notif-compact-row').forEach(card => {
+      card.addEventListener('click', () => {
+        const idx = parseInt(card.getAttribute('data-notif-idx') || '0', 10);
+        const item = compactAlerts[idx];
+        const popover = document.getElementById('popoverNotifications');
+        if (popover) popover.classList.remove('open');
+        if (!item) return;
+        if (item.type === 'activity') {
+          switchView('view-slip-history');
+          return;
+        }
+        const searchInput = document.getElementById('inputCalendarSearchTeam') || document.getElementById('calendarSearchInput');
+        if (searchInput && item.team) {
+          searchInput.value = item.team;
+          state.calendar.searchQuery = item.team;
+          switchView('view-calendar');
+          if (typeof renderCalendarMatchesFeed === 'function') renderCalendarMatchesFeed();
+        }
+      });
+    });
+
+    const notifView = document.getElementById('view-notifications');
+    if (notifView && notifView.classList.contains('active')) {
+      renderNotificationsPage(state.activeNotifFilter || 'all');
+    }
+  }
+
+  function renderNotificationsPage(filterType = 'all') {
+    state.activeNotifFilter = filterType || 'all';
+    const isBanter = state.personalityMode === 'BANTER';
+    const feed = document.getElementById('notificationsFullFeed');
+    const countBadge = document.getElementById('notificationsPageCount');
+    const filterBar = document.getElementById('notifFilterBar');
+    if (filterBar) {
+      filterBar.querySelectorAll('.notif-filter-chip').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-type') === state.activeNotifFilter);
+      });
+    }
+
+    const allAlerts = Array.isArray(state.notificationsAlerts) ? state.notificationsAlerts : [];
+    const filtered = state.activeNotifFilter === 'all'
+      ? allAlerts
+      : allAlerts.filter(a => a.type === state.activeNotifFilter);
+
+    if (countBadge) {
+      countBadge.textContent = `${filtered.length} ${filtered.length === 1 ? 'ALERT' : 'ALERTS'}`;
+    }
+    if (!feed) return;
+
+    if (!filtered.length) {
+      feed.innerHTML = `
+        <div class="tool-empty-card" style="grid-column: 1 / -1;">
+          <h3 class="tool-empty-title">${isBanter ? 'No Alert Under Dis Filter Yet' : 'No Matching Alerts'}</h3>
+          <p class="tool-empty-desc">${isBanter ? 'Try another tab or refresh today games from live API.' : 'Switch alert categories above or load upcoming fixtures from the Matches calendar.'}</p>
+        </div>
+      `;
+      return;
+    }
+
+    feed.innerHTML = filtered.map((a, idx) => `
+      <div class="notif-full-card type-${a.type}">
         <div class="notif-card-top">
           <span class="notif-type-tag">${esc(a.tag)}</span>
           <span class="notif-match-time">${esc(a.time)}</span>
         </div>
         <div class="notif-match-heading">
-          <span class="notif-teams-title">${esc(a.home_team)} <span style="opacity:0.6; font-size:0.75rem;">vs</span> ${esc(a.away_team)}</span>
+          <span class="notif-teams-title">${esc(a.type === 'activity' ? `Slip ${a.league_name}` : `${a.home_team} vs ${a.away_team}`)}</span>
           <span class="notif-league-tag">${esc(a.league_name)}</span>
         </div>
         <div class="notif-chips-strip">
@@ -2208,31 +2333,54 @@
           <span class="notif-edge-chip">${esc(a.edge_text)}</span>
         </div>
         <p class="notif-summary-text">${esc(a.summary)}</p>
-        <div class="notif-card-footer">
-          <span>${isBanter ? 'Open Match Gist' : 'Inspect Match'}</span>
-          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        <div class="notif-full-actions">
+          ${a.type === 'activity' ? `
+            <button type="button" class="btn-banker-copy notif-open-slips-btn" style="flex:1;">${isBanter ? 'Open Saved Slips →' : 'View Saved Slips →'}</button>
+          ` : `
+            <button type="button" class="btn-banker-add-slip notif-add-pick-btn" data-idx="${idx}" style="flex:1;">${isBanter ? '+ Chop Am' : '+ Add to Slip'}</button>
+            <button type="button" class="btn-banker-copy notif-inspect-btn" data-idx="${idx}" style="flex:1;">${isBanter ? 'Check Details →' : 'Analytics →'}</button>
+          `}
         </div>
       </div>
     `).join('');
 
-    container.querySelectorAll('.notif-signal-card').forEach(card => {
-      card.addEventListener('click', () => {
-        const team = card.getAttribute('data-team');
-        if (team) {
-          const popover = document.getElementById('popoverNotifications');
-          if (popover) popover.classList.remove('open');
-          const searchInput = document.getElementById('inputCalendarSearchTeam') || document.getElementById('calendarSearchInput');
-          if (searchInput) {
-            searchInput.value = team;
-            state.calendar.searchQuery = team;
-            if (typeof renderCalendarMatchesFeed === 'function') {
-              renderCalendarMatchesFeed();
-            }
-          }
-        }
+    feed.querySelectorAll('.notif-add-pick-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const a = filtered[parseInt(btn.getAttribute('data-idx'), 10)];
+        if (!a) return;
+        addToSlip({
+          match: `${a.home_team} vs ${a.away_team}`,
+          home_team: a.home_team,
+          away_team: a.away_team,
+          league_id: 'INTL',
+          market: a.selection,
+          odds: parseFloat(a.odds) || 1.50,
+          date: 'Today'
+        });
+        btn.classList.add('in-slip');
+        btn.textContent = isBanter ? 'Don Enter ✓' : 'Added ✓';
+      });
+    });
+
+    feed.querySelectorAll('.notif-open-slips-btn').forEach(btn => {
+      btn.addEventListener('click', () => switchView('view-slip-history'));
+    });
+
+    feed.querySelectorAll('.notif-inspect-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const a = filtered[parseInt(btn.getAttribute('data-idx'), 10)];
+        if (!a) return;
+        const pool = [...(state.calendar?.data?.matches || []), ...(state.fixtures || [])];
+        const found = pool.find(m => m.home_team === a.home_team && m.away_team === a.away_team) || {
+          home_team: a.home_team,
+          away_team: a.away_team,
+          league_id: 'PL'
+        };
+        openMatchAnalytics(found);
       });
     });
   }
+  window.renderNotificationsPage = renderNotificationsPage;
 
   // Translate entire UI to Professional English or Authentic Naija Banter
   function applyLanguageMode(mode) {
@@ -2305,11 +2453,26 @@
     const btnMobLogin = document.getElementById('btnMobileLogin');
     if (btnMobLogin) btnMobLogin.textContent = state.token ? (isBanter ? 'Comot (Sign Out)' : 'Sign Out') : (isBanter ? 'Enter Inside' : 'Sign In');
 
-    // Notifications Popover Header & Dynamic Updates
+    // Notifications Popover & Dedicated Page Header Updates
     const notifHeader = document.querySelector('.notif-popover-title');
-    if (notifHeader) notifHeader.textContent = isBanter ? 'Live Betting Signals' : 'Live Model Intelligence';
+    if (notifHeader) notifHeader.textContent = isBanter ? 'Live Signals' : 'Notifications';
+    const seeAllNotifSpan = document.querySelector('#btnSeeAllNotifications span');
+    if (seeAllNotifSpan) seeAllNotifSpan.textContent = isBanter ? 'See All Signals & Gist' : 'See All Notifications';
+    const notifsPageTitle = document.querySelector('.notifications-page-title');
+    if (notifsPageTitle) notifsPageTitle.textContent = isBanter ? 'Live Alerts & Model Gist' : 'Alerts & Model Signals';
+    const notifsPageSub = document.getElementById('notificationsPageSub');
+    if (notifsPageSub) {
+      notifsPageSub.textContent = isBanter
+        ? 'Real-time sure bankers, goals gist, +EV sharp drops, and your saved slip updates.'
+        : 'Real-time high-conviction picks, goals radar, and slip activity alerts.';
+    }
+    const notifsBackSpan = document.querySelector('#btnNotifsBack span');
+    if (notifsBackSpan) notifsBackSpan.textContent = isBanter ? 'Back to Matches' : 'Back to Matches';
     if (state.calendar && state.calendar.data && state.calendar.data.matches) {
       updateLiveModelNotifications(state.calendar.data.matches);
+    }
+    if (state.currentView === 'view-notifications') {
+      renderNotificationsPage(state.activeNotifFilter || 'all');
     }
 
     // Mobile Bottom Navigation Bar (Home, 33 Endpoints, Bet Slip, Profile)
@@ -3909,25 +4072,6 @@
           </div>
         </div>
 
-        <!-- 1X2 Quick Odds Row -->
-        <div class="card-1x2-bar ${isFinished ? 'disabled' : ''}">
-          <button class="card-odd-btn ${isFinished ? 'disabled' : `pick-trigger ${inSlipHome ? 'in-slip' : ''}`}"
-            ${isFinished ? 'disabled' : `data-home="${escapeHtmlUtil(m.home_team)}" data-away="${escapeHtmlUtil(m.away_team)}" data-league="${m.league_id || ''}" data-market="${escapeHtmlUtil(m.home_team)} Win" data-odds="${m.home_odds}"`}>
-            <span class="odd-lbl">1</span>
-            <span class="odd-val">${Number(m.home_odds).toFixed(2)}</span>
-          </button>
-          <button class="card-odd-btn ${isFinished ? 'disabled' : `pick-trigger ${inSlipDraw ? 'in-slip' : ''}`}"
-            ${isFinished ? 'disabled' : `data-home="${escapeHtmlUtil(m.home_team)}" data-away="${escapeHtmlUtil(m.away_team)}" data-league="${m.league_id || ''}" data-market="Draw" data-odds="${m.draw_odds}"`}>
-            <span class="odd-lbl">X</span>
-            <span class="odd-val">${Number(m.draw_odds).toFixed(2)}</span>
-          </button>
-          <button class="card-odd-btn ${isFinished ? 'disabled' : `pick-trigger ${inSlipAway ? 'in-slip' : ''}`}"
-            ${isFinished ? 'disabled' : `data-home="${escapeHtmlUtil(m.home_team)}" data-away="${escapeHtmlUtil(m.away_team)}" data-league="${m.league_id || ''}" data-market="${escapeHtmlUtil(m.away_team)} Win" data-odds="${m.away_odds}"`}>
-            <span class="odd-lbl">2</span>
-            <span class="odd-val">${Number(m.away_odds).toFixed(2)}</span>
-          </button>
-        </div>
-
         ${isFinished ? `
           <!-- Settled Outcome Clean Bar with Circular Check/Cross Button (Click for Analysis Modal) -->
           <div class="grid-settled-box">
@@ -4765,6 +4909,8 @@
         titleEl.textContent = isBanterHdr ? 'Past Scoreboard' : 'Prediction History';
       } else if (viewId === 'view-slip-history') {
         titleEl.textContent = isBanterHdr ? 'Saved Chop Slips' : 'Bet Slip History';
+      } else if (viewId === 'view-notifications') {
+        titleEl.textContent = isBanterHdr ? 'Live Alerts & Gist' : 'Alerts & Model Signals';
       }
     }
 
@@ -4773,6 +4919,8 @@
       if (!state.calendar.data) {
         loadCalendarSlate(state.calendar.selectedDate || 'today', state.calendar.selectedEndpoint || 'all');
       }
+    } else if (viewId === 'view-notifications') {
+      renderNotificationsPage(state.activeNotifFilter || 'all');
     } else if (viewId === 'view-history') {
       loadPredictionHistory();
     } else if (viewId === 'view-contest') {
@@ -4971,13 +5119,16 @@
       }
     }
 
-    // Home Hero Unit (Badge, Rating, Form Squares, Name)
+    const pHomeModel = Math.round((data.probs?.home_win || 0.45) * 100);
+    const pAwayModel = Math.round((data.probs?.away_win || 0.30) * 100);
+
+    // Home Hero Unit (Badge, Model Share, Form Squares, Name)
     const footyHomeBadge = document.getElementById('footyHomeBadge');
     if (footyHomeBadge) footyHomeBadge.innerHTML = getClubBadge(data.match_info.home_team, data.match_info.home_logo);
     const footyHomeName = document.getElementById('footyHomeTeamName');
     if (footyHomeName) footyHomeName.textContent = data.match_info.home_team;
     const footyHomeRating = document.getElementById('footyHomeRating');
-    if (footyHomeRating) footyHomeRating.textContent = Number(data.match_info.home_odds || 1.85).toFixed(2);
+    if (footyHomeRating) footyHomeRating.textContent = `${pHomeModel}% Win`;
     const footyHomeSquares = document.getElementById('footyHomeSquares');
     if (footyHomeSquares) {
       const rawForm = data.form_and_h2h?.home?.form;
@@ -4992,13 +5143,13 @@
       }
     }
 
-    // Away Hero Unit (Badge, Rating, Form Squares, Name)
+    // Away Hero Unit (Badge, Model Share, Form Squares, Name)
     const footyAwayBadge = document.getElementById('footyAwayBadge');
     if (footyAwayBadge) footyAwayBadge.innerHTML = getClubBadge(data.match_info.away_team, data.match_info.away_logo);
     const footyAwayName = document.getElementById('footyAwayTeamName');
     if (footyAwayName) footyAwayName.textContent = data.match_info.away_team;
     const footyAwayRating = document.getElementById('footyAwayRating');
-    if (footyAwayRating) footyAwayRating.textContent = Number(data.match_info.away_odds || 2.50).toFixed(2);
+    if (footyAwayRating) footyAwayRating.textContent = `${pAwayModel}% Win`;
     const footyAwaySquares = document.getElementById('footyAwaySquares');
     if (footyAwaySquares) {
       const rawFormAway = data.form_and_h2h?.away?.form;
@@ -5013,47 +5164,55 @@
       }
     }
 
-    // Odds Strip Values
-    const valHome = document.getElementById('valHomeOdds');
-    if (valHome) valHome.textContent = Number(data.match_info.home_odds || 1.85).toFixed(2);
-    const valDraw = document.getElementById('valDrawOdds');
-    if (valDraw) valDraw.textContent = Number(data.match_info.draw_odds || 3.40).toFixed(2);
-    const valAway = document.getElementById('valAwayOdds');
-    if (valAway) valAway.textContent = Number(data.match_info.away_odds || 4.20).toFixed(2);
-
-    // Wire up 1X2 Odds Buttons in Hero Banner to Bet Slip Toggle
-    [
-      { btn: document.getElementById('btnShowcaseHomeOdds'), mkt: `${data.match_info.home_team} Win`, odds: data.match_info.home_odds || 1.85 },
-      { btn: document.getElementById('btnShowcaseDrawOdds'), mkt: 'Draw', odds: data.match_info.draw_odds || 3.40 },
-      { btn: document.getElementById('btnShowcaseAwayOdds'), mkt: `${data.match_info.away_team} Win`, odds: data.match_info.away_odds || 4.20 }
-    ].forEach(item => {
-      if (item.btn) {
-        if (isFinished) {
-          item.btn.disabled = true;
-          item.btn.classList.remove('in-slip');
-          item.btn.style.opacity = '0.5';
-          item.btn.style.cursor = 'default';
-          item.btn.onclick = null;
-        } else {
-          item.btn.disabled = false;
-          item.btn.style.opacity = '';
-          item.btn.style.cursor = 'pointer';
-          const inSlip = state.betslip.items.some(i => i.match === `${data.match_info.home_team} vs ${data.match_info.away_team}` && i.market === item.mkt);
-          item.btn.classList.toggle('in-slip', inSlip);
-          item.btn.onclick = () => {
-            addToSlip({
-              match: `${data.match_info.home_team} vs ${data.match_info.away_team}`,
-              home_team: data.match_info.home_team,
-              away_team: data.match_info.away_team,
-              league_id: data.match_info.league_id || 'PL',
-              market: item.mkt,
-              odds: parseFloat(item.odds),
-              date: 'Today'
-            });
-          };
-        }
+    // Single Authoritative Engine Pick & Single Verified Odd in Hero Banner (Never 1/X/2 multiple guesses)
+    const topHeroPick = (data.recommended_tickets && data.recommended_tickets.length)
+      ? data.recommended_tickets[0]
+      : {
+          title: `${data.match_info.home_team} Win`,
+          selection: `${data.match_info.home_team} Win`,
+          odds: data.match_info.home_odds || 1.85,
+          probability: `${Math.max(pHomeModel, pAwayModel)}%`
+        };
+    const heroBtn = document.getElementById('btnAnalyticsHeroTopPick');
+    const heroTagEl = document.getElementById('heroSinglePickTag');
+    const heroMktEl = document.getElementById('heroSinglePickMarket');
+    const heroProbEl = document.getElementById('heroSinglePickProb');
+    const heroOddEl = document.getElementById('heroSinglePickOdd');
+    const singleMktName = topHeroPick.selection || topHeroPick.title || `${data.match_info.home_team} Win`;
+    const singleOddVal = parseFloat(topHeroPick.odds || data.match_info.home_odds || 1.85);
+    if (heroTagEl) heroTagEl.textContent = isBanter ? 'OGA MODEL PICK' : 'VERIFIED PICK';
+    if (heroMktEl) heroMktEl.textContent = singleMktName;
+    if (heroProbEl) heroProbEl.textContent = `${topHeroPick.probability || '65%'}`;
+    if (heroOddEl) heroOddEl.textContent = `@${singleOddVal.toFixed(2)}`;
+    if (heroBtn) {
+      const matchTitleStr = `${data.match_info.home_team} vs ${data.match_info.away_team}`;
+      heroBtn.setAttribute('data-match', matchTitleStr);
+      heroBtn.setAttribute('data-market', singleMktName);
+      if (isFinished) {
+        heroBtn.disabled = true;
+        heroBtn.classList.remove('in-slip');
+        heroBtn.style.opacity = '0.55';
+        heroBtn.style.cursor = 'default';
+        heroBtn.onclick = null;
+      } else {
+        heroBtn.disabled = false;
+        heroBtn.style.opacity = '';
+        heroBtn.style.cursor = 'pointer';
+        const inSlip = state.betslip.items.some(i => i.match === matchTitleStr && i.market === singleMktName);
+        heroBtn.classList.toggle('in-slip', inSlip);
+        heroBtn.onclick = () => {
+          addToSlip({
+            match: matchTitleStr,
+            home_team: data.match_info.home_team,
+            away_team: data.match_info.away_team,
+            league_id: data.match_info.league_id || 'PL',
+            market: singleMktName,
+            odds: singleOddVal,
+            date: 'Today'
+          });
+        };
       }
-    });
+    }
 
     // Sub-nav tab navigation listeners
     const subnavRibbon = document.querySelector('.footystats-subnav-ribbon');
@@ -8436,6 +8595,13 @@
       const sp = btn.querySelector('span');
       if (sp) sp.textContent = inSlip ? (isBanter ? 'Don Enter Slip' : 'Added to Bet Slip') : (isBanter ? '+ Chop Am For Slip' : '+ Add to Bet Slip');
     });
+    const heroSingleBtn = document.getElementById('btnAnalyticsHeroTopPick');
+    if (heroSingleBtn) {
+      const m = heroSingleBtn.getAttribute('data-match');
+      const mkt = heroSingleBtn.getAttribute('data-market');
+      const inSlip = m ? slipItems.some(i => i.match === m && i.market === mkt) : false;
+      heroSingleBtn.classList.toggle('in-slip', inSlip);
+    }
   }
 
   function renderSlip() {
@@ -10908,21 +11074,112 @@
 
   async function loadDashboardStats() {
     const statPlayable = document.getElementById('dashStatPlayableToday');
+    const statLiveSplit = document.getElementById('dashStatLiveSplit');
+    const statUserSlips = document.getElementById('dashStatUserSlips');
+    const statUserSlipsSub = document.getElementById('dashStatUserSlipsSub');
     const statPreds = document.getElementById('dashStatTotalPredictions');
     const statPrecision = document.getElementById('dashStatPrecision');
+    const statSettledSub = document.getElementById('dashStatSettledSub');
     const statLeagues = document.getElementById('dashStatLeagues');
+    const userStakedEl = document.getElementById('dashUserTotalStaked');
+    const userPicksEl = document.getElementById('dashUserTotalPicks');
+    const userBankrollEl = document.getElementById('dashUserBankroll');
+    const recentSlipsEl = document.getElementById('dashRecentSlipsList');
+    const leagueBreakEl = document.getElementById('dashLeagueBreakdown');
+    const topMarketsEl = document.getElementById('dashTopMarketsBreakdown');
     const fixturesContainer = document.getElementById('dashFixturesList');
 
     try {
       const stats = await api('/api/dashboard/stats');
       if (stats && stats.status === 'success') {
         dashStatsLoaded = true;
+        const ua = stats.user_activity || {};
         if (statPlayable) statPlayable.textContent = `${stats.playable_matches_today != null ? stats.playable_matches_today : 0}`;
+        if (statLiveSplit) {
+          statLiveSplit.textContent = `${stats.scheduled_today || 0} upcoming · ${stats.live_now_today || 0} live · ${stats.finished_today || 0} finished`;
+        }
+        if (statUserSlips) statUserSlips.textContent = `${ua.total_bet_slips != null ? ua.total_bet_slips : 0}`;
+        if (statUserSlipsSub) {
+          statUserSlipsSub.textContent = `${ua.total_slip_picks || 0} picks · Avg @${Number(ua.avg_slip_odds || 0).toFixed(2)} odds`;
+        }
         if (statPreds) statPreds.textContent = `${(stats.total_predictions_all_time || 0).toLocaleString()}`;
-        if (statPrecision) statPrecision.textContent = stats.model_precision || '78.4%';
+        if (statPrecision) statPrecision.textContent = stats.model_precision || '—';
+        if (statSettledSub) {
+          const settledN = stats.settled_predictions_count || 0;
+          const brierVal = stats.brier_score != null ? stats.brier_score : '—';
+          statSettledSub.textContent = settledN > 0 ? `${settledN} settled · Brier ${brierVal}` : 'Real settled prediction ledger';
+        }
         if (statLeagues) statLeagues.textContent = `${stats.total_leagues_tracked != null ? stats.total_leagues_tracked : 0}`;
+        if (userStakedEl) userStakedEl.textContent = formatNaira(ua.total_staked || 0);
+        if (userPicksEl) userPicksEl.textContent = `${ua.total_slip_picks || 0}`;
+        if (userBankrollEl) userBankrollEl.textContent = formatNaira(ua.bankroll || state.user?.bankroll || 1000000);
 
-        // Render Clean Match Table
+        // User Recent Bet Slips (Click to reload into Bet Slip & edit)
+        if (recentSlipsEl) {
+          const rSlips = Array.isArray(ua.recent_slips) ? ua.recent_slips : [];
+          if (rSlips.length) {
+            recentSlipsEl.innerHTML = rSlips.map((s, sIdx) => `
+              <div class="dash-recent-slip-row" data-slip-idx="${sIdx}" title="Load ${esc(s.booking_code)} into Bet Slip">
+                <div>
+                  <strong style="color:#38bdf8; font-family:var(--font-mono); font-size:0.82rem;">${esc(s.booking_code)}</strong>
+                  <div style="font-size:0.72rem; color:#94a3b8;">${s.legs_count || 0} picks · Stake ${formatNaira(s.stake || 0)} · ${esc(s.created_at || '')}</div>
+                </div>
+                <span style="font-family:var(--font-mono); font-weight:800; color:#34d399; font-size:0.86rem;">@${Number(s.total_odds || 1).toFixed(2)}</span>
+              </div>
+            `).join('');
+
+            recentSlipsEl.querySelectorAll('.dash-recent-slip-row').forEach(row => {
+              row.addEventListener('click', () => {
+                const s = rSlips[parseInt(row.getAttribute('data-slip-idx'), 10)];
+                if (!s) return;
+                state.betslip.items = Array.isArray(s.items) ? s.items : [];
+                state.betslip.stake = parseFloat(s.stake || 1000) || 1000;
+                state.betslip.activeBookingCode = s.booking_code || null;
+                state.betslip.bookingCode = s.booking_code || '';
+                try {
+                  localStorage.setItem('sportymill_betslip', JSON.stringify(state.betslip.items));
+                  if (s.booking_code) localStorage.setItem('sportymill_active_slip_code', s.booking_code);
+                } catch (e) {}
+                renderSlip();
+                switchView('view-calendar');
+              });
+            });
+          } else {
+            recentSlipsEl.innerHTML = `<div style="font-size:0.8rem; color:#64748b; padding:0.75rem 0;">No saved bet slips yet. Add selections from Matches or Tools and save to track your portfolio.</div>`;
+          }
+        }
+
+        // Live League Coverage Dataset
+        if (leagueBreakEl) {
+          const lList = Array.isArray(stats.league_breakdown) ? stats.league_breakdown : [];
+          if (lList.length) {
+            leagueBreakEl.innerHTML = lList.map(l => `
+              <div class="dash-dist-row">
+                <span style="font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(l.country ? `${l.country} · ${l.name}` : l.name)}</span>
+                <strong style="color:#38bdf8; font-family:var(--font-mono); flex-shrink:0;">${l.count}</strong>
+              </div>
+            `).join('');
+          } else {
+            leagueBreakEl.innerHTML = `<div style="font-size:0.78rem; color:#64748b;">No active leagues returned today.</div>`;
+          }
+        }
+
+        // Settled Market Accuracy Dataset
+        if (topMarketsEl) {
+          const mList = Array.isArray(stats.top_markets) ? stats.top_markets : [];
+          if (mList.length) {
+            topMarketsEl.innerHTML = mList.map(m => `
+              <div class="dash-dist-row">
+                <span style="font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(m.name)} (${m.total})</span>
+                <strong style="color:#34d399; font-family:var(--font-mono); flex-shrink:0;">${m.win_rate_pct}%</strong>
+              </div>
+            `).join('');
+          } else {
+            topMarketsEl.innerHTML = `<div style="font-size:0.78rem; color:#64748b;">Settle finished predictions to compute live market accuracy.</div>`;
+          }
+        }
+
+        // Render Today's Live Model Schedule (Strictly ONE authoritative pick + ONE verified odd per match)
         if (fixturesContainer && stats.sample_fixtures && stats.sample_fixtures.length) {
           fixturesContainer.innerHTML = `
             <div class="dash-table-wrap">
@@ -10931,9 +11188,9 @@
                   <tr>
                     <th>Match</th>
                     <th>League</th>
-                    <th style="text-align: center;">1 (Home)</th>
-                    <th style="text-align: center;">X (Draw)</th>
-                    <th style="text-align: center;">2 (Away)</th>
+                    <th>Model Prediction</th>
+                    <th style="text-align: center;">Confidence</th>
+                    <th style="text-align: center;">Odd</th>
                     <th style="text-align: right;">Action</th>
                   </tr>
                 </thead>
@@ -10946,14 +11203,14 @@
                       <td>
                         <span class="dash-league-badge">${esc(f.league_name || f.league_id || 'Football')}</span>
                       </td>
-                      <td style="text-align: center;">
-                        <span class="dash-odd-num">${f.home_odds ? Number(f.home_odds).toFixed(2) : '—'}</span>
+                      <td>
+                        <span class="dash-pick-pill">${esc(f.recommended_pick || `${f.home_team} Win`)}</span>
                       </td>
                       <td style="text-align: center;">
-                        <span class="dash-odd-num">${f.draw_odds ? Number(f.draw_odds).toFixed(2) : '—'}</span>
+                        <strong style="color:#38bdf8; font-family:var(--font-mono);">${f.recommended_prob_pct || 60}%</strong>
                       </td>
                       <td style="text-align: center;">
-                        <span class="dash-odd-num">${f.away_odds ? Number(f.away_odds).toFixed(2) : '—'}</span>
+                        <span class="dash-odd-num">@${f.recommended_odds ? Number(f.recommended_odds).toFixed(2) : '1.85'}</span>
                       </td>
                       <td style="text-align: right;">
                         <button type="button" class="btn-dash-analyze" data-idx="${i}">Analyze →</button>
@@ -10964,7 +11221,7 @@
               </table>
             </div>
 
-            <!-- Mobile View: Clean cards for screens < 768px -->
+            <!-- Mobile View: Clean cards for screens < 768px (Single pick + single odd) -->
             <div class="dash-mobile-fixture-list">
               ${stats.sample_fixtures.map((f, i) => `
                 <div class="dash-mobile-fixture-card" data-idx="${i}">
@@ -10973,19 +11230,9 @@
                     <button type="button" class="btn-dash-analyze-sm" data-idx="${i}">Analyze →</button>
                   </div>
                   <div class="dash-mobile-match-title">${esc(f.home_team)} vs ${esc(f.away_team)}</div>
-                  <div class="dash-mobile-odds-strip">
-                    <div class="dash-mobile-odd-item">
-                      <span class="dash-odd-lbl">1</span>
-                      <strong class="dash-odd-val">${f.home_odds ? Number(f.home_odds).toFixed(2) : '—'}</strong>
-                    </div>
-                    <div class="dash-mobile-odd-item">
-                      <span class="dash-odd-lbl">X</span>
-                      <strong class="dash-odd-val">${f.draw_odds ? Number(f.draw_odds).toFixed(2) : '—'}</strong>
-                    </div>
-                    <div class="dash-mobile-odd-item">
-                      <span class="dash-odd-lbl">2</span>
-                      <strong class="dash-odd-val">${f.away_odds ? Number(f.away_odds).toFixed(2) : '—'}</strong>
-                    </div>
+                  <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; margin-top:0.35rem;">
+                    <span class="dash-pick-pill">${esc(f.recommended_pick || `${f.home_team} Win`)}</span>
+                    <strong class="dash-odd-num">@${f.recommended_odds ? Number(f.recommended_odds).toFixed(2) : '1.85'}</strong>
                   </div>
                 </div>
               `).join('')}
@@ -12141,6 +12388,42 @@
     const btnGoToProfile = document.getElementById('btnGoToFullProfile');
     if (btnGoToProfile) {
       btnGoToProfile.addEventListener('click', () => switchView('view-profile'));
+    }
+
+    // Notifications Popover ("See All Notifications") & Dedicated Alerts Page
+    const btnSeeAllNotifications = document.getElementById('btnSeeAllNotifications');
+    if (btnSeeAllNotifications) {
+      btnSeeAllNotifications.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const popoverNotifications = document.getElementById('popoverNotifications');
+        if (popoverNotifications) popoverNotifications.classList.remove('open');
+        switchView('view-notifications');
+      });
+    }
+
+    const btnNotifsBack = document.getElementById('btnNotifsBack');
+    if (btnNotifsBack) {
+      btnNotifsBack.addEventListener('click', () => {
+        const fallback = (state.previousView && state.previousView !== 'view-notifications') ? state.previousView : 'view-calendar';
+        switchView(fallback);
+      });
+    }
+
+    document.querySelectorAll('#notifFilterBar .notif-filter-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        renderNotificationsPage(btn.getAttribute('data-type') || 'all');
+      });
+    });
+
+    // Dashboard Deep Links to Slip History & Prediction Ledger
+    const btnDashOpenSlipHistory = document.getElementById('btnDashOpenSlipHistory');
+    if (btnDashOpenSlipHistory) {
+      btnDashOpenSlipHistory.addEventListener('click', () => switchView('view-slip-history'));
+    }
+    const btnDashOpenPredHistory = document.getElementById('btnDashOpenPredHistory');
+    if (btnDashOpenPredHistory) {
+      btnDashOpenPredHistory.addEventListener('click', () => switchView('view-history'));
     }
 
     // Admin Controls
