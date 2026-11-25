@@ -10515,7 +10515,13 @@
 
     function updateDemoCalculator() {
       if (!probSlider || !oddsSlider) return;
-      const probPct = parseFloat(probSlider.value);
+      const probPct = parseFloat(probSlider.value) || 68;
+      const prob = probPct / 100.0;
+      const odds = (parseFloat(oddsSlider.value) || 172) / 100.0;
+      const implied = odds > 0 ? (1.0 / odds) : 0;
+
+      if (probDisplay) probDisplay.textContent = `${Math.round(probPct)}%`;
+      if (oddsDisplay) oddsDisplay.textContent = odds.toFixed(2);
       if (impliedResult) impliedResult.textContent = `${(implied * 100).toFixed(1)}%`;
 
       const ev = (prob * odds) - 1.0;
