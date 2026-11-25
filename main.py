@@ -2296,8 +2296,16 @@ class PredictorService:
 
     async def store_prediction_log(self, db, endpoint, home_team, away_team, fixture, raw_probs,
                                    market_probs=None, sub_strategies=None,
-                                   confidence_percent=None, criteria_breakdown=None):
+                                   confidence_percent=None, criteria_breakdown=None,
+                                   source_classification=None, provider_fixture_id=None):
         pred_id = str(uuid.uuid4())
+        h_clean = str(home_team or "").strip()
+        a_clean = str(away_team or "").strip()
+        s_class = source_classification or (
+            "provider_verified" if provider_fixture_id else (
+                "live_recorded" if h_clean and a_clean and h_clean.lower() != "home" and a_clean.lower() != "away" else "unverified"
+            )
+        )
         log = PredictionLog(
             prediction_id=pred_id,
             endpoint=endpoint,
@@ -2309,7 +2317,9 @@ class PredictorService:
             market_probs_json=json.dumps(market_probs) if market_probs else None,
             sub_strategies_json=json.dumps(sub_strategies) if sub_strategies else None,
             confidence_percent=confidence_percent,
-            criteria_breakdown_json=json.dumps(criteria_breakdown) if criteria_breakdown else None
+            criteria_breakdown_json=json.dumps(criteria_breakdown) if criteria_breakdown else None,
+            source_classification=s_class,
+            provider_fixture_id=provider_fixture_id
         )
         db.add(log)
         await db.commit()
@@ -6276,6 +6286,370 @@ async def get_slip_history(db: AsyncSession = Depends(get_db), optional_user: Op
         })
     return {"slips": history}
 
+_history_auto_sync_ts: float = 0.0
+_history_auto_sync_lock = asyncio.Lock()
+
+
+def _evaluate_prediction_outcome(
+    endpoint: str,
+    selection: str,
+    odds: float,
+    hs: int,
+    as_: int,
+    home_team: str = "",
+    away_team: str = "",
+    confidence_percent: float = 50.0,
+) -> tuple[str, float, str]:
+    """Grade one prediction against verified final scores and return (outcome, unit_return, note)."""
+    ep = str(endpoint or "").replace("_", "-").lower()
+    sel_l = str(selection or "").lower()
+    total_goals = int(hs) + int(as_)
+
+    if ep in ["info", "none", "ineligible"] or float(odds or 0.0) <= 0.0 or not selection or float(confidence_percent or 0.0) == 0 or "pass (" in sel_l:
+        return (
+            "INELIGIBLE",
+            0.0,
+            f"Ineligible prediction: Match finished {hs}-{as_}. Excluded from betting performance metrics.",
+        )
+
+    won = False
+    if ep in ["home-win", "straight-home-win"]:
+        won = (hs > as_)
+    elif ep in ["away-win", "away-underdog"]:
+        won = (as_ > hs)
+    elif ep == "draw":
+        won = (hs == as_)
+    elif ep in ["double-chance", "strong-home-dc"]:
+        if "x2" in sel_l or (away_team and f"{away_team.lower()} or draw" in sel_l):
+            won = (as_ >= hs)
+        else:
+            won = (hs >= as_)
+    elif ep == "over-1-5" or "over 1.5" in sel_l:
+        won = (total_goals >= 2)
+    elif ep == "over-2-5" or "over 2.5" in sel_l:
+        won = (total_goals >= 3)
+    elif ep == "over-3-5" or "over 3.5" in sel_l:
+        won = (total_goals >= 4)
+    elif ep == "over-4-5" or "over 4.5" in sel_l:
+        won = (total_goals >= 5)
+    elif ep in ["under-2-5", "no-three-goals"] or "under 2.5" in sel_l:
+        won = (total_goals < 3)
+    elif "under 3.5" in sel_l:
+        won = (total_goals < 4)
+    elif "under 4.5" in sel_l:
+        won = (total_goals < 5)
+    elif ep == "btts-yes" or "btts yes" in sel_l or "both teams to score (yes" in sel_l or sel_l.startswith("both teams to score"):
+        won = (hs > 0 and as_ > 0)
+    elif ep == "btts-no" or "btts no" in sel_l or "clean sheet" in sel_l:
+        won = (hs == 0 or as_ == 0)
+    elif ep == "btts-over-2-5":
+        won = (hs > 0 and as_ > 0 and total_goals >= 3)
+    elif ep == "win-to-nil":
+        if away_team and away_team.lower() in sel_l:
+            won = (as_ > hs and hs == 0)
+        else:
+            won = (hs > as_ and as_ == 0)
+    elif ep == "team-to-score":
+        if away_team and away_team.lower() in sel_l:
+            won = (as_ > 0)
+        else:
+            won = (hs > 0)
+    elif "x2" in sel_l or "or draw" in sel_l:
+        if away_team and away_team.lower() in sel_l:
+            won = (as_ >= hs)
+        else:
+            won = (hs >= as_)
+    elif away_team and f"{away_team.lower()} win" in sel_l:
+        won = (as_ > hs)
+    elif home_team and f"{home_team.lower()} win" in sel_l:
+        won = (hs > as_)
+    elif "draw" in sel_l:
+        won = (hs == as_)
+    else:
+        won = (hs >= as_)
+
+    outcome = "correct" if won else "incorrect"
+    u_ret = round(float(odds) - 1.0, 2) if won else -1.0
+    note = f"Settled: Match finished {hs}-{as_} ({total_goals} goals). Status: {'Correct' if won else 'Incorrect'}."
+    return outcome, u_ret, note
+
+
+async def persist_and_settle_verified_cards(db: AsyncSession, match_cards: list) -> int:
+    """Persist authentic live API match predictions idempotently and settle finished ones against real final scores."""
+    if not match_cards:
+        return 0
+    try:
+        candidates = []
+        ext_ids = []
+        for c in match_cards:
+            if not c or c.get("is_synthetic") or not c.get("prediction_eligible", True):
+                continue
+            ext_id = str(c.get("external_id") or "").strip()
+            if not ext_id or ext_id.startswith(("ext_", "SYN-", "HM-GEN", "auto_", "demo_", "genuine_prov_", "replenished_match_")):
+                continue
+            top_tip = c.get("top_tip") or {}
+            ep_id = str(top_tip.get("endpoint_id") or "").strip()
+            odds_val = float(top_tip.get("odds") or 0.0)
+            prob_val = float(top_tip.get("prob_pct") or 0.0)
+            sel_text = str(top_tip.get("label") or top_tip.get("market") or "").strip()
+            if not ep_id or ep_id in ("info", "none", "ineligible") or odds_val <= 1.0 or prob_val <= 0 or not sel_text:
+                continue
+            h_team = str(c.get("home_team") or "").strip()
+            a_team = str(c.get("away_team") or "").strip()
+            if not h_team or not a_team or h_team.lower() == "home" or a_team.lower() == "away":
+                continue
+            candidates.append(c)
+            ext_ids.append(ext_id)
+
+        if not candidates:
+            return 0
+
+        existing_rows = (await db.execute(
+            select(PredictionLog).where(PredictionLog.provider_fixture_id.in_(list(set(ext_ids))))
+        )).scalars().all()
+        existing_map = {}
+        for row in existing_rows:
+            existing_map.setdefault(str(row.provider_fixture_id), []).append(row)
+
+        changed = 0
+        finished_statuses = {"finished", "ft", "aet", "pen"}
+
+        for c in candidates:
+            ext_id = str(c.get("external_id")).strip()
+            top_tip = c.get("top_tip") or {}
+            ep_id = str(top_tip.get("endpoint_id")).strip()
+            odds_val = round(float(top_tip.get("odds") or 1.85), 2)
+            prob_val = float(top_tip.get("prob_pct") or 55.0)
+            sel_text = str(top_tip.get("label") or top_tip.get("market")).strip()
+            h_team = str(c.get("home_team")).strip()
+            a_team = str(c.get("away_team")).strip()
+            st_lower = str(c.get("status") or "").lower()
+            hs = c.get("home_score")
+            as_ = c.get("away_score")
+            is_finished = st_lower in finished_statuses and hs is not None and as_ is not None
+
+            m_dt = datetime.now(timezone.utc)
+            raw_dt = str(c.get("match_date_utc") or c.get("match_date") or "").strip()
+            if raw_dt:
+                try:
+                    m_dt = datetime.fromisoformat(raw_dt.replace("Z", "+00:00"))
+                except Exception:
+                    pass
+
+            matched_rows = existing_map.get(ext_id, [])
+            if matched_rows:
+                if is_finished:
+                    for existing in matched_rows:
+                        if existing.outcome in (None, "PENDING", "pending"):
+                            ex_odds = odds_val
+                            ex_sel = sel_text
+                            try:
+                                if existing.market_probs_json:
+                                    ex_odds = float(json.loads(existing.market_probs_json).get("odds", odds_val))
+                                if existing.fixture_json:
+                                    ex_sel = str(json.loads(existing.fixture_json).get("selection") or sel_text)
+                            except Exception:
+                                pass
+                            out_val, u_ret, note = _evaluate_prediction_outcome(
+                                existing.endpoint, ex_sel, ex_odds, int(hs), int(as_),
+                                existing.home_team, existing.away_team, float(existing.confidence_percent or prob_val)
+                            )
+                            existing.actual_home_score = int(hs)
+                            existing.actual_away_score = int(as_)
+                            existing.outcome = out_val
+                            existing.unit_return = u_ret
+                            existing.processed = True
+                            existing.settled_at = datetime.now(timezone.utc)
+                            existing.feedback_notes = note
+                            changed += 1
+                continue
+
+            outcome_val = "PENDING"
+            unit_ret = None
+            settled_dt = None
+            processed_flag = False
+            notes = "Live Football API prediction recorded; awaiting final whistle."
+            a_hs = None
+            a_as = None
+
+            if is_finished:
+                outcome_val, unit_ret, notes = _evaluate_prediction_outcome(
+                    ep_id, sel_text, odds_val, int(hs), int(as_), h_team, a_team, prob_val
+                )
+                a_hs = int(hs)
+                a_as = int(as_)
+                settled_dt = datetime.now(timezone.utc)
+                processed_flag = True
+
+            new_log = PredictionLog(
+                prediction_id=str(uuid.uuid4()),
+                endpoint=ep_id,
+                home_team=h_team,
+                away_team=a_team,
+                match_date=m_dt,
+                fixture_json=json.dumps({
+                    "selection": sel_text,
+                    "league_id": c.get("league_id") or "INT",
+                    "league_name": c.get("league_name") or "",
+                }),
+                raw_probs_json=json.dumps({"probability": prob_val}),
+                market_probs_json=json.dumps({"odds": odds_val}),
+                confidence_percent=prob_val,
+                processed=processed_flag,
+                outcome=outcome_val,
+                actual_home_score=a_hs,
+                actual_away_score=a_as,
+                unit_return=unit_ret,
+                settled_at=settled_dt,
+                feedback_notes=notes,
+                source_classification="live_recorded",
+                provider_fixture_id=ext_id,
+                model_version="v2.1"
+            )
+            db.add(new_log)
+            existing_map.setdefault(ext_id, []).append(new_log)
+            changed += 1
+
+        if changed > 0:
+            await db.commit()
+            prediction_count_cache.clear()
+        return changed
+    except Exception as ex:
+        logger.debug(f"Verified prediction persistence notice: {ex}")
+        try:
+            await db.rollback()
+        except Exception:
+            pass
+        return 0
+
+
+async def _settle_pending_predictions_impl(db: AsyncSession) -> int:
+    """Settle unsettled verified predictions against live Football API results and finished DB records."""
+    unsettled = (await db.execute(
+        select(PredictionLog).where(
+            and_(
+                PredictionLog.source_classification.in_(["provider_verified", "provider_cached", "live_recorded"]),
+                PredictionLog.home_team != "Home",
+                PredictionLog.away_team != "Away",
+                or_(PredictionLog.outcome.is_(None), PredictionLog.outcome.in_(["PENDING", "pending"]))
+            )
+        )
+    )).scalars().all()
+
+    if not unsettled:
+        return 0
+
+    live_finished_by_id = {}
+    live_finished_by_pair = {}
+    try:
+        from football_ingestion import FootballDataService, LiveFixtureItem
+        service = FootballDataService(api_key=config.FOOTBALL_API_KEY, base_url=config.FOOTBALL_API_BASE)
+        if service.is_configured:
+            lagos_now = now_lagos()
+            candidate_dates = [
+                lagos_now.strftime("%Y-%m-%d"),
+                (lagos_now - timedelta(days=1)).strftime("%Y-%m-%d"),
+                (lagos_now - timedelta(days=2)).strftime("%Y-%m-%d"),
+            ]
+            for p_row in unsettled:
+                if p_row.match_date:
+                    p_d = str(p_row.match_date)[:10]
+                    if p_d not in candidate_dates and len(candidate_dates) < 5:
+                        candidate_dates.append(p_d)
+
+            for dt_sync in candidate_dates:
+                try:
+                    prov_res = await service.fetch_live_fixtures_with_provenance(dt_sync)
+                    if prov_res.success and prov_res.matches:
+                        for raw_m in prov_res.matches:
+                            item = LiveFixtureItem(raw_m, provider=service.provider)
+                            st_lower = str(item.status or "").lower()
+                            if st_lower in ["finished", "ft", "aet", "pen"] and item.home_score is not None and item.away_score is not None:
+                                if item.external_id:
+                                    live_finished_by_id[str(item.external_id)] = (item.home_score, item.away_score)
+                                pair_key = (item.home_team.strip().lower(), item.away_team.strip().lower())
+                                live_finished_by_pair[pair_key] = (item.home_score, item.away_score)
+                except Exception as sync_ex:
+                    logger.warning(f"Settle live fetch skipped for {dt_sync}: {sync_ex}")
+    except Exception as outer_sync_ex:
+        logger.warning(f"Settle live fetch setup notice: {outer_sync_ex}")
+
+    settled_count = 0
+    for p in unsettled:
+        hs = None
+        as_ = None
+        if p.provider_fixture_id and str(p.provider_fixture_id) in live_finished_by_id:
+            hs, as_ = live_finished_by_id[str(p.provider_fixture_id)]
+        elif p.home_team and p.away_team:
+            pair_k = (p.home_team.strip().lower(), p.away_team.strip().lower())
+            if pair_k in live_finished_by_pair:
+                hs, as_ = live_finished_by_pair[pair_k]
+
+        if hs is None or as_ is None:
+            p_date_str = str(p.match_date)[:10] if p.match_date else None
+            filters = [
+                HistoricalMatch.home_team == p.home_team,
+                HistoricalMatch.away_team == p.away_team,
+                HistoricalMatch.status == "finished",
+                HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"]),
+                HistoricalMatch.home_score.isnot(None),
+                HistoricalMatch.away_score.isnot(None)
+            ]
+            if p_date_str:
+                filters.append(func.substr(func.cast(HistoricalMatch.match_date, String), 1, 10) == p_date_str)
+
+            m_res = await db.execute(select(HistoricalMatch).where(and_(*filters)))
+            match = m_res.scalars().first()
+            if not match:
+                m_res_wide = await db.execute(
+                    select(HistoricalMatch)
+                    .where(
+                        HistoricalMatch.home_team == p.home_team,
+                        HistoricalMatch.away_team == p.away_team,
+                        HistoricalMatch.status == "finished",
+                        HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"]),
+                        HistoricalMatch.home_score.isnot(None),
+                        HistoricalMatch.away_score.isnot(None)
+                    )
+                    .order_by(HistoricalMatch.match_date.desc())
+                    .limit(1)
+                )
+                match = m_res_wide.scalars().first()
+            if match:
+                hs = match.home_score
+                as_ = match.away_score
+
+        if hs is not None and as_ is not None:
+            p.actual_home_score = int(hs)
+            p.actual_away_score = int(as_)
+            p.processed = True
+            p.settled_at = datetime.now(timezone.utc)
+
+            odds = 1.85
+            selection = ""
+            try:
+                if p.market_probs_json:
+                    odds = float(json.loads(p.market_probs_json).get("odds", 1.85))
+                if p.fixture_json:
+                    selection = str(json.loads(p.fixture_json).get("selection", ""))
+            except Exception:
+                pass
+
+            out_val, u_ret, note = _evaluate_prediction_outcome(
+                p.endpoint, selection, odds, int(hs), int(as_),
+                p.home_team or "", p.away_team or "", float(p.confidence_percent or 50.0)
+            )
+            p.outcome = out_val
+            p.unit_return = u_ret
+            p.feedback_notes = note
+            settled_count += 1
+
+    if settled_count > 0:
+        await db.commit()
+
+    return settled_count
+
+
 # ------------------------------------------------------------------
 # PREDICTION HISTORY & PERFORMANCE AUDIT ENDPOINTS
 # ------------------------------------------------------------------
@@ -6287,8 +6661,10 @@ async def get_predictions_history(
     search: Optional[str] = None,
     page: int = 1,
     limit: int = 25,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    predictor: PredictorService = Depends(get_predictor)
 ):
+    global _history_auto_sync_ts
     p_num = int(getattr(page, "default", page) if not isinstance(page, int) else page)
     l_num = int(getattr(limit, "default", limit) if not isinstance(limit, int) else limit)
     
@@ -6303,6 +6679,35 @@ async def get_predictions_history(
 
     total_audited_res = await db.execute(select(func.count(PredictionLog.id)).where(verified_base))
     total_audited = total_audited_res.scalar() or 0
+
+    # Auto-hydrate & settle genuine predictions from Live Football API ONLY when ledger is empty (fresh DB / Render)
+    now_ts = time.time()
+    if total_audited == 0 and (now_ts - _history_auto_sync_ts > 60):
+        async with _history_auto_sync_lock:
+            now_ts = time.time()
+            if total_audited == 0 and (now_ts - _history_auto_sync_ts > 60):
+                _history_auto_sync_ts = now_ts
+                try:
+                    from football_ingestion import FootballDataService, LiveFixtureItem
+                    service = FootballDataService(api_key=config.FOOTBALL_API_KEY, base_url=config.FOOTBALL_API_BASE)
+                    if service.is_configured:
+                        lagos_now = now_lagos()
+                        sync_dates = [
+                            (lagos_now - timedelta(days=1)).strftime("%Y-%m-%d"),
+                            lagos_now.strftime("%Y-%m-%d"),
+                        ]
+                        fetched_items = []
+                        for dt_s in sync_dates:
+                            prov_res = await _fetch_date_with_raw_cache(service, dt_s)
+                            if prov_res.success and prov_res.matches:
+                                for raw_m in prov_res.matches[:35]:
+                                    fetched_items.append(LiveFixtureItem(raw_m, provider=service.provider))
+                        if fetched_items:
+                            await format_fixture_cards_helper(fetched_items[:60], db, predictor, "all")
+                    await _settle_pending_predictions_impl(db)
+                    total_audited = (await db.execute(select(func.count(PredictionLog.id)).where(verified_base))).scalar() or 0
+                except Exception as hist_sync_ex:
+                    logger.warning(f"Prediction history auto-sync notice: {hist_sync_ex}")
 
     won_res = await db.execute(select(func.count(PredictionLog.id)).where(and_(verified_base, PredictionLog.outcome.in_(["WON", "correct"]))))
     won_count = won_res.scalar() or 0
@@ -6502,194 +6907,7 @@ async def settle_all_pending_predictions(
     db: AsyncSession = Depends(get_db),
     predictor: PredictorService = Depends(get_predictor)
 ):
-    # Strictly settle authentic provider-verified & live-recorded predictions against real scores
-    unsettled = (await db.execute(
-        select(PredictionLog).where(
-            and_(
-                PredictionLog.source_classification.in_(["provider_verified", "provider_cached", "live_recorded"]),
-                PredictionLog.home_team != "Home",
-                PredictionLog.away_team != "Away",
-                or_(PredictionLog.outcome.is_(None), PredictionLog.outcome.in_(["PENDING", "pending"]))
-            )
-        )
-    )).scalars().all()
-
-    # Pull latest finished match scores directly from live provider API for pending dates before settling
-    live_finished_by_id = {}
-    live_finished_by_pair = {}
-    if unsettled:
-        try:
-            from football_ingestion import FootballDataService, LiveFixtureItem
-            service = FootballDataService(api_key=config.FOOTBALL_API_KEY, base_url=config.FOOTBALL_API_BASE)
-            if service.is_configured:
-                lagos_now = now_lagos()
-                candidate_dates = []
-                for dt_cand in [
-                    lagos_now.strftime("%Y-%m-%d"),
-                    (lagos_now - timedelta(days=1)).strftime("%Y-%m-%d"),
-                ]:
-                    if dt_cand not in candidate_dates:
-                        candidate_dates.append(dt_cand)
-                for p_row in unsettled:
-                    if p_row.match_date:
-                        p_d = str(p_row.match_date)[:10]
-                        if p_d not in candidate_dates and len(candidate_dates) < 4:
-                            candidate_dates.append(p_d)
-
-                for dt_sync in candidate_dates:
-                    try:
-                        prov_res = await service.fetch_live_fixtures_with_provenance(dt_sync)
-                        if prov_res.success and prov_res.matches:
-                            for raw_m in prov_res.matches:
-                                item = LiveFixtureItem(raw_m, provider=service.provider)
-                                st_lower = str(item.status or "").lower()
-                                if st_lower in ["finished", "ft", "aet", "pen"] and item.home_score is not None and item.away_score is not None:
-                                    if item.external_id:
-                                        live_finished_by_id[str(item.external_id)] = (item.home_score, item.away_score)
-                                    pair_key = (item.home_team.strip().lower(), item.away_team.strip().lower())
-                                    live_finished_by_pair[pair_key] = (item.home_score, item.away_score)
-                    except Exception as sync_ex:
-                        logger.warning(f"Settle live fetch skipped for {dt_sync}: {sync_ex}")
-        except Exception as outer_sync_ex:
-            logger.warning(f"Settle live fetch setup notice: {outer_sync_ex}")
-
-    settled_count = 0
-    for p in unsettled:
-        hs = None
-        as_ = None
-        if p.provider_fixture_id and str(p.provider_fixture_id) in live_finished_by_id:
-            hs, as_ = live_finished_by_id[str(p.provider_fixture_id)]
-        elif p.home_team and p.away_team:
-            pair_k = (p.home_team.strip().lower(), p.away_team.strip().lower())
-            if pair_k in live_finished_by_pair:
-                hs, as_ = live_finished_by_pair[pair_k]
-
-        if hs is None or as_ is None:
-            p_date_str = str(p.match_date)[:10] if p.match_date else None
-            filters = [
-                HistoricalMatch.home_team == p.home_team,
-                HistoricalMatch.away_team == p.away_team,
-                HistoricalMatch.status == "finished",
-                HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"]),
-                HistoricalMatch.home_score.isnot(None),
-                HistoricalMatch.away_score.isnot(None)
-            ]
-            if p_date_str:
-                filters.append(func.substr(func.cast(HistoricalMatch.match_date, String), 1, 10) == p_date_str)
-
-            m_res = await db.execute(select(HistoricalMatch).where(and_(*filters)))
-            match = m_res.scalars().first()
-            if not match:
-                m_res_wide = await db.execute(
-                    select(HistoricalMatch)
-                    .where(
-                        HistoricalMatch.home_team == p.home_team,
-                        HistoricalMatch.away_team == p.away_team,
-                        HistoricalMatch.status == "finished",
-                        HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"]),
-                        HistoricalMatch.home_score.isnot(None),
-                        HistoricalMatch.away_score.isnot(None)
-                    )
-                    .order_by(HistoricalMatch.match_date.desc())
-                    .limit(1)
-                )
-                match = m_res_wide.scalars().first()
-            if match:
-                hs = match.home_score
-                as_ = match.away_score
-
-        if hs is not None and as_ is not None:
-            p.actual_home_score = hs
-            p.actual_away_score = as_
-            p.processed = True
-            p.settled_at = datetime.now(timezone.utc)
-
-            odds = 1.85
-            selection = ""
-            try:
-                if p.market_probs_json:
-                    odds = float(json.loads(p.market_probs_json).get("odds", 1.85))
-                if p.fixture_json:
-                    selection = str(json.loads(p.fixture_json).get("selection", ""))
-            except Exception:
-                pass
-
-            ep = str(p.endpoint or "").replace("_", "-").lower()
-            sel_l = selection.lower()
-            # Strict protection: Ineligible or informational predictions must never settle as lost
-            if ep in ["info", "none", "ineligible"] or odds <= 0.0 or not selection or p.confidence_percent == 0 or "pass (" in sel_l:
-                p.outcome = "INELIGIBLE"
-                p.unit_return = 0.0
-                p.feedback_notes = f"Ineligible prediction: Match finished {hs}-{as_}. Excluded from betting performance metrics."
-                settled_count += 1
-                continue
-
-            won = False
-            total_goals = hs + as_
-
-            if ep in ["home-win", "straight-home-win"]:
-                won = (hs > as_)
-            elif ep in ["away-win", "away-underdog"]:
-                won = (as_ > hs)
-            elif ep == "draw":
-                won = (hs == as_)
-            elif ep in ["double-chance", "strong-home-dc"]:
-                if "x2" in sel_l or (p.away_team and f"{p.away_team.lower()} or draw" in sel_l):
-                    won = (as_ >= hs)
-                else:
-                    won = (hs >= as_)
-            elif ep == "over-1-5" or "over 1.5" in sel_l:
-                won = (total_goals >= 2)
-            elif ep == "over-2-5" or "over 2.5" in sel_l:
-                won = (total_goals >= 3)
-            elif ep == "over-3-5" or "over 3.5" in sel_l:
-                won = (total_goals >= 4)
-            elif ep == "over-4-5" or "over 4.5" in sel_l:
-                won = (total_goals >= 5)
-            elif ep in ["under-2-5", "no-three-goals"] or "under 2.5" in sel_l:
-                won = (total_goals < 3)
-            elif "under 3.5" in sel_l:
-                won = (total_goals < 4)
-            elif "under 4.5" in sel_l:
-                won = (total_goals < 5)
-            elif ep == "btts-yes" or "btts yes" in sel_l or "both teams to score (yes" in sel_l:
-                won = (hs > 0 and as_ > 0)
-            elif ep == "btts-no" or "btts no" in sel_l or "clean sheet" in sel_l:
-                won = (hs == 0 or as_ == 0)
-            elif ep == "btts-over-2-5":
-                won = (hs > 0 and as_ > 0 and total_goals >= 3)
-            elif ep == "win-to-nil":
-                if p.away_team and p.away_team.lower() in sel_l:
-                    won = (as_ > hs and hs == 0)
-                else:
-                    won = (hs > as_ and as_ == 0)
-            elif ep == "team-to-score":
-                if p.away_team and p.away_team.lower() in sel_l:
-                    won = (as_ > 0)
-                else:
-                    won = (hs > 0)
-            elif "x2" in sel_l or "or draw" in sel_l:
-                if p.away_team and p.away_team.lower() in sel_l:
-                    won = (as_ >= hs)
-                else:
-                    won = (hs >= as_)
-            elif p.away_team and f"{p.away_team.lower()} win" in sel_l:
-                won = (as_ > hs)
-            elif p.home_team and f"{p.home_team.lower()} win" in sel_l:
-                won = (hs > as_)
-            elif "draw" in sel_l:
-                won = (hs == as_)
-            else:
-                won = (hs >= as_)
-
-            p.outcome = "correct" if won else "incorrect"
-            p.unit_return = round(odds - 1.0, 2) if won else -1.0
-            p.feedback_notes = f"Settled: Match finished {hs}-{as_} ({total_goals} goals). Status: {'Correct' if won else 'Incorrect'}."
-            settled_count += 1
-
-    if settled_count > 0:
-        await db.commit()
-
+    settled_count = await _settle_pending_predictions_impl(db)
     return {"status": "success", "settled_count": settled_count}
 
 ALL_33_ENDPOINTS_METADATA = [
@@ -7535,7 +7753,10 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
             "competition_category": "senior_professional",
             "banter": banter
         })
-        
+
+    if ep_filter == "all" and match_cards:
+        await persist_and_settle_verified_cards(db, match_cards)
+
     return match_cards, endpoint_counts
 
 async def _fetch_date_with_raw_cache(service: Any, target_date: str, refresh: bool = False):
@@ -8162,8 +8383,6 @@ async def get_dashboard_stats(
     slip_query = select(BetSlip).order_by(BetSlip.created_at.desc())
     if user and getattr(user, "id", None):
         user_slips = (await db.execute(slip_query.where(BetSlip.user_id == user.id))).scalars().all()
-        if not user_slips:
-            user_slips = (await db.execute(slip_query.limit(50))).scalars().all()
     else:
         user_slips = (await db.execute(slip_query.limit(50))).scalars().all()
 
@@ -8174,7 +8393,8 @@ async def get_dashboard_stats(
     recent_slips = []
     for idx, s in enumerate(user_slips):
         try:
-            parsed_items = json.loads(s.items_json) if s.items_json else []
+            raw_items = getattr(s, "items", None) or getattr(s, "items_json", None)
+            parsed_items = json.loads(raw_items) if raw_items else []
         except Exception:
             parsed_items = []
         legs_n = len(parsed_items) if isinstance(parsed_items, list) else 0
@@ -8182,13 +8402,14 @@ async def get_dashboard_stats(
         total_staked += float(s.stake or 0.0)
         odds_sum += float(s.total_odds or 1.0)
         if idx < 5:
+            created_lagos = utc_to_lagos(s.created_at) if getattr(s, "created_at", None) else None
             recent_slips.append({
                 "booking_code": s.slip_code,
                 "legs_count": legs_n,
                 "total_odds": round(float(s.total_odds or 1.0), 2),
                 "stake": round(float(s.stake or 1000.0), 2),
                 "potential_payout": round(float(s.potential_payout or 0.0), 2),
-                "created_at": s.created_at.strftime("%b %d, %H:%M") if getattr(s, "created_at", None) else "Recent",
+                "created_at": created_lagos.strftime("%b %d, %H:%M") if created_lagos else "Recent",
                 "items": parsed_items if isinstance(parsed_items, list) else []
             })
 

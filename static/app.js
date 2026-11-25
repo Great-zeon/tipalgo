@@ -40,7 +40,7 @@
       items: JSON.parse(localStorage.getItem('sportymill_betslip') || localStorage.getItem('tipalgo_betslip') || '[]'),
       stake: 1000,
       bookingCode: '',
-      activeBookingCode: (function() {
+      activeBookingCode: (function () {
         try { return localStorage.getItem('sportymill_active_slip_code') || null; } catch (e) { return null; }
       })()
     },
@@ -57,8 +57,8 @@
       availableDates: [],
       endpoints: [],
       data: null,
-      viewMode: (function() {
-        try { return localStorage.getItem('sportymill_view_mode_v2') || 'table'; } catch(e) { return 'table'; }
+      viewMode: (function () {
+        try { return localStorage.getItem('sportymill_view_mode_v2') || 'table'; } catch (e) { return 'table'; }
       })(),
       activeLeague: 'all',
       activeLeagueFilter: 'all',
@@ -568,7 +568,7 @@
       }
       dom.gateActiveDevicesList.innerHTML = list.map((d, i) => `
         <div class="gad-item">
-          <span class="gad-item-name">${esc(d.name || 'Device ' + (i+1))}</span>
+          <span class="gad-item-name">${esc(d.name || 'Device ' + (i + 1))}</span>
           <span class="gad-item-time">${esc(d.last_login || 'Active')}</span>
         </div>
       `).join('') || '<div class="gad-item"><span>Active devices recorded</span></div>';
@@ -581,7 +581,7 @@
       const savedTone = localStorage.getItem('tipalgo_tone');
       state.personalityMode = (savedTone === 'BANTER') ? 'BANTER' : 'PROFESSIONAL';
       applyLanguageMode(state.personalityMode);
-    } catch (e) {}
+    } catch (e) { }
 
     setupEventListeners();
     setupSecurityGate();
@@ -594,7 +594,7 @@
     if (savedToken) {
       state.token = savedToken;
       if (savedUserStr) {
-        try { state.user = JSON.parse(savedUserStr); } catch (e) {}
+        try { state.user = JSON.parse(savedUserStr); } catch (e) { }
       }
       try {
         const verify = await api('/auth/verify-session');
@@ -697,7 +697,7 @@
       await primaryCalendarPromise;
     } catch (e) {
       console.warn('Init fallback:', e);
-      await loadCalendarSlate(getSystemTodayDateStr(), 'all').catch(() => {});
+      await loadCalendarSlate(getSystemTodayDateStr(), 'all').catch(() => { });
     }
   }
 
@@ -725,9 +725,9 @@
       // Handle insufficient data or no pattern matched (Pass) safely without fabricating data
       if (!res || res.pattern_matched === false || res.status === 'insufficient_data') {
         const isInsufficient = res && (res.status === 'insufficient_data' || (res.message && res.message.toLowerCase().includes('insufficient')));
-        
+
         if (dom.heroPickTitle) {
-          dom.heroPickTitle.textContent = isInsufficient 
+          dom.heroPickTitle.textContent = isInsufficient
             ? 'Prediction Unavailable: Insufficient Verified Data'
             : 'Model Pass — No Qualifying Value';
         }
@@ -777,7 +777,7 @@
 
       if (dom.heroPickTitle) dom.heroPickTitle.textContent = `${res.selection || `${f.home_team} Win`} @ ${odds.toFixed(2)}`;
       if (dom.heroOddsValue) dom.heroOddsValue.textContent = `Odds: ${odds.toFixed(2)}`;
-      if (dom.heroModelProbability) dom.heroModelProbability.textContent = `Win Likelihood: ${prob.toFixed(1)}% · Implied: ${(100/odds).toFixed(1)}%`;
+      if (dom.heroModelProbability) dom.heroModelProbability.textContent = `Win Likelihood: ${prob.toFixed(1)}% · Implied: ${(100 / odds).toFixed(1)}%`;
       if (dom.heroEdgeBadge) dom.heroEdgeBadge.textContent = `${edge > 0 ? '+' : ''}${edge.toFixed(1)}% Value Edge`;
       if (dom.heroKellyStake) dom.heroKellyStake.textContent = `${stakePrefix}${kellyStake}`;
       if (dom.heroExpectedReturn) dom.heroExpectedReturn.textContent = `${returnPrefix}${estReturn}`;
@@ -824,7 +824,7 @@
   function updateHeroCommentary(res) {
     if (!dom.heroCommentaryText) return;
     const f = state.activeFixture || { home_team: 'Home', away_team: 'Away', home_odds: 2.0 };
-    
+
     if (dom.quoteModeTag) {
       dom.quoteModeTag.textContent = 'SportyMill Model Verdict';
     }
@@ -863,8 +863,8 @@
     const odds = (f && f.home_odds) ? f.home_odds : (res.odds || 2.0);
     const kellyStake = res.stake_suggestion || '₦0';
     const headline = res?.explanation?.headline || 'Statistical edge detected.';
-    
-    dom.heroCommentaryText.textContent = `"${headline} Model probability is ${prob}% vs bookmaker implied ${(100/odds).toFixed(1)}%. Calculated edge is ${edge > 0 ? '+' : ''}${edge}%. Suggested stake: ${kellyStake}."`;
+
+    dom.heroCommentaryText.textContent = `"${headline} Model probability is ${prob}% vs bookmaker implied ${(100 / odds).toFixed(1)}%. Calculated edge is ${edge > 0 ? '+' : ''}${edge}%. Suggested stake: ${kellyStake}."`;
   }
 
   // Render Streak Badges
@@ -1370,7 +1370,7 @@
             ...(state.fixtures || []),
             ...(state.calendar?.data?.matches || [])
           ];
-          const matched = fixturePool.find(f => 
+          const matched = fixturePool.find(f =>
             (f.home_team && f.home_team.toLowerCase() === home.toLowerCase() && f.away_team && f.away_team.toLowerCase() === away.toLowerCase()) ||
             (`${f.home_team} vs ${f.away_team}`.toLowerCase() === `${home} vs ${away}`.toLowerCase())
           ) || {
@@ -1605,7 +1605,7 @@
             ${res.legs.map((leg, idx) => `
               <div class="accu-leg-card">
                 <div>
-                  <div style="font-weight: 800; font-size: 0.88rem; color: #f8fafc;">Leg ${idx+1}: ${esc(leg.match)}</div>
+                  <div style="font-weight: 800; font-size: 0.88rem; color: #f8fafc;">Leg ${idx + 1}: ${esc(leg.match)}</div>
                   <div style="font-size: 0.78rem; color: #34d399; font-weight: 700; margin-top: 0.15rem;">
                     Pick: ${esc(leg.selection)} (${esc(leg.probability_percentage || '')} prob · ${esc(leg.edge_percentage || '')} edge)
                   </div>
@@ -1744,38 +1744,38 @@
             </thead>
             <tbody>
               ${results.map((r, i) => {
-                const tip = r.tip || {};
-                const isEdge = Boolean(tip && (tip.pattern_matched || (tip.edge != null && tip.edge > 0.005)));
-                const rawPick = tip.selection || r.pick || r.selection;
-                const pickName = (rawPick && rawPick !== 'undefined') ? rawPick : (isEdge ? 'Value Selection' : 'Fair Line');
-                const rawOdds = parseFloat(tip.odds || r.odds || 0);
-                const odds = (!isNaN(rawOdds) && rawOdds > 1.0) ? rawOdds : 0;
-                const oddsText = odds > 0 ? `@${odds.toFixed(2)}` : 'Fair Line';
-                const rawProb = tip.probability != null ? tip.probability : (r.probability != null ? r.probability : 0);
-                const rawProbNum = Number(rawProb);
-                const probPct = (!isNaN(rawProbNum) && rawProbNum > 0) ? (rawProbNum <= 1.0 ? rawProbNum * 100 : rawProbNum) : 0;
-                const rawEdge = tip.edge != null ? tip.edge : (r.edge != null ? r.edge : 0);
-                const rawEdgeNum = Number(rawEdge);
-                const edgePct = (!isNaN(rawEdgeNum) && rawEdgeNum > 0) ? (rawEdgeNum <= 1.0 ? rawEdgeNum * 100 : rawEdgeNum) : 0;
-                const stakeAmt = isEdge && edgePct > 0 
-                  ? (tip.suggested_stake ? formatNaira(tip.suggested_stake) : formatNaira((state.user?.bankroll || 1000000) * Math.max(0.01, (edgePct / 100 * 0.25))))
-                  : '₦0';
+        const tip = r.tip || {};
+        const isEdge = Boolean(tip && (tip.pattern_matched || (tip.edge != null && tip.edge > 0.005)));
+        const rawPick = tip.selection || r.pick || r.selection;
+        const pickName = (rawPick && rawPick !== 'undefined') ? rawPick : (isEdge ? 'Value Selection' : 'Fair Line');
+        const rawOdds = parseFloat(tip.odds || r.odds || 0);
+        const odds = (!isNaN(rawOdds) && rawOdds > 1.0) ? rawOdds : 0;
+        const oddsText = odds > 0 ? `@${odds.toFixed(2)}` : 'Fair Line';
+        const rawProb = tip.probability != null ? tip.probability : (r.probability != null ? r.probability : 0);
+        const rawProbNum = Number(rawProb);
+        const probPct = (!isNaN(rawProbNum) && rawProbNum > 0) ? (rawProbNum <= 1.0 ? rawProbNum * 100 : rawProbNum) : 0;
+        const rawEdge = tip.edge != null ? tip.edge : (r.edge != null ? r.edge : 0);
+        const rawEdgeNum = Number(rawEdge);
+        const edgePct = (!isNaN(rawEdgeNum) && rawEdgeNum > 0) ? (rawEdgeNum <= 1.0 ? rawEdgeNum * 100 : rawEdgeNum) : 0;
+        const stakeAmt = isEdge && edgePct > 0
+          ? (tip.suggested_stake ? formatNaira(tip.suggested_stake) : formatNaira((state.user?.bankroll || 1000000) * Math.max(0.01, (edgePct / 100 * 0.25))))
+          : '₦0';
 
-                return `
+        return `
                   <tr class="${isEdge ? 'row-qualified' : 'row-pass'}">
                     <td><strong style="color: #f8fafc;">${esc(r.match)}</strong></td>
                     <td>
-                      ${isEdge 
-                        ? `<span class="badge-table-pick success">${esc(pickName)}</span>`
-                        : `<span class="badge-table-pick pass">${esc(pickName)}</span>`
-                      }
+                      ${isEdge
+            ? `<span class="badge-table-pick success">${esc(pickName)}</span>`
+            : `<span class="badge-table-pick pass">${esc(pickName)}</span>`
+          }
                     </td>
                     <td><strong style="color: ${isEdge ? '#38bdf8' : '#94a3b8'};">${oddsText}</strong></td>
                     <td>${probPct > 0 ? `${probPct.toFixed(1)}%` : '<span style="color:#64748b;">—</span>'}</td>
                     <td>
-                      ${isEdge && edgePct > 0 
-                        ? `<strong style="color: #34d399;">+${edgePct.toFixed(1)}%</strong>` 
-                        : `<span style="color: #64748b;">0.0%</span>`}
+                      ${isEdge && edgePct > 0
+            ? `<strong style="color: #34d399;">+${edgePct.toFixed(1)}%</strong>`
+            : `<span style="color: #64748b;">0.0%</span>`}
                     </td>
                     <td style="font-family: var(--font-mono);">${stakeAmt}</td>
                     <td>
@@ -1785,7 +1785,7 @@
                     </td>
                   </tr>
                 `;
-              }).join('')}
+      }).join('')}
             </tbody>
           </table>
         </div>
@@ -1793,31 +1793,31 @@
         <!-- Mobile Card List for screens < 768px -->
         <div class="batch-mobile-card-list">
           ${results.map((r, i) => {
-            const tip = r.tip || {};
-            const isEdge = Boolean(tip && (tip.pattern_matched || (tip.edge != null && tip.edge > 0.005)));
-            const rawPick = tip.selection || r.pick || r.selection;
-            const pickName = (rawPick && rawPick !== 'undefined') ? rawPick : (isEdge ? 'Value Selection' : 'Fair Line');
-            const rawOdds = parseFloat(tip.odds || r.odds || 0);
-            const odds = (!isNaN(rawOdds) && rawOdds > 1.0) ? rawOdds : 0;
-            const oddsText = odds > 0 ? `@${odds.toFixed(2)}` : 'Fair Line';
-            const rawProb = tip.probability != null ? tip.probability : (r.probability != null ? r.probability : 0);
-            const rawProbNum = Number(rawProb);
-            const probPct = (!isNaN(rawProbNum) && rawProbNum > 0) ? (rawProbNum <= 1.0 ? rawProbNum * 100 : rawProbNum) : 0;
-            const rawEdge = tip.edge != null ? tip.edge : (r.edge != null ? r.edge : 0);
-            const rawEdgeNum = Number(rawEdge);
-            const edgePct = (!isNaN(rawEdgeNum) && rawEdgeNum > 0) ? (rawEdgeNum <= 1.0 ? rawEdgeNum * 100 : rawEdgeNum) : 0;
-            const stakeAmt = isEdge && edgePct > 0 
-              ? (tip.suggested_stake ? formatNaira(tip.suggested_stake) : formatNaira((state.user?.bankroll || 1000000) * Math.max(0.01, (edgePct / 100 * 0.25))))
-              : '₦0';
+        const tip = r.tip || {};
+        const isEdge = Boolean(tip && (tip.pattern_matched || (tip.edge != null && tip.edge > 0.005)));
+        const rawPick = tip.selection || r.pick || r.selection;
+        const pickName = (rawPick && rawPick !== 'undefined') ? rawPick : (isEdge ? 'Value Selection' : 'Fair Line');
+        const rawOdds = parseFloat(tip.odds || r.odds || 0);
+        const odds = (!isNaN(rawOdds) && rawOdds > 1.0) ? rawOdds : 0;
+        const oddsText = odds > 0 ? `@${odds.toFixed(2)}` : 'Fair Line';
+        const rawProb = tip.probability != null ? tip.probability : (r.probability != null ? r.probability : 0);
+        const rawProbNum = Number(rawProb);
+        const probPct = (!isNaN(rawProbNum) && rawProbNum > 0) ? (rawProbNum <= 1.0 ? rawProbNum * 100 : rawProbNum) : 0;
+        const rawEdge = tip.edge != null ? tip.edge : (r.edge != null ? r.edge : 0);
+        const rawEdgeNum = Number(rawEdge);
+        const edgePct = (!isNaN(rawEdgeNum) && rawEdgeNum > 0) ? (rawEdgeNum <= 1.0 ? rawEdgeNum * 100 : rawEdgeNum) : 0;
+        const stakeAmt = isEdge && edgePct > 0
+          ? (tip.suggested_stake ? formatNaira(tip.suggested_stake) : formatNaira((state.user?.bankroll || 1000000) * Math.max(0.01, (edgePct / 100 * 0.25))))
+          : '₦0';
 
-            return `
+        return `
               <div class="batch-mobile-card ${isEdge ? 'qualified' : 'pass'}">
                 <div class="batch-mobile-card-head">
                   <div class="batch-mobile-match-name">${esc(r.match)}</div>
-                  ${isEdge 
-                    ? `<span class="badge-table-pick success">${esc(pickName)}</span>`
-                    : `<span class="badge-table-pick pass">${esc(pickName)}</span>`
-                  }
+                  ${isEdge
+            ? `<span class="badge-table-pick success">${esc(pickName)}</span>`
+            : `<span class="badge-table-pick pass">${esc(pickName)}</span>`
+          }
                 </div>
                 <div class="batch-mobile-metrics">
                   <div>
@@ -1842,7 +1842,7 @@
                 </button>
               </div>
             `;
-          }).join('')}
+      }).join('')}
         </div>
       `;
 
@@ -1871,7 +1871,7 @@
             ...(state.fixtures || []),
             ...(state.calendar?.data?.matches || [])
           ];
-          const matched = fixturePool.find(f => 
+          const matched = fixturePool.find(f =>
             (`${f.home_team} vs ${f.away_team}`.toLowerCase() === match.toLowerCase()) ||
             (f.home_team && f.home_team.toLowerCase() === home.toLowerCase() && f.away_team && f.away_team.toLowerCase() === away.toLowerCase())
           ) || {
@@ -2206,7 +2206,7 @@
           time: latestSlip.created_at || 'Saved'
         });
       }
-    } catch (e) {}
+    } catch (e) { }
 
     // Additional live banker / value matches for the "See All" Notifications Center
     for (let i = 0; alerts.length < 12 && i < matches.length; i++) {
@@ -3708,7 +3708,7 @@
         if (!isNaN(dt.getTime())) {
           timeColText = dt.toLocaleTimeString('en-GB', { timeZone: 'Africa/Lagos', hour: '2-digit', minute: '2-digit', hour12: false });
         }
-      } catch (e) {}
+      } catch (e) { }
     }
     let statusColText = isBanker ? (isBanter ? 'SURE BANKER' : 'BANKER') : 'PRE';
     let showStatusBadge = true;
@@ -3734,7 +3734,7 @@
         if (!isNaN(dt.getTime())) {
           dateDisplay = dt.toLocaleDateString('en-US', { timeZone: 'Africa/Lagos', month: 'long', day: 'numeric', year: 'numeric' });
         }
-      } catch(e) {}
+      } catch (e) { }
     }
 
     // Determine prediction settlement outcome if match is finished
@@ -3756,13 +3756,13 @@
     const settledNarrative = isFinished ? (
       isPredictionIneligible
         ? {
-            analysis: isBanter
-              ? `Result logged: ${hScore}-${aScore} (${m.home_team} vs ${m.away_team}). Algorithmic betting models were not active for this fixture.`
-              : `Official match result recorded (${hScore}-${aScore}). Algorithmic betting models were inactive for this non-senior or friendly fixture.`,
-            algoResponse: isBanter
-              ? `No prediction settled: fixture classified as INELIGIBLE. No Brier score calculated; model weights unchanged.`
-              : `No prediction settlement executed. Ineligible fixture is excluded from Brier scoring, Kelly bankroll calculation, and model calibration.`
-          }
+          analysis: isBanter
+            ? `Result logged: ${hScore}-${aScore} (${m.home_team} vs ${m.away_team}). Algorithmic betting models were not active for this fixture.`
+            : `Official match result recorded (${hScore}-${aScore}). Algorithmic betting models were inactive for this non-senior or friendly fixture.`,
+          algoResponse: isBanter
+            ? `No prediction settled: fixture classified as INELIGIBLE. No Brier score calculated; model weights unchanged.`
+            : `No prediction settlement executed. Ineligible fixture is excluded from Brier scoring, Kelly bankroll calculation, and model calibration.`
+        }
         : getDynamicSettledNarrative(m, topTip, hScore, aScore, isPredictionWon, isBanter)
     ) : null;
 
@@ -3932,7 +3932,7 @@
 
   function renderSingleGridMatchCard(m, cardIdx, customEndpoint) {
     const isBanter = state.personalityMode === 'BANTER';
-    
+
     // If a customEndpoint is specified, look for a tip matching that endpoint
     let topTip = null;
     if (customEndpoint && m.endpoint_tips && m.endpoint_tips[customEndpoint]) {
@@ -3941,11 +3941,11 @@
       topTip = m.tips.find(t => t.endpoint_id === customEndpoint || (t.market && t.market.toLowerCase().includes(customEndpoint.replace(/-/g, ' '))));
     }
     if (!topTip) {
-      topTip = m.top_tip || (m.tips && m.tips.length ? m.tips[0] : { 
-        label: `${m.home_team}: Home Win`, 
-        odds: m.home_odds || 2.10, 
-        prob_pct: m.top_prob || 65, 
-        market: `${m.home_team} Win` 
+      topTip = m.top_tip || (m.tips && m.tips.length ? m.tips[0] : {
+        label: `${m.home_team}: Home Win`,
+        odds: m.home_odds || 2.10,
+        prob_pct: m.top_prob || 65,
+        market: `${m.home_team} Win`
       });
     }
 
@@ -3967,7 +3967,7 @@
         if (!isNaN(dt.getTime())) {
           localTimeStr = dt.toLocaleTimeString('en-GB', { timeZone: 'Africa/Lagos', hour: '2-digit', minute: '2-digit', hour12: false });
         }
-      } catch (e) {}
+      } catch (e) { }
     }
     let timeTagHtml = `<span class="grid-time-tag">${localTimeStr}</span>`;
     if (isFinished) {
@@ -3996,19 +3996,19 @@
     const settledNarrative = isFinished ? (
       isPredictionIneligible
         ? {
-            analysis: isBanter
-              ? `Result logged: ${hScore}-${aScore} (${m.home_team} vs ${m.away_team}). Algorithmic betting models were not active for this fixture.`
-              : `Official match result recorded (${hScore}-${aScore}). Algorithmic betting models were inactive for this non-senior or friendly fixture.`,
-            algoResponse: isBanter
-              ? `No prediction settled: fixture classified as INELIGIBLE. No Brier score calculated; model weights unchanged.`
-              : `No prediction settlement executed. Ineligible fixture is excluded from Brier scoring, Kelly bankroll calculation, and model calibration.`
-          }
+          analysis: isBanter
+            ? `Result logged: ${hScore}-${aScore} (${m.home_team} vs ${m.away_team}). Algorithmic betting models were not active for this fixture.`
+            : `Official match result recorded (${hScore}-${aScore}). Algorithmic betting models were inactive for this non-senior or friendly fixture.`,
+          algoResponse: isBanter
+            ? `No prediction settled: fixture classified as INELIGIBLE. No Brier score calculated; model weights unchanged.`
+            : `No prediction settlement executed. Ineligible fixture is excluded from Brier scoring, Kelly bankroll calculation, and model calibration.`
+        }
         : getDynamicSettledNarrative(m, topTip, hScore, aScore, isPredictionWon, isBanter)
     ) : null;
 
     let centerClashHtml = `<span class="grid-vs-chip">VS</span>`;
     if (isFinished || isLive) {
-      const scoreStyle = isLive 
+      const scoreStyle = isLive
         ? 'font-family: var(--font-mono); font-weight: 800; font-size: 0.95rem; color: #34d399; background: rgba(16, 185, 129, 0.15); padding: 0.2rem 0.55rem; border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.3);'
         : 'font-family: var(--font-mono); font-weight: 800; font-size: 0.95rem; color: #ffffff; background: rgba(0,0,0,0.5); padding: 0.2rem 0.55rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15);';
       centerClashHtml = `<span class="grid-score-chip" style="${scoreStyle}">${hScore} - ${aScore}</span>`;
@@ -4032,13 +4032,13 @@
         if (!isNaN(dt.getTime())) {
           matchDateStr = dt.toLocaleDateString('en-GB', { timeZone: 'Africa/Lagos', day: '2-digit', month: 'short' });
         }
-      } catch (e) {}
+      } catch (e) { }
     } else if (matchDateStr && matchDateStr.includes('-')) {
       try {
         const p = matchDateStr.split('-').map(Number);
         const dt = new Date(Date.UTC(p[0], p[1] - 1, p[2]));
         matchDateStr = dt.toLocaleDateString('en-GB', { timeZone: 'UTC', day: '2-digit', month: 'short' });
-      } catch(e) {}
+      } catch (e) { }
     }
     if (matchDateStr) {
       dateTagHtml = `<span class="grid-date-badge" style="display:inline-flex; align-items:center; background:rgba(56, 189, 248, 0.12); color:#38bdf8; font-weight:700; font-size:0.72rem; padding:2px 7px; border-radius:4px; border:1px solid rgba(56, 189, 248, 0.25); margin-right:4px;">${escapeHtmlUtil(matchDateStr)}</span>`;
@@ -4263,7 +4263,7 @@
         if (state.calendar.endpoints && state.calendar.endpoints.length) {
           renderGrandEndpointsPage();
         }
-      }).catch(() => {});
+      }).catch(() => { });
     }
 
     // Update Category Pills counts in header bar
@@ -4399,7 +4399,7 @@
     if (pushHistory) {
       try {
         history.pushState({ view: 'view-grand', endpoint: endpointId }, '', '#view-grand?endpoint=' + encodeURIComponent(endpointId));
-      } catch (e) {}
+      } catch (e) { }
     }
 
     const epObj = ALL_33_ENDPOINTS_LIST.find(e => e.id === endpointId) || {
@@ -4496,7 +4496,7 @@
     if (pushHistory) {
       try {
         history.pushState({ view: 'view-grand' }, '', '#view-grand');
-      } catch (e) {}
+      } catch (e) { }
     }
   }
 
@@ -4591,7 +4591,7 @@
             isToday: false,
             extraClass: 'pill-core'
           });
-        } catch (e) {}
+        } catch (e) { }
       }
 
       datesStrip.innerHTML = pills.map(p => {
@@ -4691,7 +4691,7 @@
           btnPickOther.addEventListener('click', () => {
             const picker = document.getElementById('grandDrilldownDatePicker');
             if (picker) {
-              try { picker.showPicker(); } catch(e) { picker.focus(); }
+              try { picker.showPicker(); } catch (e) { picker.focus(); }
             }
           });
         }
@@ -4786,7 +4786,7 @@
           btnErrPick.addEventListener('click', () => {
             const picker = document.getElementById('grandDrilldownDatePicker');
             if (picker) {
-              try { picker.showPicker(); } catch(e) { picker.focus(); }
+              try { picker.showPicker(); } catch (e) { picker.focus(); }
             }
           });
         }
@@ -4874,7 +4874,7 @@
         if (window.location.hash !== '#' + viewId) {
           history.pushState({ view: viewId }, '', '#' + viewId);
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     // Dynamic Header Title Update
@@ -4951,6 +4951,8 @@
       if (emptyBatch && !emptyBatch.textContent.includes('Simulating')) {
         runBatchScanner();
       }
+    } else if (viewId === 'view-dashboard') {
+      loadDashboardStats();
     } else if (viewId === 'view-profile') {
       updateUserUI();
       if (typeof window.syncProfileScreenDOM === 'function') {
@@ -4990,7 +4992,7 @@
       else if (state.previousView === 'view-accumulator') backLabel = 'Back to Accu-Forge';
       else if (state.previousView === 'view-slip-history') backLabel = 'Back to Slip History';
       else if (state.previousView === 'view-dashboard') backLabel = 'Back to Dashboard';
-      
+
       const textSpan = backBtn.querySelector('span:last-child') || backBtn;
       textSpan.textContent = backLabel;
     }
@@ -5168,11 +5170,11 @@
     const topHeroPick = (data.recommended_tickets && data.recommended_tickets.length)
       ? data.recommended_tickets[0]
       : {
-          title: `${data.match_info.home_team} Win`,
-          selection: `${data.match_info.home_team} Win`,
-          odds: data.match_info.home_odds || 1.85,
-          probability: `${Math.max(pHomeModel, pAwayModel)}%`
-        };
+        title: `${data.match_info.home_team} Win`,
+        selection: `${data.match_info.home_team} Win`,
+        odds: data.match_info.home_odds || 1.85,
+        probability: `${Math.max(pHomeModel, pAwayModel)}%`
+      };
     const heroBtn = document.getElementById('btnAnalyticsHeroTopPick');
     const heroTagEl = document.getElementById('heroSinglePickTag');
     const heroMktEl = document.getElementById('heroSinglePickMarket');
@@ -5351,18 +5353,18 @@
             </thead>
             <tbody>
               ${standings.map((t, idx) => {
-                const teamName = t.team || t.team_name || 'Team';
-                const homeNameLower = (data.match_info.home_team || '').toLowerCase();
-                const awayNameLower = (data.match_info.away_team || '').toLowerCase();
-                const tNameLower = teamName.toLowerCase();
-                const isHome = tNameLower.includes(homeNameLower) || homeNameLower.includes(tNameLower);
-                const isAway = tNameLower.includes(awayNameLower) || awayNameLower.includes(tNameLower);
-                const rowClass = isHome ? 'highlight-home' : (isAway ? 'highlight-away' : '');
-                const winPct = Math.round(((t.wins || 0) / Math.max(t.played || 1, 1)) * 100) + '%';
-                const gd = (t.goal_difference != null) ? t.goal_difference : ((t.goals_for || 0) - (t.goals_against || 0));
-                const gdStr = gd > 0 ? `+${gd}` : `${gd}`;
+          const teamName = t.team || t.team_name || 'Team';
+          const homeNameLower = (data.match_info.home_team || '').toLowerCase();
+          const awayNameLower = (data.match_info.away_team || '').toLowerCase();
+          const tNameLower = teamName.toLowerCase();
+          const isHome = tNameLower.includes(homeNameLower) || homeNameLower.includes(tNameLower);
+          const isAway = tNameLower.includes(awayNameLower) || awayNameLower.includes(tNameLower);
+          const rowClass = isHome ? 'highlight-home' : (isAway ? 'highlight-away' : '');
+          const winPct = Math.round(((t.wins || 0) / Math.max(t.played || 1, 1)) * 100) + '%';
+          const gd = (t.goal_difference != null) ? t.goal_difference : ((t.goals_for || 0) - (t.goals_against || 0));
+          const gdStr = gd > 0 ? `+${gd}` : `${gd}`;
 
-                return `
+          return `
                   <tr class="footy-standings-row ${rowClass}">
                     <td class="col-rank">${t.position || t.rank || (idx + 1)}</td>
                     <td class="col-team">
@@ -5378,7 +5380,7 @@
                     <td style="text-align: center; font-weight: 800; color: #ffffff;">${t.points || 0}</td>
                   </tr>
                 `;
-              }).join('')}
+        }).join('')}
             </tbody>
           </table>
         `;
@@ -5598,12 +5600,12 @@
         <span>Model Rationale</span>
       </div>
       ${filtered.map(row => {
-        const edgeNum = parseFloat(row.value_edge) || 0;
-        const isVal = row.badge === 'value' || edgeNum >= 4.0;
-        const statusLabel = isVal ? 'TOP SURE PICK' : (edgeNum >= 0 ? 'FAIR ODDS' : 'PASS');
-        const statusClass = isVal ? 'badge-val' : (edgeNum >= 0 ? 'badge-fair' : 'badge-pass');
+      const edgeNum = parseFloat(row.value_edge) || 0;
+      const isVal = row.badge === 'value' || edgeNum >= 4.0;
+      const statusLabel = isVal ? 'TOP SURE PICK' : (edgeNum >= 0 ? 'FAIR ODDS' : 'PASS');
+      const statusClass = isVal ? 'badge-val' : (edgeNum >= 0 ? 'badge-fair' : 'badge-pass');
 
-        return `
+      return `
           <div class="audit-endpoint-row ${isVal ? 'highlight-value' : ''}">
             <div class="audit-col-name">
               <span class="audit-market-name">${row.name}</span>
@@ -5631,7 +5633,7 @@
             </div>
           </div>
         `;
-      }).join('')}
+    }).join('')}
     `;
   }
 
@@ -6074,7 +6076,7 @@
           if (dom.calendarBannerSub) {
             dom.calendarBannerSub.textContent = 'Verified probabilistic selections across all 33 quantitative model endpoints';
           }
-        } catch(e) {
+        } catch (e) {
           console.warn('Date formatting notice:', e);
         }
       }
@@ -6102,7 +6104,7 @@
         }
         updateLiveModelNotifications(data.matches);
       }
-    } catch(err) {
+    } catch (err) {
       console.error('Error applying calendar slate metadata:', err);
     } finally {
       renderCalendarMatchesFeed();
@@ -6131,7 +6133,7 @@
 
     if (isRefresh) {
       clientSlateMemoryCache.delete(cacheKey);
-      try { sessionStorage.removeItem(`sportymill_slate_${cacheKey}`); } catch (e) {}
+      try { sessionStorage.removeItem(`sportymill_slate_${cacheKey}`); } catch (e) { }
     }
 
     // 1. Instant Cache Check (Memory -> SessionStorage) for 0ms fluid loading
@@ -6143,7 +6145,7 @@
           cached = JSON.parse(stored);
           clientSlateMemoryCache.set(cacheKey, cached);
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     // Purge any residual synthetic cache entries from older sessions
@@ -6151,7 +6153,7 @@
       if (cached.matches.some(m => m.external_id && (m.external_id.startsWith('ext_') || m.external_id.startsWith('SYN-') || m.external_id.startsWith('auto_') || m.external_id.startsWith('demo_')))) {
         cached = null;
         clientSlateMemoryCache.delete(cacheKey);
-        try { sessionStorage.removeItem(`sportymill_slate_${cacheKey}`); } catch (e) {}
+        try { sessionStorage.removeItem(`sportymill_slate_${cacheKey}`); } catch (e) { }
       }
     }
 
@@ -6177,12 +6179,12 @@
 
         if (data.provider_status === 'error' || data.status === 'error') {
           clientSlateMemoryCache.delete(cacheKey);
-          try { sessionStorage.removeItem(`sportymill_slate_${cacheKey}`); } catch (e) {}
+          try { sessionStorage.removeItem(`sportymill_slate_${cacheKey}`); } catch (e) { }
         } else if (data && Array.isArray(data.matches) && data.matches.length > 0) {
           clientSlateMemoryCache.set(cacheKey, data);
           try {
             sessionStorage.setItem(`sportymill_slate_${cacheKey}`, JSON.stringify(data));
-          } catch (e) {}
+          } catch (e) { }
         }
 
         // Discard stale responses if user switched dates while in flight
@@ -6801,9 +6803,9 @@
         <div class="ep-category-block">
           <div class="ep-category-title">${esc(cat.catName)}</div>
           ${filteredEndpoints.map(ep => {
-            const isChecked = selSet.has(ep.id);
-            const count = getEndpointQualifiedCount(ep.id);
-            return `
+        const isChecked = selSet.has(ep.id);
+        const count = getEndpointQualifiedCount(ep.id);
+        return `
               <label class="ep-checkbox-item ${isChecked ? 'checked' : ''}" data-ep-id="${ep.id}">
                 <div class="ep-check-left">
                   <input type="checkbox" class="ep-checkbox-input" value="${ep.id}" ${isChecked ? 'checked' : ''}>
@@ -6813,7 +6815,7 @@
                 <span class="ep-count-pill">${count}</span>
               </label>
             `;
-          }).join('')}
+      }).join('')}
         </div>
       `;
     });
@@ -6865,7 +6867,7 @@
     // Search
     if (state.calendar.searchQuery) {
       const q = state.calendar.searchQuery.toLowerCase();
-      matches = matches.filter(m => 
+      matches = matches.filter(m =>
         (m.home_team && m.home_team.toLowerCase().includes(q)) ||
         (m.away_team && m.away_team.toLowerCase().includes(q)) ||
         (m.league_name && m.league_name.toLowerCase().includes(q)) ||
@@ -6971,11 +6973,11 @@
       const minS = state.calendar.minStake;
       const maxS = state.calendar.maxStake;
       if (minS != null && maxS != null && minS > 0 && maxS > 0) {
-        selStakeBadge.textContent = `₦${(minS/1000).toFixed(minS % 1000 ? 1 : 0)}k - ₦${(maxS/1000).toFixed(maxS % 1000 ? 1 : 0)}k`;
+        selStakeBadge.textContent = `₦${(minS / 1000).toFixed(minS % 1000 ? 1 : 0)}k - ₦${(maxS / 1000).toFixed(maxS % 1000 ? 1 : 0)}k`;
       } else if (minS != null && minS > 0) {
-        selStakeBadge.textContent = `₦${(minS/1000).toFixed(minS % 1000 ? 1 : 0)}k+`;
+        selStakeBadge.textContent = `₦${(minS / 1000).toFixed(minS % 1000 ? 1 : 0)}k+`;
       } else if (maxS != null && maxS > 0) {
-        selStakeBadge.textContent = `≤ ₦${(maxS/1000).toFixed(maxS % 1000 ? 1 : 0)}k`;
+        selStakeBadge.textContent = `≤ ₦${(maxS / 1000).toFixed(maxS % 1000 ? 1 : 0)}k`;
       } else {
         selStakeBadge.textContent = 'Any Stake';
       }
@@ -7426,7 +7428,7 @@
       matches = state.calendar.teamSearchResults;
     } else if (state.calendar.searchQuery) {
       const q = state.calendar.searchQuery.toLowerCase();
-      matches = matches.filter(m => 
+      matches = matches.filter(m =>
         (m.home_team && m.home_team.toLowerCase().includes(q)) ||
         (m.away_team && m.away_team.toLowerCase().includes(q)) ||
         (m.league_name && m.league_name.toLowerCase().includes(q)) ||
@@ -7526,7 +7528,7 @@
           const parts = currDate.split('-').map(Number);
           const dObj = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
           dateTitle = dObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
-        } catch(e) {
+        } catch (e) {
           dateTitle = currDate;
         }
       }
@@ -7556,8 +7558,8 @@
             <h3 class="empty-title" style="color: #38bdf8; font-size: 1.15rem; font-weight: 800;">Retrieving Verified Match Slate...</h3>
             <p class="empty-sub" style="color: var(--text-secondary); max-width: 440px; margin: 0.5rem auto 1rem;">
               ${isBanter
-                ? `Hold on sharp sharp! Model dey connect live sports feed to pull confirmed fixtures for <strong>${esc(dateTitle)}</strong>.`
-                : `Authenticating match fixtures for <strong>${esc(dateTitle)}</strong> directly from official data provider. Populating verified slate...`}
+            ? `Hold on sharp sharp! Model dey connect live sports feed to pull confirmed fixtures for <strong>${esc(dateTitle)}</strong>.`
+            : `Authenticating match fixtures for <strong>${esc(dateTitle)}</strong> directly from official data provider. Populating verified slate...`}
             </p>
           </div>
         `;
@@ -7746,9 +7748,9 @@
       ineligibleToggleHtml = `
         <div class="ineligible-toggle-strip" style="display: flex; align-items: center; justify-content: space-between; background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(51, 65, 85, 0.6); border-radius: 8px; padding: 0.5rem 0.85rem; margin-bottom: 0.85rem; font-size: 0.8rem; color: #94a3b8;">
           <span>
-            ${isShowingAll 
-              ? `Showing <strong>${matches.length}</strong> total fixtures (including ${nonActionableCount} informational / non-model fixtures).`
-              : `Showing <strong>${matches.length}</strong> actionable predictions (${nonActionableCount} non-model or unverified fixtures excluded).`}
+            ${isShowingAll
+          ? `Showing <strong>${matches.length}</strong> total fixtures (including ${nonActionableCount} informational / non-model fixtures).`
+          : `Showing <strong>${matches.length}</strong> actionable predictions (${nonActionableCount} non-model or unverified fixtures excluded).`}
           </span>
           <button type="button" id="btnToggleIneligibleFeed" style="background: rgba(15, 23, 42, 0.8); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 0.2rem 0.6rem; font-size: 0.75rem; font-weight: 600; cursor: pointer;">
             ${isShowingAll ? 'Show Actionable Predictions Only' : `Show All Fixtures (${totalRawMatches})`}
@@ -7827,22 +7829,22 @@
           <div class="cards-view-container">
             <div class="endpoint-grouped-slate">
               ${TOP_5_PRIMARY_ENDPOINTS.map((ep, idx) => {
-                const MAJOR_LEAGUES_SET = new Set(['PL', 'PD', 'SA', 'BL1', 'FL1', 'CL', 'UEL', 'UECL', 'BSA', 'ARG', 'COL', 'UNL', 'PPL', 'DED', 'ELC', 'TUR', 'BEL', 'SC0']);
-                const epQualified = matches.filter(ep.filter).sort((a, b) => {
-                  const isMajorA = MAJOR_LEAGUES_SET.has(a.league_id) ? 1 : 0;
-                  const isMajorB = MAJOR_LEAGUES_SET.has(b.league_id) ? 1 : 0;
-                  if (isMajorA !== isMajorB) return isMajorB - isMajorA; // Famous leagues first!
-                  const probA = (a.top_prob || (a.top_tip && a.top_tip.prob_pct) || 0);
-                  const probB = (b.top_prob || (b.top_tip && b.top_tip.prob_pct) || 0);
-                  return probB - probA;
-                });
-                const epDisplay = epQualified.slice(0, 12);
-                if (epDisplay.length === 0) return '';
+          const MAJOR_LEAGUES_SET = new Set(['PL', 'PD', 'SA', 'BL1', 'FL1', 'CL', 'UEL', 'UECL', 'BSA', 'ARG', 'COL', 'UNL', 'PPL', 'DED', 'ELC', 'TUR', 'BEL', 'SC0']);
+          const epQualified = matches.filter(ep.filter).sort((a, b) => {
+            const isMajorA = MAJOR_LEAGUES_SET.has(a.league_id) ? 1 : 0;
+            const isMajorB = MAJOR_LEAGUES_SET.has(b.league_id) ? 1 : 0;
+            if (isMajorA !== isMajorB) return isMajorB - isMajorA; // Famous leagues first!
+            const probA = (a.top_prob || (a.top_tip && a.top_tip.prob_pct) || 0);
+            const probB = (b.top_prob || (b.top_tip && b.top_tip.prob_pct) || 0);
+            return probB - probA;
+          });
+          const epDisplay = epQualified.slice(0, 12);
+          if (epDisplay.length === 0) return '';
 
-                let extraBannerHtml = '';
-                // Banner 1: Match Analysis & Team Form (after Section 2)
-                if (idx === 1) {
-                  extraBannerHtml = `
+          let extraBannerHtml = '';
+          // Banner 1: Match Analysis & Team Form (after Section 2)
+          if (idx === 1) {
+            extraBannerHtml = `
                     <div class="promotional-football-banner banner-poisson-simulation">
                       <svg class="banner-tactical-pitch-lines" viewBox="0 0 280 200" fill="none">
                         <rect x="5" y="5" width="270" height="190" rx="8" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="4 4"/>
@@ -7880,10 +7882,10 @@
                       </div>
                     </div>
                   `;
-                }
-                // Banner 2: Smart Staking & Bankroll Advice (after Section 4)
-                else if (idx === 3) {
-                  extraBannerHtml = `
+          }
+          // Banner 2: Smart Staking & Bankroll Advice (after Section 4)
+          else if (idx === 3) {
+            extraBannerHtml = `
                     <div class="promotional-football-banner banner-kelly-bankroll">
                       <svg class="banner-tactical-pitch-lines" viewBox="0 0 280 200" fill="none">
                         <path d="M20 160 Q 80 140, 140 90 T 260 30" stroke="#10b981" stroke-width="2.5" fill="none"/>
@@ -7919,9 +7921,9 @@
                       </div>
                     </div>
                   `;
-                }
+          }
 
-                return `
+          return `
                   <section class="endpoint-market-section" id="section_ep_${ep.id}">
                     <div class="endpoint-section-header">
                       <div class="endpoint-header-left">
@@ -7968,7 +7970,7 @@
                   </section>
                   ${extraBannerHtml}
                 `;
-              }).join('')}
+        }).join('')}
 
               <!-- Looking for All 33 Endpoints Banner CTA -->
               <div class="all-33-markets-banner">
@@ -8118,7 +8120,7 @@
       leagueList.forEach((lg, lgIdx) => {
         const sortedLgMatches = [...lg.matches].sort((a, b) => ((b.top_prob || (b.top_tip && b.top_tip.prob_pct) || 0) - (a.top_prob || (a.top_tip && a.top_tip.prob_pct) || 0)));
         const isExpanded = state.calendar.expandedLeagues && state.calendar.expandedLeagues.has(lg.id);
-        
+
         let displayedMatches;
         if (state.calendar.isClubSearchActive) {
           displayedMatches = sortedLgMatches;
@@ -8386,11 +8388,11 @@
         const league = btn.getAttribute('data-league');
         const matched = matches.find(m => m.home_team === home && m.away_team === away) ||
           (state.calendar.data?.matches || []).find(m => m.home_team === home && m.away_team === away) || {
-            home_team: home,
-            away_team: away,
-            league_id: league,
-            match_date: new Date().toISOString()
-          };
+          home_team: home,
+          away_team: away,
+          league_id: league,
+          match_date: new Date().toISOString()
+        };
         state.activeFixture = matched;
         openMatchAnalytics(matched);
       });
@@ -8484,7 +8486,7 @@
       state.betslip.items.splice(existingIdx, 1);
       try {
         localStorage.setItem('sportymill_betslip', JSON.stringify(state.betslip.items));
-      } catch (e) {}
+      } catch (e) { }
       renderSlip();
       renderCalendarMatchesFeed();
       return false;
@@ -8495,7 +8497,7 @@
       state.betslip.items[sameMatchIdx] = pick;
       try {
         localStorage.setItem('sportymill_betslip', JSON.stringify(state.betslip.items));
-      } catch (e) {}
+      } catch (e) { }
       renderSlip();
       renderCalendarMatchesFeed();
       return true;
@@ -8505,7 +8507,7 @@
     state.betslip.items.push(pick);
     try {
       localStorage.setItem('sportymill_betslip', JSON.stringify(state.betslip.items));
-    } catch (e) {}
+    } catch (e) { }
 
     renderSlip();
 
@@ -8535,7 +8537,7 @@
       state.betslip.items.splice(index, 1);
       try {
         localStorage.setItem('sportymill_betslip', JSON.stringify(state.betslip.items));
-      } catch (e) {}
+      } catch (e) { }
       renderSlip();
       renderCalendarMatchesFeed();
     }
@@ -8546,7 +8548,7 @@
     state.betslip.bookingCode = '';
     try {
       localStorage.removeItem('sportymill_active_slip_code');
-    } catch (e) {}
+    } catch (e) { }
     renderSlip();
   }
 
@@ -8557,7 +8559,7 @@
     try {
       localStorage.removeItem('sportymill_betslip');
       localStorage.removeItem('sportymill_active_slip_code');
-    } catch (e) {}
+    } catch (e) { }
     renderSlip();
     renderCalendarMatchesFeed();
   }
@@ -8863,7 +8865,7 @@
         state.betslip.activeBookingCode = res.booking_code;
         try {
           localStorage.setItem('sportymill_active_slip_code', res.booking_code);
-        } catch (e) {}
+        } catch (e) { }
         if (dom.displayBookingCode) {
           dom.displayBookingCode.textContent = res.booking_code;
         }
@@ -8883,11 +8885,15 @@
           }
           existing.unshift(updatedEntry);
           localStorage.setItem('sportymill_saved_slips', JSON.stringify(existing.slice(0, 30)));
-        } catch (e) {}
+        } catch (e) { }
 
         renderSlip();
+        dashStatsLoaded = false;
         if (document.getElementById('view-slip-history')?.classList.contains('active')) {
           loadSlipHistory();
+        }
+        if (document.getElementById('view-dashboard')?.classList.contains('active')) {
+          loadDashboardStats();
         }
         toast(res.updated ? `Slip ${res.booking_code} updated!` : `Slip saved! Booking Code: ${res.booking_code}`, 'success');
         if (dom.modalValidateSlip) {
@@ -8921,15 +8927,15 @@
     container.innerHTML = `
       <div class="slips-cards-grid">
         ${slips.map((s) => {
-          const legs = Array.isArray(s.items) ? s.items : [];
-          const totalOdds = parseFloat(s.total_odds || 1.0).toFixed(2);
-          const stake = parseFloat(s.stake || 1000);
-          const payout = formatNaira(s.potential_payout || (stake * totalOdds));
-          const bookingCode = s.booking_code || s.slip_code || `SM-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-          const legsJson = JSON.stringify(legs).replace(/'/g, "&apos;");
-          const isCurrentlyLoaded = (state.betslip?.activeBookingCode === bookingCode);
+      const legs = Array.isArray(s.items) ? s.items : [];
+      const totalOdds = parseFloat(s.total_odds || 1.0).toFixed(2);
+      const stake = parseFloat(s.stake || 1000);
+      const payout = formatNaira(s.potential_payout || (stake * totalOdds));
+      const bookingCode = s.booking_code || s.slip_code || `SM-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+      const legsJson = JSON.stringify(legs).replace(/'/g, "&apos;");
+      const isCurrentlyLoaded = (state.betslip?.activeBookingCode === bookingCode);
 
-          return `
+      return `
             <div class="saved-slip-card is-clickable ${isCurrentlyLoaded ? 'is-loaded' : ''}" data-code="${esc(bookingCode)}" data-stake="${stake}" data-items='${legsJson}' title="Click to load this slip and continue adding games">
               <div class="saved-slip-head">
                 <div class="saved-slip-badge-group">
@@ -8964,7 +8970,7 @@
               </div>
             </div>
           `;
-        }).join('')}
+    }).join('')}
       </div>
     `;
 
@@ -8995,7 +9001,7 @@
           localStorage.setItem('sportymill_betslip', JSON.stringify(state.betslip.items));
           if (code) localStorage.setItem('sportymill_active_slip_code', code);
           else localStorage.removeItem('sportymill_active_slip_code');
-        } catch (storageErr) {}
+        } catch (storageErr) { }
         renderSlip();
         renderCalendarMatchesFeed();
         switchView('view-calendar');
@@ -9038,7 +9044,7 @@
     try {
       const saved = localStorage.getItem('sportymill_saved_slips');
       if (saved) localSlips = JSON.parse(saved);
-    } catch (e) {}
+    } catch (e) { }
 
     // 1. Instant optimistic render (0ms response time, zero spinner lag)
     renderSlipHistoryList(localSlips);
@@ -9245,7 +9251,7 @@
 
       if (dom.displayUsername) dom.displayUsername.textContent = uname;
       if (dom.userAvatarText) dom.userAvatarText.textContent = initials;
-      
+
       const headerName = document.getElementById('headerUserName');
       const headerAvatar = document.getElementById('headerUserAvatar');
       if (headerName) headerName.textContent = uname;
@@ -9289,7 +9295,7 @@
         if (savedAvatar && typeof window._applyAvatarToAll === 'function') {
           window._applyAvatarToAll(savedAvatar);
         }
-      } catch (e) {}
+      } catch (e) { }
 
       const mobLoginBtn = document.getElementById('btnMobileLogin');
       if (mobLoginBtn) {
@@ -9713,7 +9719,7 @@
     }
 
     // Expose global reset helper for empty states
-    window.appResetAllFilters = function() {
+    window.appResetAllFilters = function () {
       state.calendar.minProb = 'all';
       state.calendar.selectedEndpoints = [];
       state.calendar.selectedEndpoint = 'all';
@@ -9747,15 +9753,15 @@
       }
     };
 
-    window.appSetProb = function(prob) {
+    window.appSetProb = function (prob) {
       state.calendar.minProb = prob;
       updateFilterDrawerUI(false);
       renderCalendarMatchesFeed();
     };
 
     // Sportsbook View Mode Toggles (Cards Multi-Column Grid vs Odds Board Table)
-    const savedMode = (function() {
-      try { return localStorage.getItem('sportymill_view_mode_v2') || 'table'; } catch(e) { return 'table'; }
+    const savedMode = (function () {
+      try { return localStorage.getItem('sportymill_view_mode_v2') || 'table'; } catch (e) { return 'table'; }
     })();
     state.calendar.viewMode = savedMode;
 
@@ -9764,7 +9770,7 @@
       try {
         localStorage.setItem('sportymill_view_mode_v2', mode);
         localStorage.setItem('sportymill_view_mode', mode);
-      } catch(e) {}
+      } catch (e) { }
       const btnT = document.getElementById('btnViewModeTable');
       const btnG = document.getElementById('btnViewModeGrid');
       if (btnT && btnG) {
@@ -10051,7 +10057,7 @@
       state.personalityMode = (newMode === 'BANTER') ? 'BANTER' : 'PROFESSIONAL';
       try {
         localStorage.setItem('tipalgo_tone', state.personalityMode);
-      } catch (e) {}
+      } catch (e) { }
       applyLanguageMode(state.personalityMode);
       if (typeof renderCalendarDateStrip === 'function') {
         renderCalendarDateStrip();
@@ -10385,7 +10391,7 @@
       });
       try {
         localStorage.setItem('sportymill_theme_mode', isDark ? 'dark' : 'light');
-      } catch (err) {}
+      } catch (err) { }
     }
 
     if (btnNavThemeToggle) {
@@ -10398,7 +10404,7 @@
     }
 
     // Restore saved theme on startup
-    const initialSavedTheme = (function() {
+    const initialSavedTheme = (function () {
       try { return localStorage.getItem('sportymill_theme_mode'); } catch (e) { return null; }
     })();
     if (initialSavedTheme === 'dark') {
@@ -10498,13 +10504,6 @@
     function updateDemoCalculator() {
       if (!probSlider || !oddsSlider) return;
       const probPct = parseFloat(probSlider.value);
-      const prob = probPct / 100.0;
-      const odds = parseFloat(oddsSlider.value) / 100.0;
-
-      if (probDisplay) probDisplay.textContent = `${probPct}%`;
-      if (oddsDisplay) oddsDisplay.textContent = odds.toFixed(2);
-
-      const implied = 1.0 / odds;
       if (impliedResult) impliedResult.textContent = `${(implied * 100).toFixed(1)}%`;
 
       const ev = (prob * odds) - 1.0;
@@ -10653,7 +10652,7 @@
           applyAvatarToAll(savedAvatar);
           hasSavedAvatar = true;
         }
-      } catch (e) {}
+      } catch (e) { }
 
       if (!hasSavedAvatar) {
         const dropAvatar = document.getElementById('dropdownUserAvatar');
@@ -10704,7 +10703,7 @@
             const dataUrl = loadEvt.target.result;
             try {
               localStorage.setItem('sportymill_user_avatar', dataUrl);
-            } catch (err) {}
+            } catch (err) { }
             applyAvatarToAll(dataUrl);
           };
           reader.readAsDataURL(file);
@@ -10747,7 +10746,7 @@
               state.user = Object.assign(state.user || {}, res.user);
               try {
                 localStorage.setItem('tipalgo_user', JSON.stringify(state.user));
-              } catch (err) {}
+              } catch (err) { }
             }
             syncProfileScreenDOM();
             updateUserUI();
@@ -10844,7 +10843,7 @@
             try {
               localStorage.setItem('tipalgo_user', JSON.stringify(state.user));
               localStorage.setItem('sportymill_bankroll', String(val));
-            } catch (err) {}
+            } catch (err) { }
             syncProfileScreenDOM();
             updateUserUI();
             if (typeof renderCalendarMatchesFeed === 'function') renderCalendarMatchesFeed();
@@ -11016,7 +11015,7 @@
       }
       window.addEventListener('popstate', handleRouteNavigation);
       window.addEventListener('hashchange', handleRouteNavigation);
-    } catch (err) {}
+    } catch (err) { }
   }
 
   // =========================================================================
@@ -11034,7 +11033,7 @@
       localStorage.removeItem('sportymill_jwt');
       localStorage.removeItem('tipalgo_token');
       localStorage.removeItem('tipalgo_user');
-    } catch (e) {}
+    } catch (e) { }
 
     const btnAdmin = document.getElementById('btnDashNavAdmin');
     if (btnAdmin) btnAdmin.style.display = 'none';
@@ -11116,15 +11115,34 @@
 
         // User Recent Bet Slips (Click to reload into Bet Slip & edit)
         if (recentSlipsEl) {
-          const rSlips = Array.isArray(ua.recent_slips) ? ua.recent_slips : [];
+          let rSlips = Array.isArray(ua.recent_slips) ? ua.recent_slips : [];
+          if (!rSlips.length) {
+            try {
+              const localSlips = JSON.parse(localStorage.getItem('sportymill_saved_slips') || '[]');
+              if (Array.isArray(localSlips) && localSlips.length) {
+                rSlips = localSlips.slice(0, 5).map(ls => ({
+                  booking_code: ls.booking_code || ls.slip_code || 'LOCAL-SLIP',
+                  legs_count: Array.isArray(ls.items) ? ls.items.length : 0,
+                  total_odds: ls.total_odds || 1.0,
+                  stake: ls.stake || 1000,
+                  potential_payout: ls.potential_payout || 0,
+                  created_at: ls.created_at || 'Saved',
+                  items: Array.isArray(ls.items) ? ls.items : []
+                }));
+              }
+            } catch (e) { }
+          }
           if (rSlips.length) {
             recentSlipsEl.innerHTML = rSlips.map((s, sIdx) => `
               <div class="dash-recent-slip-row" data-slip-idx="${sIdx}" title="Load ${esc(s.booking_code)} into Bet Slip">
-                <div>
-                  <strong style="color:#38bdf8; font-family:var(--font-mono); font-size:0.82rem;">${esc(s.booking_code)}</strong>
-                  <div style="font-size:0.72rem; color:#94a3b8;">${s.legs_count || 0} picks · Stake ${formatNaira(s.stake || 0)} · ${esc(s.created_at || '')}</div>
+                <div class="dash-recent-slip-meta">
+                  <strong class="dash-slip-code">${esc(s.booking_code)}</strong>
+                  <div class="dash-slip-sub">${s.legs_count || (Array.isArray(s.items) ? s.items.length : 0)} picks · Stake ${formatNaira(s.stake || 0)} · ${esc(s.created_at || '')}</div>
                 </div>
-                <span style="font-family:var(--font-mono); font-weight:800; color:#34d399; font-size:0.86rem;">@${Number(s.total_odds || 1).toFixed(2)}</span>
+                <div class="dash-recent-slip-right">
+                  <span class="dash-slip-odds">@${Number(s.total_odds || 1).toFixed(2)}</span>
+                  <span class="dash-slip-load-tag">Load →</span>
+                </div>
               </div>
             `).join('');
 
@@ -11132,16 +11150,21 @@
               row.addEventListener('click', () => {
                 const s = rSlips[parseInt(row.getAttribute('data-slip-idx'), 10)];
                 if (!s) return;
-                state.betslip.items = Array.isArray(s.items) ? s.items : [];
+                state.betslip.items = Array.isArray(s.items) ? JSON.parse(JSON.stringify(s.items)) : [];
                 state.betslip.stake = parseFloat(s.stake || 1000) || 1000;
                 state.betslip.activeBookingCode = s.booking_code || null;
                 state.betslip.bookingCode = s.booking_code || '';
+                if (dom.inputStake) dom.inputStake.value = state.betslip.stake;
+                if (dom.displayBookingCode && s.booking_code) dom.displayBookingCode.textContent = s.booking_code;
                 try {
                   localStorage.setItem('sportymill_betslip', JSON.stringify(state.betslip.items));
                   if (s.booking_code) localStorage.setItem('sportymill_active_slip_code', s.booking_code);
-                } catch (e) {}
+                } catch (e) { }
                 renderSlip();
                 switchView('view-calendar');
+                if (window.innerWidth <= 1024 && typeof toggleSlip === 'function') {
+                  toggleSlip(true);
+                }
               });
             });
           } else {
@@ -11226,13 +11249,16 @@
               ${stats.sample_fixtures.map((f, i) => `
                 <div class="dash-mobile-fixture-card" data-idx="${i}">
                   <div class="dash-mobile-card-header">
-                    <span class="dash-league-badge">${esc(f.league_name || f.league_id || 'Football')}</span>
+                    <span class="dash-league-badge" title="${esc(f.league_name || f.league_id || 'Football')}">${esc(f.league_name || f.league_id || 'Football')}</span>
                     <button type="button" class="btn-dash-analyze-sm" data-idx="${i}">Analyze →</button>
                   </div>
-                  <div class="dash-mobile-match-title">${esc(f.home_team)} vs ${esc(f.away_team)}</div>
-                  <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; margin-top:0.35rem;">
+                  <div class="dash-mobile-match-title">${esc(f.home_team)} <span class="dash-vs-dim">vs</span> ${esc(f.away_team)}</div>
+                  <div class="dash-mobile-pick-row">
                     <span class="dash-pick-pill">${esc(f.recommended_pick || `${f.home_team} Win`)}</span>
-                    <strong class="dash-odd-num">@${f.recommended_odds ? Number(f.recommended_odds).toFixed(2) : '1.85'}</strong>
+                    <div class="dash-mobile-odds-meta">
+                      <span class="dash-mobile-conf">${f.recommended_prob_pct || 60}%</span>
+                      <strong class="dash-odd-num">@${f.recommended_odds ? Number(f.recommended_odds).toFixed(2) : '1.85'}</strong>
+                    </div>
                   </div>
                 </div>
               `).join('')}
@@ -11349,7 +11375,7 @@
       localStorage.setItem('tipalgo_screener_away', awayTeam);
       localStorage.setItem('tipalgo_screener_league', leagueId);
       localStorage.setItem('tipalgo_screener_min_edge', inMinEdge ? inMinEdge.value : '4%');
-    } catch (e) {}
+    } catch (e) { }
 
     // Loading State Skeleton
     if (statusSlot) {
