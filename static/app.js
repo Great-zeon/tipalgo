@@ -651,7 +651,9 @@
           state.calendar.isClubSearchActive = false;
           state.calendar.teamSearchResults = null;
           if (btnClearCal) btnClearCal.style.display = 'none';
-          renderCalendarMatchesFeed();
+          if (state.calendar.data && !state.calendar.isLoading) {
+            renderCalendarMatchesFeed();
+          }
         }
       }, 150);
 
@@ -2946,7 +2948,7 @@
 
     // Refresh Active Feed & Calendar trigger display to reflect translated state
     updateCalendarDropdownTrigger();
-    if (typeof renderCalendarMatchesFeed === 'function') {
+    if (state.calendar.data && !state.calendar.isLoading && typeof renderCalendarMatchesFeed === 'function') {
       renderCalendarMatchesFeed();
     }
   }
@@ -6160,8 +6162,10 @@
     }
 
     if (cached && Array.isArray(cached.matches) && cached.matches.length > 0) {
+      state.calendar.isLoading = false;
       applyCalendarSlateData(cached);
     } else {
+      state.calendar.isLoading = true;
       renderShimmeringSkeletonCards();
     }
 
@@ -6203,8 +6207,10 @@
           return;
         }
 
+        state.calendar.isLoading = false;
         applyCalendarSlateData(data);
       } catch (err) {
+        state.calendar.isLoading = false;
         if (!cached) {
           dom.calendarMatchesFeed.innerHTML = `
             <div style="text-align: center; padding: 2.5rem; background: var(--bg-card); border-radius: 14px; border: 1px solid rgba(244,63,94,0.3);">
@@ -6215,6 +6221,9 @@
           `;
         }
       } finally {
+        if (thisRequestId === currentSlateRequestId) {
+          state.calendar.isLoading = false;
+        }
         if (activeSlateRequestKey === cacheKey) {
           activeSlateRequestKey = null;
           activeSlateRequestPromise = null;
@@ -7403,6 +7412,13 @@
 
   function renderCalendarMatchesFeed() {
     if (!dom.calendarMatchesFeed) return;
+
+    if (!state.calendar.data || state.calendar.isLoading) {
+      if (typeof renderShimmeringSkeletonCards === 'function') {
+        renderShimmeringSkeletonCards();
+      }
+      return;
+    }
 
     const isBanter = state.personalityMode === 'BANTER';
     let matches = (state.calendar.data && state.calendar.data.matches) ? state.calendar.data.matches : [];
