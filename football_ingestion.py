@@ -293,11 +293,12 @@ class LiveFixtureItem:
     Normalized, in-memory representation of an authentic fixture retrieved directly from the provider.
     Enforces positive provenance: rejects synthetic/mock prefixes and calculates fair odds if unprovided.
     """
-    def __init__(self, raw: Dict[str, Any], provider: str = "live-football-api"):
+    def __init__(self, raw: Dict[str, Any], provider: str = "live-football-api", fallback_date: Optional[str] = None):
         self.raw_payload = raw
         self.source_classification = "provider_verified"
         self.provider = provider
         self.provider_status = "live"
+        self.provider_display_status: Optional[str] = None
         self.provider_updated_at = datetime.now(timezone.utc)
         self.synced_at = datetime.now(timezone.utc)
 
@@ -316,8 +317,9 @@ class LiveFixtureItem:
             self.home_logo = h_obj.get("logo")
             self.away_logo = a_obj.get("logo")
             
-            raw_h_score = h_obj.get("score")
-            raw_a_score = a_obj.get("score")
+            score_obj = raw.get("score", {}) if isinstance(raw.get("score"), dict) else {}
+            raw_h_score = h_obj.get("score") if h_obj.get("score") is not None else score_obj.get("home")
+            raw_a_score = a_obj.get("score") if a_obj.get("score") is not None else score_obj.get("away")
             self.home_score = int(raw_h_score) if raw_h_score is not None and str(raw_h_score).strip().isdigit() else None
             self.away_score = int(raw_a_score) if raw_a_score is not None and str(raw_a_score).strip().isdigit() else None
             
@@ -328,14 +330,65 @@ class LiveFixtureItem:
             self.league_name = lname or self.league_id
             self.country = cname
             
-            kickoff = str(raw.get("kickoff") or "15:00").strip()
-            d_str = str(raw.get("date") or "").strip()
-            try:
-                self.match_date = datetime.fromisoformat(f"{d_str}T{kickoff}:00+00:00")
-            except Exception:
-                self.match_date = datetime.now(timezone.utc)
-                
-            self.status = str(raw.get("status") or "scheduled")
+            kickoff = str(raw.get("kickoff") or "").strip()
+            d_str = str(raw.get("date") or fallback_date or "").strip()[:10]
+            if d_str and kickoff and ":" in kickoff:
+                k_clean = kickoff[:5]
+                try:
+                    self.match_date = datetime.fromisoformat(f"{d_str}T{k_clean}:00+00:00")
+                except Exception:
+                    try:
+                        self.match_date = datetime.strptime(f"{d_str} {k_clean}", "%Y-%m-%d %H:%M").replace(tzinfo=timezone.utc)
+                    except Exception:
+                        self.match_date = None
+            elif d_str:
+                try:
+                    self.match_date = datetime.strptime(d_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                except Exception:
+                    self.match_date = None
+            else:
+                self.match_date = None
+
+            raw_status_field = raw.get("status")
+            if isinstance(raw_status_field, dict):
+                st_val = str(raw_status_field.get("status") or "").strip().lower()
+                disp_val = str(raw_status_field.get("display") or "").strip()
+                state_val = str(raw_status_field.get("state") or "").strip().lower()
+                is_live_flag = bool(raw_status_field.get("is_live", False))
+                self.provider_display_status = disp_val
+                self.provider_status = st_val or disp_val.lower() or state_val or "scheduled"
+
+                if st_val in ("finished", "ft", "aet", "pen", "ended") or disp_val.upper() in ("FT", "AET", "PEN") or state_val == "postgame":
+                    self.status = "finished"
+                elif is_live_flag or st_val in ("live", "1h", "2h", "ht", "in_play", "in-play") or state_val == "inplay" or disp_val.upper() == "HT" or ("'" in disp_val):
+                    self.status = "ht" if disp_val.upper() == "HT" else "live"
+                elif st_val in ("postponed", "pst") or disp_val.lower() == "postponed":
+                    self.status = "postponed"
+                elif st_val in ("cancelled", "canc", "canceled") or disp_val.lower() in ("cancelled", "canceled"):
+                    self.status = "cancelled"
+                elif st_val in ("abandoned", "abd"):
+                    self.status = "abandoned"
+                elif st_val in ("suspended", "susp", "int"):
+                    self.status = "suspended"
+                else:
+                    self.status = "scheduled"
+            else:
+                st_str = str(raw_status_field or "scheduled").strip()
+                self.provider_status = st_str
+                self.provider_display_status = st_str
+                st_up = st_str.upper()
+                if st_up in ("FT", "AET", "PEN", "FINISHED", "ENDED"):
+                    self.status = "finished"
+                elif st_up in ("LIVE", "1H", "2H", "HT", "ET", "P", "IN_PLAY") or ("'" in st_str):
+                    self.status = "ht" if st_up == "HT" else "live"
+                elif st_up in ("PST", "POSTP", "POSTPONED"):
+                    self.status = "postponed"
+                elif st_up in ("CANC", "CANCELLED", "CANCELED"):
+                    self.status = "cancelled"
+                elif st_up in ("NS", "TIMED", "SCHEDULED", "NOT_STARTED"):
+                    self.status = "scheduled"
+                else:
+                    self.status = st_str.lower()
             
             odds_obj = raw.get("odds", {}) if isinstance(raw.get("odds"), dict) else {}
             h_odd = odds_obj.get("home") or odds_obj.get("1")
@@ -413,13 +466,18 @@ class LiveFixtureItem:
             m_date = raw.get("match_date")
             if isinstance(m_date, datetime):
                 self.match_date = m_date
-            elif isinstance(m_date, str):
+            elif isinstance(m_date, str) and m_date.strip():
                 try:
                     self.match_date = datetime.fromisoformat(m_date.replace("Z", "+00:00"))
                 except Exception:
-                    self.match_date = datetime.now(timezone.utc)
+                    self.match_date = None
+            elif fallback_date:
+                try:
+                    self.match_date = datetime.strptime(str(fallback_date).strip()[:10], "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                except Exception:
+                    self.match_date = None
             else:
-                self.match_date = datetime.now(timezone.utc)
+                self.match_date = None
             self.status = str(raw.get("status") or "scheduled")
             self.home_odds = float(raw.get("home_odds") or 2.10)
             self.draw_odds = float(raw.get("draw_odds") or 3.25)

@@ -6,12 +6,24 @@
 (function () {
   'use strict';
 
-  // Real-world dynamic date helper (defaults to current calendar date)
+  // Dynamic Africa/Lagos (WAT, UTC+1) date helper
   function getSystemTodayDateStr() {
+    try {
+      const fmt = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Africa/Lagos',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+      const lagosIso = fmt.format(new Date());
+      if (/^\d{4}-\d{2}-\d{2}$/.test(lagosIso)) {
+        return lagosIso;
+      }
+    } catch (e) { }
     const now = new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    const d = String(now.getDate()).padStart(2, '0');
+    const y = now.getUTCFullYear();
+    const m = String(now.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(now.getUTCDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
   }
 
@@ -3581,68 +3593,25 @@
     return { analysis, algoResponse };
   }
 
-  const DEFAULT_FORM_PATTERNS = [
-    ['W', 'W', 'D', 'W', 'W'],
-    ['W', 'D', 'W', 'W', 'L'],
-    ['W', 'W', 'W', 'D', 'W'],
-    ['D', 'W', 'W', 'L', 'W'],
-    ['W', 'L', 'W', 'D', 'W'],
-    ['D', 'D', 'W', 'W', 'L'],
-    ['W', 'D', 'L', 'W', 'D'],
-    ['L', 'W', 'D', 'W', 'L'],
-    ['W', 'L', 'L', 'D', 'W'],
-    ['D', 'L', 'D', 'W', 'W'],
-    ['L', 'L', 'W', 'D', 'L'],
-    ['L', 'D', 'L', 'L', 'D']
-  ];
-
-  function getDeterministicTeamForm(teamName) {
-    if (!teamName) return ['W', 'D', 'W', 'L', 'D'];
-    let hash = 0;
-    const str = String(teamName).trim();
-    for (let i = 0; i < str.length; i++) {
-      hash = ((hash << 5) - hash) + str.charCodeAt(i);
-      hash |= 0;
-    }
-    const idx = Math.abs(hash) % DEFAULT_FORM_PATTERNS.length;
-    return DEFAULT_FORM_PATTERNS[idx];
-  }
-
-  // Helper: Form Run Pills (W/D/L badges) - always 5 slots with honest verified metrics
-  function renderFormRunPills(formArray, teamName) {
-    let list = Array.isArray(formArray) ? [...formArray] : [];
-    if (list.length < 5 && teamName && window.__teamForms) {
-      let fallback = window.__teamForms[teamName];
-      if (!fallback) {
-        const cleanT = String(teamName).toLowerCase().trim();
-        for (const [k, v] of Object.entries(window.__teamForms)) {
-          const cleanK = k.toLowerCase().trim();
-          if (cleanK === cleanT || cleanT.includes(cleanK) || cleanK.includes(cleanT)) {
-            fallback = v;
-            break;
-          }
-        }
-      }
-      if (Array.isArray(fallback) && fallback.length > 0) {
-        list = [...list, ...fallback].slice(0, 5);
-      }
-    }
-    if (list.length < 5) {
-      const generated = getDeterministicTeamForm(teamName);
-      list = [...list, ...generated].slice(0, 5);
-    }
+  // Helper: Form Run Pills (W/D/L badges) - strictly verified data, neutral dashes for unrecorded slots
+  function renderFormRunPills(formArray, _teamName) {
+    const list = Array.isArray(formArray)
+      ? formArray.map(x => String(x || '').trim().charAt(0).toUpperCase()).filter(ch => ch === 'W' || ch === 'D' || ch === 'L').slice(0, 5)
+      : [];
     const pills = [];
     for (let i = 0; i < 5; i++) {
-      if (i < list.length && list[i]) {
-        const ch = (String(list[i]).charAt(0) || 'D').toUpperCase();
+      if (i < list.length) {
+        const ch = list[i];
         const cls = ch === 'W' ? 'w' : (ch === 'L' ? 'l' : 'd');
         const title = ch === 'W' ? 'Win (Verified match result)' : (ch === 'L' ? 'Loss (Verified match result)' : 'Draw (Verified match result)');
         pills.push(`<span class="em-form-pill ${cls}" title="${title}">${ch}</span>`);
       } else {
-        pills.push(`<span class="em-form-pill w" title="Win (Verified match result)">W</span>`);
+        pills.push(`<span class="em-form-pill empty" title="No verified match history on record" style="background:rgba(148,163,184,0.12);color:#64748b;border:1px solid rgba(148,163,184,0.22);">-</span>`);
       }
     }
-    const containerTitle = `${list.length} verified match result(s) on record`;
+    const containerTitle = list.length > 0
+      ? `${list.length} verified match result(s) on record`
+      : 'No verified historical matches recorded for this scope';
     return `<div class="em-form-pills-row" title="${containerTitle}">${pills.join('')}</div>`;
   }
 
@@ -3650,34 +3619,38 @@
   function renderSportsbookTableRow(m, rowIdx, lg, customEndpoint) {
     const esc = escapeHtmlUtil;
     const isBanter = state.personalityMode === 'BANTER';
+    const hasSpecificEndpoint = Boolean(customEndpoint && customEndpoint !== 'all');
 
     let topTip = null;
-    if (customEndpoint && m.endpoint_tips && m.endpoint_tips[customEndpoint]) {
+    if (hasSpecificEndpoint && m.endpoint_tips && m.endpoint_tips[customEndpoint]) {
       topTip = m.endpoint_tips[customEndpoint];
-    } else if (customEndpoint && m.tips && m.tips.length) {
+    } else if (hasSpecificEndpoint && m.tips && m.tips.length) {
       topTip = m.tips.find(t => t.endpoint_id === customEndpoint || (t.market && t.market.toLowerCase().includes(customEndpoint.replace(/-/g, ' '))));
     }
-    if (customEndpoint && !topTip) {
+    if (hasSpecificEndpoint && !topTip) {
       if (customEndpoint === 'home-win' || customEndpoint === 'straight-home-win') {
         topTip = {
           label: `${m.home_team}: Home Win`,
           odds: m.home_odds || 2.10,
           prob_pct: m.home_prob_pct || 65,
-          market: `${m.home_team} Win`
+          market: `${m.home_team} Win`,
+          endpoint_id: customEndpoint
         };
       } else if (customEndpoint === 'away-win' || customEndpoint === 'away-underdog') {
         topTip = {
           label: `${m.away_team}: Away Win`,
           odds: m.away_odds || 3.10,
           prob_pct: m.away_prob_pct || 40,
-          market: `${m.away_team} Win`
+          market: `${m.away_team} Win`,
+          endpoint_id: customEndpoint
         };
       } else if (customEndpoint === 'draw') {
         topTip = {
           label: 'Match Draw (X)',
           odds: m.draw_odds || 3.30,
           prob_pct: 28,
-          market: 'Draw'
+          market: 'Draw',
+          endpoint_id: 'draw'
         };
       } else if (customEndpoint === 'double-chance' || customEndpoint === 'strong-home-dc') {
         topTip = (m.tips || []).find(t => t.market && (t.market.includes('Double Chance') || t.market.includes('1X') || t.market.includes('X2')));
@@ -3689,6 +3662,15 @@
         topTip = (m.tips || []).find(t => t.market === 'Under 2.5 Goals');
       } else if (customEndpoint === 'btts-yes') {
         topTip = (m.tips || []).find(t => t.market === 'Both Teams to Score' || t.market === 'BTTS: Yes');
+      }
+      if (!topTip) {
+        topTip = {
+          label: `${customEndpoint.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}: No Qualifying Edge`,
+          odds: 0,
+          prob_pct: 0,
+          market: 'No Qualifying Edge',
+          endpoint_id: customEndpoint
+        };
       }
     }
 
@@ -3940,13 +3922,23 @@
 
   function renderSingleGridMatchCard(m, cardIdx, customEndpoint) {
     const isBanter = state.personalityMode === 'BANTER';
+    const hasSpecificEndpoint = Boolean(customEndpoint && customEndpoint !== 'all');
 
-    // If a customEndpoint is specified, look for a tip matching that endpoint
+    // If a customEndpoint is specified, look exclusively for that endpoint's prediction
     let topTip = null;
-    if (customEndpoint && m.endpoint_tips && m.endpoint_tips[customEndpoint]) {
+    if (hasSpecificEndpoint && m.endpoint_tips && m.endpoint_tips[customEndpoint]) {
       topTip = m.endpoint_tips[customEndpoint];
-    } else if (customEndpoint && m.tips && m.tips.length) {
+    } else if (hasSpecificEndpoint && m.tips && m.tips.length) {
       topTip = m.tips.find(t => t.endpoint_id === customEndpoint || (t.market && t.market.toLowerCase().includes(customEndpoint.replace(/-/g, ' '))));
+    }
+    if (hasSpecificEndpoint && !topTip) {
+      topTip = {
+        label: `${customEndpoint.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}: No Qualifying Edge`,
+        odds: 0,
+        prob_pct: 0,
+        market: 'No Qualifying Edge',
+        endpoint_id: customEndpoint
+      };
     }
     if (!topTip) {
       topTip = m.top_tip || (m.tips && m.tips.length ? m.tips[0] : {
@@ -4041,11 +4033,13 @@
           matchDateStr = dt.toLocaleDateString('en-GB', { timeZone: 'Africa/Lagos', day: '2-digit', month: 'short' });
         }
       } catch (e) { }
-    } else if (matchDateStr && matchDateStr.includes('-')) {
+    } else if (matchDateStr && /^\d{4}-\d{2}-\d{2}/.test(matchDateStr)) {
       try {
-        const p = matchDateStr.split('-').map(Number);
-        const dt = new Date(Date.UTC(p[0], p[1] - 1, p[2]));
-        matchDateStr = dt.toLocaleDateString('en-GB', { timeZone: 'UTC', day: '2-digit', month: 'short' });
+        const isoSource = m.match_date || `${matchDateStr.slice(0, 10)}T12:00:00Z`;
+        const dt = new Date(isoSource.endsWith('Z') || isoSource.includes('+') ? isoSource : isoSource.replace(' ', 'T') + 'Z');
+        if (!isNaN(dt.getTime())) {
+          matchDateStr = dt.toLocaleDateString('en-GB', { timeZone: 'Africa/Lagos', day: '2-digit', month: 'short' });
+        }
       } catch (e) { }
     }
     if (matchDateStr) {
@@ -5097,8 +5091,13 @@
 
     const footyDateTime = document.getElementById('footyMatchDateTime');
     if (footyDateTime) {
-      const matchDateObj = data.match_info.match_date ? new Date(data.match_info.match_date) : new Date();
-      footyDateTime.textContent = `${matchDateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })} - Kickoff: ${data.match_info.time || '20:00'} (Africa/Lagos time)`;
+      const rawMatchIso = data.match_info?.match_date || state.activeFixture?.match_date || null;
+      const matchDateObj = rawMatchIso ? new Date(String(rawMatchIso).endsWith('Z') || String(rawMatchIso).includes('+') ? rawMatchIso : String(rawMatchIso).replace(' ', 'T') + 'Z') : new Date();
+      const dateStrWat = !isNaN(matchDateObj.getTime())
+        ? matchDateObj.toLocaleDateString('en-US', { timeZone: 'Africa/Lagos', weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })
+        : (data.match_info?.display_date_wat || 'Upcoming');
+      const timeWat = data.match_info?.time_wat || data.match_info?.time || (!isNaN(matchDateObj.getTime()) ? matchDateObj.toLocaleTimeString('en-GB', { timeZone: 'Africa/Lagos', hour: '2-digit', minute: '2-digit', hour12: false }) : '--:--');
+      footyDateTime.textContent = `${dateStrWat} - Kickoff: ${timeWat} (Africa/Lagos time)`;
     }
 
     const footyVenue = document.getElementById('footyVenue');
@@ -8500,6 +8499,46 @@
     }
   }
 
+  // Fast non-blocking in-place slip button sync (avoids full DOM rebuild of 200+ fixtures)
+  function syncCalendarFeedSlipButtons() {
+    const feed = document.getElementById('calendarMatchesFeed');
+    if (!feed) return;
+    const slipItems = state.betslip?.items || [];
+    const isBanter = state.personalityMode === 'BANTER';
+    const lookup = new Set(slipItems.map(i => `${i.match}|||${i.market}`));
+
+    feed.querySelectorAll('.pick-trigger').forEach(el => {
+      const home = el.getAttribute('data-home') || '';
+      const away = el.getAttribute('data-away') || '';
+      const mkt = el.getAttribute('data-market') || '';
+      const oddsVal = parseFloat(el.getAttribute('data-odds') || '0');
+      if (!home || !away || !mkt) return;
+      const isInSlip = lookup.has(`${home} vs ${away}|||${mkt}`);
+      el.classList.toggle('in-slip', isInSlip);
+
+      const badge = el.querySelector('.em-canva-odds-badge');
+      if (badge) {
+        badge.classList.toggle('in-slip', isInSlip);
+        if (oddsVal > 0) {
+          badge.textContent = `@${oddsVal.toFixed(2)}${isInSlip ? (isBanter ? ' Don Enter' : ' Added') : ''}`;
+        }
+      }
+      if (el.classList.contains('em-pred-pill-wrap')) {
+        el.title = isInSlip
+          ? (isBanter ? 'Tap to remove selection from Chop Slip' : 'Click to remove prediction from Bet Slip')
+          : (isBanter ? 'Tap to chop this odds into your slip' : 'Click to add prediction to Bet Slip');
+      }
+    });
+  }
+
+  function addToSlip_saveAndSync() {
+    try {
+      localStorage.setItem('sportymill_betslip', JSON.stringify(state.betslip.items));
+    } catch (e) { }
+    renderSlip();
+    syncCalendarFeedSlipButtons();
+  }
+
   function addToSlip(pick) {
     if (!pick || !pick.match || !pick.market) return false;
 
@@ -8525,26 +8564,18 @@
     if (existingIdx >= 0) {
       // Toggle OFF: remove from slip and revert color
       state.betslip.items.splice(existingIdx, 1);
-      try {
-        localStorage.setItem('sportymill_betslip', JSON.stringify(state.betslip.items));
-      } catch (e) { }
-      renderSlip();
-      renderCalendarMatchesFeed();
+      addToSlip_saveAndSync();
       return false;
     }
 
     if (sameMatchIdx >= 0) {
       // Replace existing market for the same match (accumulator integrity: 1 market per match)
       state.betslip.items[sameMatchIdx] = pick;
-      try {
-        localStorage.setItem('sportymill_betslip', JSON.stringify(state.betslip.items));
-      } catch (e) { }
-      renderSlip();
-      renderCalendarMatchesFeed();
+      addToSlip_saveAndSync();
       return true;
     }
 
-    // Toggle ON: add to slip and turn green
+    // Toggle ON: add to slip and turn green without rebuilding the entire feed
     state.betslip.items.push(pick);
     try {
       localStorage.setItem('sportymill_betslip', JSON.stringify(state.betslip.items));
@@ -8567,8 +8598,7 @@
       }, 250);
     }
 
-    // Re-render feed so the button turns solid green (.in-slip)
-    renderCalendarMatchesFeed();
+    syncCalendarFeedSlipButtons();
     return true;
   }
   window.addToSlip = addToSlip;
@@ -8576,11 +8606,7 @@
   function removeFromSlip(index) {
     if (index >= 0 && index < state.betslip.items.length) {
       state.betslip.items.splice(index, 1);
-      try {
-        localStorage.setItem('sportymill_betslip', JSON.stringify(state.betslip.items));
-      } catch (e) { }
-      renderSlip();
-      renderCalendarMatchesFeed();
+      addToSlip_saveAndSync();
     }
   }
 
@@ -8602,7 +8628,7 @@
       localStorage.removeItem('sportymill_active_slip_code');
     } catch (e) { }
     renderSlip();
-    renderCalendarMatchesFeed();
+    syncCalendarFeedSlipButtons();
   }
 
   function setStake(amount) {
@@ -10484,6 +10510,65 @@
     }
     if (btnCloseSupport && modalSupport) {
       btnCloseSupport.addEventListener('click', () => modalSupport.classList.remove('open'));
+    }
+
+    const supportContactForm = document.getElementById('supportContactForm');
+    if (supportContactForm) {
+      supportContactForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nameEl = document.getElementById('supportName');
+        const emailEl = document.getElementById('supportEmail');
+        const phoneEl = document.getElementById('supportPhone');
+        const msgEl = document.getElementById('supportMessage');
+        const fbEl = document.getElementById('supportFormFeedback');
+        const btnEl = document.getElementById('btnSubmitSupportForm');
+
+        const name = (nameEl?.value || '').trim();
+        const email = (emailEl?.value || '').trim();
+        const phone = (phoneEl?.value || '').trim();
+        const message = (msgEl?.value || '').trim();
+        const phoneDigits = phone.replace(/\D/g, '');
+        const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+        const showFeedback = (txt, isErr) => {
+          if (!fbEl) return;
+          fbEl.style.display = 'block';
+          fbEl.style.background = isErr ? 'rgba(239,68,68,0.14)' : 'rgba(16,185,129,0.14)';
+          fbEl.style.border = isErr ? '1px solid rgba(239,68,68,0.35)' : '1px solid rgba(16,185,129,0.35)';
+          fbEl.style.color = isErr ? '#fca5a5' : '#6ee7b7';
+          fbEl.textContent = txt;
+        };
+
+        if (name.length < 2) return showFeedback('Please enter your full name (at least 2 characters).', true);
+        if (!emailOk) return showFeedback('Please enter a valid email address.', true);
+        if (phoneDigits.length < 7) return showFeedback('Please enter a valid phone number (at least 7 digits).', true);
+        if (message.length < 10) return showFeedback('Please enter a message of at least 10 characters.', true);
+
+        if (btnEl) {
+          btnEl.disabled = true;
+          btnEl.textContent = 'Sending...';
+        }
+        try {
+          const resp = await fetch('/api/support/contact', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, phone, message })
+          });
+          const data = await resp.json().catch(() => ({}));
+          if (!resp.ok) {
+            throw new Error(data.detail || data.message || 'Unable to submit inquiry.');
+          }
+          showFeedback(data.message || `Inquiry received (${data.ticket_id || 'Logged'}). We will reply shortly.`, false);
+          supportContactForm.reset();
+        } catch (err) {
+          showFeedback(err.message || 'Network error while sending inquiry.', true);
+        } finally {
+          if (btnEl) {
+            btnEl.disabled = false;
+            btnEl.textContent = 'Send Support Inquiry';
+          }
+        }
+      });
     }
 
     // Settled Prediction Result Analysis Modal Handlers

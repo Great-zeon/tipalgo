@@ -36,7 +36,7 @@
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet">
 
-  <link rel="stylesheet" href="/static/style.css?v=140">
+  <link rel="stylesheet" href="/static/style.css?v=141">
 </head>
 
 <body class="light-platform">
@@ -494,6 +494,7 @@
             <!-- Matches Feed (Desktop Bet Slip lives in shared persistent workspace rail) -->
             <div class="home-feed-col">
               <div class="calendar-matches-feed" id="calendarMatchesFeed">
+                <!-- Dynamically populated match cards -->
                 <div class="cards-view-container">
                   <div class="skeleton-header-shimmer-wrap"><div class="sk-shimmer sk-title-bar"></div></div>
                   <div class="skeleton-loading-grid">
@@ -2875,13 +2876,31 @@
               true probability exceeds the bookmaker's implied odds. Over a series of wagers, positive expectation
               yields superior long-term returns.</div>
           </div>
-          <div style="background:#0f172a; border:1px solid #1e293b; border-radius:8px; padding:0.85rem;">
-            <div style="font-size:0.84rem; font-weight:700; color:#38bdf8; margin-bottom:0.25rem;">Direct Assistance
-              &amp; Inquiries</div>
-            <div style="font-size:0.76rem; color:#94a3b8; line-height:1.45;">Contact our support team at <a
-                href="mailto:support@sportymill.com"
-                style="color:#10b981; font-weight:700; text-decoration:none;">support@sportymill.com</a>. Our response
-              time is typically under 15 minutes.</div>
+          <div style="background:#0f172a; border:1px solid #1e293b; border-radius:8px; padding:0.95rem;">
+            <div style="font-size:0.86rem; font-weight:700; color:#38bdf8; margin-bottom:0.25rem;">Contact Support Desk</div>
+            <div style="font-size:0.75rem; color:#94a3b8; line-height:1.45; margin-bottom:0.75rem;">Submit an inquiry directly to our engineering &amp; quantitative desk (<a href="mailto:support@sportymill.com" style="color:#10b981; font-weight:700; text-decoration:none;">support@sportymill.com</a>). Response time is typically under 15 minutes.</div>
+            <form id="supportContactForm" novalidate style="display:flex; flex-direction:column; gap:0.65rem;">
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.6rem;">
+                <div>
+                  <label for="supportName" style="display:block; font-size:0.72rem; font-weight:600; color:#cbd5e1; margin-bottom:0.22rem;">Full Name *</label>
+                  <input type="text" id="supportName" name="name" required minlength="2" maxlength="100" placeholder="e.g. Tunde Adeyemi" style="width:100%; padding:0.5rem 0.65rem; background:#020617; border:1px solid #334155; border-radius:6px; color:#f8fafc; font-size:0.8rem;">
+                </div>
+                <div>
+                  <label for="supportPhone" style="display:block; font-size:0.72rem; font-weight:600; color:#cbd5e1; margin-bottom:0.22rem;">Phone Number *</label>
+                  <input type="tel" id="supportPhone" name="phone" required minlength="7" maxlength="25" placeholder="e.g. +234 803 000 0000" style="width:100%; padding:0.5rem 0.65rem; background:#020617; border:1px solid #334155; border-radius:6px; color:#f8fafc; font-size:0.8rem;">
+                </div>
+              </div>
+              <div>
+                <label for="supportEmail" style="display:block; font-size:0.72rem; font-weight:600; color:#cbd5e1; margin-bottom:0.22rem;">Email Address *</label>
+                <input type="email" id="supportEmail" name="email" required maxlength="120" placeholder="you@domain.com" style="width:100%; padding:0.5rem 0.65rem; background:#020617; border:1px solid #334155; border-radius:6px; color:#f8fafc; font-size:0.8rem;">
+              </div>
+              <div>
+                <label for="supportMessage" style="display:block; font-size:0.72rem; font-weight:600; color:#cbd5e1; margin-bottom:0.22rem;">Message *</label>
+                <textarea id="supportMessage" name="message" required minlength="10" maxlength="2000" rows="3" placeholder="Describe your fixture question, slip code, or account inquiry..." style="width:100%; padding:0.5rem 0.65rem; background:#020617; border:1px solid #334155; border-radius:6px; color:#f8fafc; font-size:0.8rem; resize:vertical;"></textarea>
+              </div>
+              <div id="supportFormFeedback" style="display:none; font-size:0.76rem; padding:0.5rem 0.65rem; border-radius:6px;"></div>
+              <button type="submit" id="btnSubmitSupportForm" style="align-self:flex-start; background:#10b981; color:#022c22; font-weight:800; font-size:0.8rem; border:none; border-radius:6px; padding:0.55rem 1.05rem; cursor:pointer;">Send Support Inquiry</button>
+            </form>
           </div>
         </div>
       </div>
@@ -3146,7 +3165,7 @@
       .then(function (data) { if (data) window.__teamForms = data; })
       .catch(function () { });
   </script>
-  <script src="/static/app.js?v=140"></script>
+  <script src="/static/app.js?v=141"></script>
 </body>
 
 </html>

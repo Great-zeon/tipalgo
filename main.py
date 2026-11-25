@@ -39,13 +39,6 @@ from collections import defaultdict, deque
 from functools import wraps
 import hmac
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import StandardScaler
-from sklearn.isotonic import IsotonicRegression
-from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import Pipeline
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, brier_score_loss
 import aiohttp
 from tenacity import retry, stop_after_attempt, wait_exponential
 from fastapi import FastAPI, Request, HTTPException, Depends, Header, BackgroundTasks, Query
@@ -62,7 +55,6 @@ from sqlalchemy import select, and_, or_, func, case, event, text, Text, Float, 
 from sqlalchemy.exc import SQLAlchemyError, DBAPIError
 from contextlib import asynccontextmanager
 import concurrent.futures
-import pandas as pd
 
 # Optional Redis – if not installed or not configured, fallback to in‑memory
 try:
@@ -1381,7 +1373,7 @@ class Playbook:
 
     @staticmethod
     def corners_total_edge(home: Dict, away: Dict, line: float, over_odds=None, under_odds=None):
-        total = home.get("home_corners_avg", 5.0) + away.get("away_corners_avg", 4.5)
+        total = float(home.get("home_corners_avg") or 5.2) + float(away.get("away_corners_avg") or 4.6)
         po = 1 - sum(math.exp(-total) * (total ** k) / math.factorial(k) for k in range(int(line) + 1))
         if over_odds:
             eo = po - 1/over_odds
@@ -1395,7 +1387,7 @@ class Playbook:
 
     @staticmethod
     def cards_total_edge(home: Dict, away: Dict, line: float, over_odds=None, under_odds=None):
-        total = home.get("home_cards_avg", 2.0) + away.get("away_cards_avg", 2.0)
+        total = float(home.get("home_cards_avg") or 2.1) + float(away.get("away_cards_avg") or 2.2)
         po = 1 - sum(math.exp(-total) * (total ** k) / math.factorial(k) for k in range(int(line) + 1))
         if over_odds:
             eo = po - 1/over_odds
@@ -1409,8 +1401,8 @@ class Playbook:
 
     @staticmethod
     def cards_1x2_edge(home: Dict, away: Dict, home_odds: float, draw_odds: float, away_odds: float):
-        hc = home.get("home_cards_avg", 2.0)
-        ac = away.get("away_cards_avg", 2.0)
+        hc = float(home.get("home_cards_avg") or 2.1)
+        ac = float(away.get("away_cards_avg") or 2.2)
         if hc - ac > 1.0:
             prob = 0.55
             edge = prob - 1/home_odds
@@ -1704,16 +1696,26 @@ class OnlineLearningModel:
             'home_goals_for_per_game', 'away_goals_for_per_game',
             'home_goals_against_per_game', 'away_goals_against_per_game'
         ]
-        self.model = RandomForestClassifier(n_estimators=200, max_depth=10, warm_start=True, random_state=42)
-        self.calibrator = IsotonicRegression(out_of_bounds='clip')
-        self.scaler = StandardScaler()
+        self.model = None
+        self.calibrator = None
+        self.scaler = None
         self.is_fitted = False
+
+    def _ensure_estimators(self):
+        if self.model is None:
+            from sklearn.ensemble import RandomForestClassifier
+            from sklearn.preprocessing import StandardScaler
+            from sklearn.isotonic import IsotonicRegression
+            self.model = RandomForestClassifier(n_estimators=200, max_depth=10, warm_start=True, random_state=42)
+            self.calibrator = IsotonicRegression(out_of_bounds='clip')
+            self.scaler = StandardScaler()
 
     async def fit_async(self, X, y):
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, self.fit, X, y)
 
     def fit(self, X, y):
+        self._ensure_estimators()
         self.scaler.fit(X)
         Xs = self.scaler.transform(X)
         self.model.fit(Xs, y)
@@ -1943,6 +1945,7 @@ class AdvancedPredictor:
                     X.append([raw[key]])
                     y.append(1.0 if actual[key] else 0.0)
             if len(X) >= 20:
+                from sklearn.linear_model import LogisticRegression
                 model = LogisticRegression()
                 model.fit(np.array(X), np.array(y))
                 self.cal_models[key] = model
@@ -2113,6 +2116,9 @@ class ScreenerModel:
             return
 
         X = np.array(X_list); y = np.array(y_list)
+        from sklearn.pipeline import Pipeline
+        from sklearn.preprocessing import StandardScaler
+        from sklearn.linear_model import LogisticRegression
 
         self.pipeline = Pipeline([
             ('scaler', StandardScaler()),
@@ -3221,10 +3227,12 @@ async def generate_double_chance_tip(db, predictor, home_team, away_team, league
             f"Edge {best_edge*100:.1f}% < {min_edge*100:.1f}%",
             sub_strategies_detected=sub_result['labels'],
             dual_confirmation=sub_result['dual_confirmation'])
+    dc_1x_odds = _derive_dc_odds_from_1x2(home_odds, draw_odds)
+    dc_x2_odds = _derive_dc_odds_from_1x2(away_odds, draw_odds)
     if edge_1x >= edge_x2:
         sel = "1X (Home or Draw)"; prob = adj_1x
-        odds_approx = 1 / implied_1x if implied_1x > 0 else 1.5
-        edge = edge_1x
+        odds_approx = dc_1x_odds
+        edge = prob - (1.0 / odds_approx)
         confidence = conf_1x if conf_1x != "LOW" else ("VERY HIGH" if sub_result['dual_confirmation'] else "MEDIUM")
         drivers = factors_1x
         for s in sub_result['sub_strategies']:
@@ -3232,8 +3240,8 @@ async def generate_double_chance_tip(db, predictor, home_team, away_team, league
         if sub_result['dual_confirmation']: drivers.append("⭐ DUAL CONFIRMATION")
     else:
         sel = "X2 (Away or Draw)"; prob = adj_x2
-        odds_approx = 1 / implied_x2 if implied_x2 > 0 else 1.5
-        edge = edge_x2
+        odds_approx = dc_x2_odds
+        edge = prob - (1.0 / odds_approx)
         confidence = conf_x2 if conf_x2 != "LOW" else ("VERY HIGH" if sub_result['dual_confirmation'] else "MEDIUM")
         drivers = factors_x2
         for s in sub_result['sub_strategies']:
@@ -3382,9 +3390,16 @@ async def generate_win_to_nil_tip(db, predictor, home_team, away_team, league_id
 async def generate_correct_score_tip(db, predictor, home_team, away_team, league_id, bankroll, personality_mode="PROFESSIONAL", locale="NG"):
     probs = await predictor.get_probabilities(db, home_team, away_team, league_id)
     top3 = Playbook.correct_score_top3(probs["expected_goals"]["home"], probs["expected_goals"]["away"])
-    candidates = [{"score": s, "selection": s, "probability": round(p*100, 1)} for s, p in top3]
-    return ResponseBuilder.success("correct_score", f"{home_team} vs {away_team}", top3[0][0], top3[0][1] * 100, 0, 0, 0, "N/A",
-                                   ExplanationEngine.build("Modal Scoreline", [f"Top Score: {top3[0][0]}", f"Prob: {top3[0][1]*100:.1f}%"], [], personality_mode=personality_mode, locale=locale, scenario="high_edge"), candidates=candidates)
+    candidates = [
+        {"score": s, "selection": s, "probability": round(p*100, 1), "odds": round(max(4.20, min(26.0, 0.92 / max(0.03, p))), 2)}
+        for s, p in top3
+    ]
+    top_prob = float(top3[0][1])
+    top_odds = candidates[0]["odds"]
+    top_edge = (top_prob - (1.0 / top_odds)) * 100.0
+    stake = _calculate_kelly_stake(top_prob, top_odds, bankroll)
+    return ResponseBuilder.success("correct_score", f"{home_team} vs {away_team}", top3[0][0], top_prob * 100, top_edge, top_odds, stake, "MEDIUM",
+                                   ExplanationEngine.build("Modal Scoreline", [f"Top Score: {top3[0][0]}", f"Prob: {top_prob*100:.1f}%", f"Fair Odds: @{top_odds}"], [], personality_mode=personality_mode, locale=locale, scenario="high_edge"), candidates=candidates)
 
 @with_recent_matches
 async def generate_corners_total_tip(db, predictor, home_team, away_team, league_id, line, over_odds=None, under_odds=None, bankroll=None, personality_mode="PROFESSIONAL", locale="NG"):
@@ -3395,14 +3410,17 @@ async def generate_corners_total_tip(db, predictor, home_team, away_team, league
     away_s = tbl.get(away_res, {}) if away_res else {}
     if not home_s or not away_s:
         raise InsufficientDataError(f"Insufficient verified historical data available for fixture ({home_team} vs {away_team}) in league {league_id}.")
-    prob, edge, side = Playbook.corners_total_edge(home_s, away_s, line, over_odds, under_odds)
+    eff_over = over_odds if (over_odds and over_odds > 1.0) else (1.88 if not under_odds else None)
+    eff_under = under_odds if (under_odds and under_odds > 1.0) else (1.92 if not over_odds else None)
+    prob, edge, side = Playbook.corners_total_edge(home_s, away_s, line, eff_over, eff_under)
     if prob is None:
         return ResponseBuilder.failure("corners_total", f"{home_team} vs {away_team}", "No edge")
-    odds = over_odds if side == "over" else under_odds
+    odds = eff_over if side == "over" else eff_under
     stake = _calculate_kelly_stake(prob, odds, bankroll)
+    total_exp = float(home_s.get('home_corners_avg') or 5.2) + float(away_s.get('away_corners_avg') or 4.6)
     return ResponseBuilder.success("corners_total", f"{home_team} vs {away_team}", f"Corners {side} {line}",
                                    prob*100, edge*100, odds, stake, "MEDIUM", 
-                                   ExplanationEngine.build(f"Corners {side} {line}", [f"Total: {home_s.get('home_corners_avg',5)+away_s.get('away_corners_avg',4.5):.2f}", f"Edge: {edge*100:.1f}%"], [], personality_mode=personality_mode, locale=locale, scenario=get_scenario(edge, prob)))
+                                   ExplanationEngine.build(f"Corners {side} {line}", [f"Total: {total_exp:.2f}", f"Edge: {edge*100:.1f}%"], [], personality_mode=personality_mode, locale=locale, scenario=get_scenario(edge, prob)))
 
 @with_recent_matches
 async def generate_corners_1x2_tip(db, predictor, home_team, away_team, league_id, bankroll=None, personality_mode="PROFESSIONAL", locale="NG"):
@@ -3413,12 +3431,22 @@ async def generate_corners_1x2_tip(db, predictor, home_team, away_team, league_i
     away_s = tbl.get(away_res, {}) if away_res else {}
     if not home_s or not away_s:
         raise InsufficientDataError(f"Insufficient verified historical data available for fixture ({home_team} vs {away_team}) in league {league_id}.")
-    hc = home_s.get("home_corners_avg", 5.0)
-    ac = away_s.get("away_corners_avg", 4.5)
-    if hc > ac: winner = "home"
-    elif ac > hc: winner = "away"
-    else: winner = "draw"
-    return ResponseBuilder.success("corners_1x2", f"{home_team} vs {away_team}", f"Corner winner: {winner}", 0, 0, 0, 0, "N/A", 
+    hc = float(home_s.get("home_corners_avg") or 5.2)
+    ac = float(away_s.get("away_corners_avg") or 4.6)
+    tot_c = max(0.5, hc + ac)
+    if hc > ac:
+        winner = "home"
+        c_prob = min(0.78, max(0.42, hc / tot_c))
+    elif ac > hc:
+        winner = "away"
+        c_prob = min(0.75, max(0.40, ac / tot_c))
+    else:
+        winner = "draw"
+        c_prob = 0.30
+    c_odds = round(max(1.30, 1.0 / (c_prob * 0.94)), 2)
+    c_edge = (c_prob - (1.0 / c_odds)) * 100.0
+    stake = _calculate_kelly_stake(c_prob, c_odds, bankroll)
+    return ResponseBuilder.success("corners_1x2", f"{home_team} vs {away_team}", f"Corner winner: {winner}", c_prob*100, c_edge, c_odds, stake, "MEDIUM", 
                                    ExplanationEngine.build("Wide attack", [f"Home corners: {hc}", f"Away corners: {ac}"], [], personality_mode=personality_mode, locale=locale, scenario="coin_flip"))
 
 @with_recent_matches
@@ -3430,14 +3458,17 @@ async def generate_cards_total_tip(db, predictor, home_team, away_team, league_i
     away_s = tbl.get(away_res, {}) if away_res else {}
     if not home_s or not away_s:
         raise InsufficientDataError(f"Insufficient verified historical data available for fixture ({home_team} vs {away_team}) in league {league_id}.")
-    prob, edge, side = Playbook.cards_total_edge(home_s, away_s, line, over_odds, under_odds)
+    eff_over = over_odds if (over_odds and over_odds > 1.0) else (1.85 if not under_odds else None)
+    eff_under = under_odds if (under_odds and under_odds > 1.0) else (1.92 if not over_odds else None)
+    prob, edge, side = Playbook.cards_total_edge(home_s, away_s, line, eff_over, eff_under)
     if prob is None:
         return ResponseBuilder.failure("cards_total", f"{home_team} vs {away_team}", "No edge")
-    odds = over_odds if side == "over" else under_odds
+    odds = eff_over if side == "over" else eff_under
     stake = _calculate_kelly_stake(prob, odds, bankroll)
+    total_c = float(home_s.get('home_cards_avg') or 2.1) + float(away_s.get('away_cards_avg') or 2.2)
     return ResponseBuilder.success("cards_total", f"{home_team} vs {away_team}", f"Cards {side} {line}",
                                    prob*100, edge*100, odds, stake, "MEDIUM", 
-                                   ExplanationEngine.build(f"Cards {side} {line}", [f"Total: {home_s.get('home_cards_avg',2)+away_s.get('away_cards_avg',2):.2f}", f"Edge: {edge*100:.1f}%"], [], personality_mode=personality_mode, locale=locale, scenario=get_scenario(edge, prob)))
+                                   ExplanationEngine.build(f"Cards {side} {line}", [f"Total: {total_c:.2f}", f"Edge: {edge*100:.1f}%"], [], personality_mode=personality_mode, locale=locale, scenario=get_scenario(edge, prob)))
 
 @with_recent_matches
 async def generate_cards_1x2_tip(db, predictor, home_team, away_team, league_id, home_odds, draw_odds, away_odds, bankroll=None, personality_mode="PROFESSIONAL", locale="NG"):
@@ -3455,7 +3486,7 @@ async def generate_cards_1x2_tip(db, predictor, home_team, away_team, league_id,
     stake = _calculate_kelly_stake(prob, odds, bankroll)
     return ResponseBuilder.success("cards_1x2", f"{home_team} vs {away_team}", f"Cards {sel} win",
                                    prob*100, edge*100, odds, stake, "MEDIUM", 
-                                   ExplanationEngine.build(f"Cards {sel} win", [f"Home cards: {home_s.get('home_cards_avg',2)}", f"Away cards: {away_s.get('away_cards_avg',2)}", f"Edge: {edge*100:.1f}%"], [], personality_mode=personality_mode, locale=locale, scenario=get_scenario(edge, prob)))
+                                   ExplanationEngine.build(f"Cards {sel} win", [f"Home cards: {home_s.get('home_cards_avg') or 2.1}", f"Away cards: {away_s.get('away_cards_avg') or 2.2}", f"Edge: {edge*100:.1f}%"], [], personality_mode=personality_mode, locale=locale, scenario=get_scenario(edge, prob)))
 
 @with_recent_matches
 async def generate_goal_both_halves_tip(db, predictor, home_team, away_team, league_id, odds, bankroll, personality_mode="PROFESSIONAL", locale="NG"):
@@ -3473,10 +3504,12 @@ async def generate_goal_both_halves_tip(db, predictor, home_team, away_team, lea
 async def generate_team_total_tip(db, predictor, home_team, away_team, league_id, target_team, venue, line, over_odds=None, under_odds=None, bankroll=None, personality_mode="PROFESSIONAL", locale="NG"):
     probs = await predictor.get_probabilities(db, home_team, away_team, league_id)
     team_xg = probs["expected_goals"]["home"] if venue == "home" else probs["expected_goals"]["away"]
-    prob, edge, side = Playbook.team_total_edge(team_xg, line, over_odds, under_odds)
+    eff_over = over_odds if (over_odds and over_odds > 1.0) else (1.88 if not under_odds else None)
+    eff_under = under_odds if (under_odds and under_odds > 1.0) else (1.92 if not over_odds else None)
+    prob, edge, side = Playbook.team_total_edge(team_xg, line, eff_over, eff_under)
     if prob is None:
         return ResponseBuilder.failure("team_total", f"{home_team} vs {away_team}", "No edge")
-    odds = over_odds if side == "over" else under_odds
+    odds = eff_over if side == "over" else eff_under
     stake = _calculate_kelly_stake(prob, odds, bankroll)
     return ResponseBuilder.success("team_total", f"{home_team} vs {away_team}", f"{target_team} Total Goals {side} {line}",
                                    prob*100, edge*100, odds, stake, "MEDIUM", 
@@ -3726,11 +3759,17 @@ async def generate_sure_bet_tip(db, predictor, home_team, away_team, league_id,
     all_probs = probs_data.get("all_probs", {})
     if not all_probs:
         return ResponseBuilder.failure("sure_bet", f"{home_team} vs {away_team}", "Could not compute probabilities")
+    effective_market_odds = dict(market_odds or {})
+    if "home_win" in effective_market_odds and "draw" in effective_market_odds and "double_chance_1x" not in effective_market_odds:
+        effective_market_odds["double_chance_1x"] = _derive_dc_odds_from_1x2(effective_market_odds["home_win"], effective_market_odds["draw"])
+    if "away_win" in effective_market_odds and "draw" in effective_market_odds and "double_chance_x2" not in effective_market_odds:
+        effective_market_odds["double_chance_x2"] = _derive_dc_odds_from_1x2(effective_market_odds["away_win"], effective_market_odds["draw"])
+
     candidates = []
-    for market, odds in market_odds.items():
+    for market, odds in effective_market_odds.items():
         if market not in all_probs:
             continue
-        if not (1.10 <= odds <= 1.35):
+        if not (1.06 <= odds <= 1.65):
             continue
         model_prob = all_probs[market]
         implied = 1.0 / odds
@@ -3906,14 +3945,14 @@ async def generate_strong_home_dc_tip(db, predictor, home_team, away_team, leagu
         return ResponseBuilder.failure("strong_home_dc", f"{home_team} vs {away_team}", 
             "Does not meet Strong Home DC criteria")
 
-    implied_1x = 1/home_odds + 1/draw_odds
-    edge = adj_1x - implied_1x
+    dc_1x_odds = _derive_dc_odds_from_1x2(home_odds, draw_odds)
+    edge = adj_1x - (1.0 / dc_1x_odds)
     
     if edge < 0.02:
         return ResponseBuilder.failure("strong_home_dc", f"{home_team} vs {away_team}", 
             f"Edge {edge*100:.1f}% < 2%")
         
-    stake = _calculate_kelly_stake(adj_1x, 1/implied_1x, bankroll)
+    stake = _calculate_kelly_stake(adj_1x, dc_1x_odds, bankroll)
     
     explanation = ExplanationEngine.build(
         f"Strong Home DC: {adj_1x*100:.1f}%",
@@ -3923,7 +3962,7 @@ async def generate_strong_home_dc_tip(db, predictor, home_team, away_team, leagu
         scenario=get_scenario(edge, adj_1x, 0)
     )
     return ResponseBuilder.success("strong_home_dc", f"{home_team} vs {away_team}", f"{home_team} or Draw (1X)",
-                                   adj_1x*100, edge*100, 1/implied_1x, stake, conf, explanation)
+                                   adj_1x*100, edge*100, dc_1x_odds, stake, conf, explanation)
 
 @with_recent_matches
 async def generate_team_to_score_tip(db, predictor, home_team, away_team, league_id, home_odds, away_odds, bankroll, personality_mode="PROFESSIONAL", locale="NG"):
@@ -3952,14 +3991,16 @@ async def generate_team_to_score_tip(db, predictor, home_team, away_team, league
         analysis = _analyze_scoring(team, opponent, target_is_home, team_info, opponent_info,
                                     team_odds_val, opponent_odds_val, h2h_data, match_data, target_is_home)
         if analysis['confidence']['qualified']:
-            stake = _calculate_kelly_stake(analysis['confidence']['percent']/100, team_odds_val, bankroll)
+            p_score = max(0.35, min(0.92, analysis['confidence']['percent'] / 100.0))
+            tts_odds = round(max(1.08, min(2.40, 1.0 / (p_score * 0.94))), 2)
+            stake = _calculate_kelly_stake(p_score, tts_odds, bankroll)
             candidates.append({
                 "team": team,
                 "selection": f"{team} to Score",
                 "confidence_percent": analysis['confidence']['percent'],
                 "confidence_level": analysis['confidence']['level'],
                 "probability": analysis['confidence']['percent'],
-                "odds": team_odds_val,
+                "odds": tts_odds,
                 "stake_suggestion": f"₦{stake:,.2f}" if stake > 0 else "N/A",
                 "criteria_breakdown": analysis['criteria'],
                 "h2h_summary": f"Scored in {analysis['h2h_scored']}/{analysis['h2h_total']} recent H2H",
@@ -4402,24 +4443,28 @@ async def get_all_candidate_bets(db: AsyncSession, predictor: PredictorService,
     if cached and time.time() - cached['ts'] < _CANDIDATE_CACHE_TTL:
         return cached['data']
 
-    # API-ONLY: Retrieve authentic upcoming fixtures directly from provider feed
-    from football_ingestion import FootballDataService, LiveFixtureItem
+    # API-ONLY: Retrieve authentic upcoming fixtures for Lagos today & tomorrow
+    from football_ingestion import FootballDataService
     service = FootballDataService(api_key=config.FOOTBALL_API_KEY, base_url=config.FOOTBALL_API_BASE)
     lagos_now = now_lagos()
     today_str = lagos_now.strftime("%Y-%m-%d")
     tomorrow_str = (lagos_now + timedelta(days=1)).strftime("%Y-%m-%d")
 
-    raw_matches = []
-    res_today = await _fetch_date_with_raw_cache(service, today_str)
-    if res_today.success and res_today.matches:
-        raw_matches.extend(res_today.matches)
-    res_tomorrow = await _fetch_date_with_raw_cache(service, tomorrow_str)
-    if res_tomorrow.success and res_tomorrow.matches:
-        raw_matches.extend(res_tomorrow.matches)
-
-    fixtures = [LiveFixtureItem(m, provider=service.provider) for m in raw_matches]
+    by_ext: Dict[str, Any] = {}
+    fixtures_extra: List[Any] = []
+    for target_dt in (today_str, tomorrow_str):
+        _p_res, day_items = await _fetch_fixtures_for_lagos_date(service, target_dt)
+        for it in day_items:
+            ext_id = str(getattr(it, "external_id", "") or "").strip()
+            if ext_id:
+                by_ext[ext_id] = it
+            else:
+                fixtures_extra.append(it)
+    fixtures = list(by_ext.values()) + fixtures_extra
     all_bets = []
     for fixture in fixtures:
+        if not fixture.match_date:
+            continue
         # Skip finished or cancelled matches
         if str(fixture.status).lower() in ["finished", "ft", "aet", "cancelled", "postponed"]:
             continue
@@ -5044,12 +5089,6 @@ async def lifespan(app: FastAPI):
             try:
                 await init_db()
                 logger.info("Database initialized successfully")
-                try:
-                    async with AsyncSessionLocal() as session:
-                        await ensure_whitelisted_users(session)
-                        await purge_synthetic_records_on_startup(session)
-                except Exception as e:
-                    logger.warning(f"Whitelisted user and startup purge setup notice: {e}")
                 break
             except Exception as e:
                 retries -= 1
@@ -5067,16 +5106,10 @@ async def lifespan(app: FastAPI):
     predictor = PredictorService()
     app.state.predictor = predictor
 
-    # [VALUE SCREENER ADDITION] – initialize screener model
+    # [VALUE SCREENER ADDITION] – initialize lightweight handle; load/train asynchronously post-bind
     screener = ScreenerModel()
-    if getattr(app.state, "db_ready", True) and not screener.load():
-        try:
-            async with AsyncSessionLocal() as session:
-                await screener.train_from_db(session)
-        except Exception as e:
-            logger.error(f"Screener training failed: {e}")
     app.state.screener = screener
-    logger.info("Screener model initialized")
+    logger.info("Screener model handle ready (deferred disk load)")
 
     if os.getenv("SENTRY_DSN") and sentry_sdk:
         sentry_sdk.init(
@@ -5087,15 +5120,20 @@ async def lifespan(app: FastAPI):
 
     logger.info("SportyMill v21 started – Paid-only mode with Value Screener")
 
-    # Background cache pre-warm for default date & initial resources so user gets instant sub-10ms response
+    # Non-blocking background maintenance, whitelisted users, screener load & cache pre-warm after server bind
     async def _prewarm_initial_cache():
         try:
             async with AsyncSessionLocal() as session:
-                predictor = PredictorService()
+                if getattr(app.state, "db_ready", True):
+                    await ensure_whitelisted_users(session)
+                    await purge_synthetic_records_on_startup(session)
+                    if not screener.load():
+                        await screener.train_from_db(session)
+                predictor_bg = PredictorService()
                 today_str = now_lagos().strftime("%Y-%m-%d")
-                await get_calendar_daily_slate(date=today_str, endpoint="all", db=session, predictor=predictor)
+                await get_calendar_daily_slate(date=today_str, endpoint="all", db=session, predictor=predictor_bg)
                 await get_leagues_and_teams(db=session)
-                await get_banker_slate(db=session, predictor=predictor)
+                await get_banker_slate(db=session, predictor=predictor_bg)
                 logger.info(f"Startup cache successfully pre-warmed for today ({today_str}), leagues, and bankers")
         except Exception as e:
             logger.warning(f"Startup cache pre-warm error: {e}")
@@ -5509,23 +5547,51 @@ async def enrich_with_total_predictions(response: dict, endpoint: str, db: Async
             else:
                 s_class = "unverified"
 
-            pred_log = PredictionLog(
-                prediction_id=str(uuid.uuid4()),
-                endpoint=endpoint,
-                home_team=h_team or "Home",
-                away_team=a_team or "Away",
-                match_date=_naive_utc_now(),
-                fixture_json=json.dumps({"selection": response.get("selection")}),
-                raw_probs_json=json.dumps({"probability": response.get("probability")}),
-                market_probs_json=json.dumps({"odds": response.get("odds")}),
-                confidence_percent=float(response.get("probability") or 50.0),
-                source_classification=s_class,
-                provider_fixture_id=prov_fid,
-                model_version="v2.1"
-            )
-            db.add(pred_log)
-            await db.commit()
-            prediction_count_cache.clear()
+            # Prediction Lock Guard: if a prediction for this fixture & endpoint is already locked,
+            # never create a mutated duplicate or alter its pre-match odds/selection/probability.
+            locked_existing = None
+            if prov_fid_str:
+                existing_q = await db.execute(
+                    select(PredictionLog).where(
+                        and_(
+                            PredictionLog.provider_fixture_id == prov_fid_str,
+                            PredictionLog.endpoint == endpoint,
+                        )
+                    ).order_by(PredictionLog.created_at.asc(), PredictionLog.id.asc()).limit(1)
+                )
+                locked_existing = existing_q.scalar_one_or_none()
+
+            if locked_existing is not None:
+                response["prediction_locked"] = True
+                try:
+                    fx_m = json.loads(locked_existing.fixture_json) if locked_existing.fixture_json else {}
+                    mp_m = json.loads(locked_existing.market_probs_json) if locked_existing.market_probs_json else {}
+                    if fx_m.get("selection"):
+                        response["selection"] = fx_m["selection"]
+                    if mp_m.get("odds"):
+                        response["odds"] = float(mp_m["odds"])
+                    if locked_existing.confidence_percent is not None:
+                        response["probability"] = round(float(locked_existing.confidence_percent), 1)
+                except Exception:
+                    pass
+            elif s_class != "unverified":
+                pred_log = PredictionLog(
+                    prediction_id=str(uuid.uuid4()),
+                    endpoint=endpoint,
+                    home_team=h_team or "Home",
+                    away_team=a_team or "Away",
+                    match_date=_naive_utc_now(),
+                    fixture_json=json.dumps({"selection": response.get("selection")}),
+                    raw_probs_json=json.dumps({"probability": response.get("probability")}),
+                    market_probs_json=json.dumps({"odds": response.get("odds")}),
+                    confidence_percent=float(response.get("probability") or 50.0),
+                    source_classification=s_class,
+                    provider_fixture_id=prov_fid,
+                    model_version="v2.1"
+                )
+                db.add(pred_log)
+                await db.commit()
+                prediction_count_cache.clear()
     except Exception as e:
         logger.debug(f"Prediction log bypass: {e}")
 
@@ -6573,7 +6639,7 @@ async def _settle_pending_predictions_impl(db: AsyncSession) -> int:
                     prov_res = await _fetch_date_with_raw_cache(service, dt_sync)
                     if prov_res.success and prov_res.matches:
                         for raw_m in prov_res.matches:
-                            item = LiveFixtureItem(raw_m, provider=service.provider)
+                            item = LiveFixtureItem(raw_m, provider=service.provider, fallback_date=dt_sync)
                             st_lower = str(item.status or "").lower()
                             if st_lower in ["finished", "ft", "aet", "pen"] and item.home_score is not None and item.away_score is not None:
                                 if item.external_id:
@@ -6712,7 +6778,7 @@ async def get_predictions_history(
                             prov_res = await _fetch_date_with_raw_cache(service, dt_s)
                             if prov_res.success and prov_res.matches:
                                 for raw_m in prov_res.matches[:35]:
-                                    fetched_items.append(LiveFixtureItem(raw_m, provider=service.provider))
+                                    fetched_items.append(LiveFixtureItem(raw_m, provider=service.provider, fallback_date=dt_s))
                         if fetched_items:
                             await format_fixture_cards_helper(fetched_items[:60], db, predictor, "all")
                     await _settle_pending_predictions_impl(db)
@@ -7063,20 +7129,45 @@ def resolve_fixture_lifecycle_state(
     return raw_status or "scheduled"
 
 
+def _derive_dc_odds_from_1x2(leg_odds: float, draw_odds: float) -> float:
+    """Derive realistic bookmaker Double Chance odds (1X or X2) from 1X2 odds."""
+    try:
+        l_o = max(1.05, float(leg_odds or 2.10))
+        d_o = max(1.20, float(draw_odds or 3.25))
+    except (TypeError, ValueError):
+        return 1.32
+    implied_sum = (1.0 / l_o) + (1.0 / d_o)
+    if implied_sum <= 0:
+        return 1.32
+    # Standard 1X2 overround ~1.06 -> DC overround ~1.03 gives ~1.12 when Home=1.43, Draw=4.50
+    raw_dc = 1.03 / implied_sum if implied_sum < 0.98 else (1.0 / (implied_sum * 0.94))
+    upper_bound = max(1.05, min(l_o, d_o) - 0.04)
+    return round(max(1.05, min(upper_bound, raw_dc)), 2)
+
+
 async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: PredictorService, endpoint: Optional[str] = "all"):
     endpoint_counts = {ep["id"]: 0 for ep in ALL_33_ENDPOINTS_METADATA}
     match_cards = []
     ep_filter = (endpoint or "all").strip().lower()
 
-    # High-performance batch lookup for team league form (eliminates sequential N*4 table scans)
+    # Batch lookups for league table overall form, independent venue forms (General/Home/Away), and locked pre-match predictions
     all_team_names = set()
+    all_ext_ids = []
     for m in fixtures:
         if m.home_team:
             all_team_names.add(m.home_team)
         if m.away_team:
             all_team_names.add(m.away_team)
+        if getattr(m, "external_id", None):
+            all_ext_ids.append(str(m.external_id).strip())
 
+    all_team_lower_set = {t.lower().strip() for t in all_team_names if t}
     team_league_map = {}
+    team_general_forms: Dict[str, List[str]] = {}
+    team_home_forms: Dict[str, List[str]] = {}
+    team_away_forms: Dict[str, List[str]] = {}
+    locked_preds_map: Dict[str, PredictionLog] = {}
+
     if all_team_names:
         try:
             lt_res = await db.execute(
@@ -7087,6 +7178,68 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
                     team_league_map[lt_row.team_name.lower().strip()] = lt_row.last_5_form
         except Exception as e:
             logger.warning(f"Batch league table form query notice: {e}")
+
+        try:
+            hm_res = await db.execute(
+                select(
+                    HistoricalMatch.home_team,
+                    HistoricalMatch.away_team,
+                    HistoricalMatch.home_score,
+                    HistoricalMatch.away_score,
+                )
+                .where(
+                    and_(
+                        or_(
+                            HistoricalMatch.home_team.in_(list(all_team_names)),
+                            HistoricalMatch.away_team.in_(list(all_team_names)),
+                        ),
+                        HistoricalMatch.home_score.isnot(None),
+                        HistoricalMatch.away_score.isnot(None),
+                        or_(
+                            HistoricalMatch.source_classification.is_(None),
+                            HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached", "live_recorded"]),
+                        ),
+                    )
+                )
+                .order_by(HistoricalMatch.match_date.desc())
+            )
+            for ht, at, hs_val, as_val in hm_res.fetchall():
+                if hs_val is None or as_val is None:
+                    continue
+                h_k = str(ht or "").lower().strip()
+                a_k = str(at or "").lower().strip()
+                if hs_val > as_val:
+                    h_ch, a_ch = "W", "L"
+                elif hs_val < as_val:
+                    h_ch, a_ch = "L", "W"
+                else:
+                    h_ch, a_ch = "D", "D"
+                if h_k and h_k in all_team_lower_set:
+                    if len(team_general_forms.get(h_k, [])) < 5:
+                        team_general_forms.setdefault(h_k, []).append(h_ch)
+                    if len(team_home_forms.get(h_k, [])) < 5:
+                        team_home_forms.setdefault(h_k, []).append(h_ch)
+                if a_k and a_k in all_team_lower_set:
+                    if len(team_general_forms.get(a_k, [])) < 5:
+                        team_general_forms.setdefault(a_k, []).append(a_ch)
+                    if len(team_away_forms.get(a_k, [])) < 5:
+                        team_away_forms.setdefault(a_k, []).append(a_ch)
+        except Exception as e:
+            logger.warning(f"Batch historical venue form query notice: {e}")
+
+    if all_ext_ids:
+        try:
+            lock_res = await db.execute(
+                select(PredictionLog)
+                .where(PredictionLog.provider_fixture_id.in_(list(set(all_ext_ids))))
+                .order_by(PredictionLog.created_at.asc(), PredictionLog.id.asc())
+            )
+            for prow in lock_res.scalars().all():
+                pk = str(prow.provider_fixture_id or "").strip()
+                if pk and pk not in locked_preds_map:
+                    locked_preds_map[pk] = prow
+        except Exception as e:
+            logger.warning(f"Batch prediction lock lookup notice: {e}")
     
     for m in fixtures:
         if m.external_id and (m.external_id.startswith("SYN-") or m.external_id.startswith("auto_")):
@@ -7127,6 +7280,7 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
             "match_date": getattr(m, "match_date", None),
             "status": getattr(m, "status", None),
             "provider_status": getattr(m, "provider_status", None),
+            "provider_display_status": getattr(m, "provider_display_status", None),
             "provider_updated_at": getattr(m, "provider_updated_at", None),
             "synced_at": getattr(m, "synced_at", None),
             "source_classification": getattr(m, "source_classification", None),
@@ -7324,15 +7478,55 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
         o15_market_odds = round(max(1.18, 1.0 / (max(0.05, o15_p) * 0.94)), 2)
         o35_market_odds = round(max(1.95, 1.0 / (max(0.05, o35_p) * 0.92)), 2)
         btts_no_market_odds = round(max(1.55, 1.0 / (max(0.05, btts_n) * 0.92)), 2)
+        dc_1x_odds = _derive_dc_odds_from_1x2(m_home_odds, m_draw_odds)
+        dc_x2_odds = _derive_dc_odds_from_1x2(m_away_odds, m_draw_odds)
 
         if home_prob >= away_prob:
             dc_label = f"{m.home_team} or Draw (1X)"
             dc_market = "1X (Home or Draw)"
-            dc_odds = round(max(1.14, 1.0 / (max(0.05, dc_home_p) * 0.94)), 2)
+            dc_odds = dc_1x_odds
         else:
             dc_label = f"{m.away_team} or Draw (X2)"
             dc_market = "X2 (Away or Draw)"
-            dc_odds = round(max(1.14, 1.0 / (max(0.05, dc_away_p) * 0.94)), 2)
+            dc_odds = dc_x2_odds
+
+        corners_tot_prob = min(0.88, max(0.35, 1.0 - sum(math.exp(-(hc + ac)) * ((hc + ac) ** k) / math.factorial(k) for k in range(10))))
+        corners_tot_odds = round(max(1.30, 1.0 / (corners_tot_prob * 0.94)), 2)
+        corners_1x2_prob = min(0.82, max(0.40, max(hc, ac) / max(0.5, hc + ac)))
+        corners_1x2_odds = round(max(1.30, 1.0 / (corners_1x2_prob * 0.94)), 2)
+        cards_tot_prob = min(0.86, max(0.35, 1.0 - sum(math.exp(-(h_cards + a_cards)) * ((h_cards + a_cards) ** k) / math.factorial(k) for k in range(4))))
+        cards_tot_odds = round(max(1.35, 1.0 / (cards_tot_prob * 0.94)), 2)
+        cards_1x2_prob = min(0.80, max(0.40, max(h_cards, a_cards) / max(0.5, h_cards + a_cards)))
+        cards_1x2_odds = round(max(1.35, 1.0 / (cards_1x2_prob * 0.94)), 2)
+
+        away_tts_prob = max(0.28, min(0.90, 1.0 - float(all_p.get("home_clean_sheet", 0.35))))
+        home_tts_prob = max(0.32, min(0.92, 1.0 - math.exp(-(0.7 + home_prob * 1.45))))
+        tts_target_home = home_tts_prob >= away_tts_prob
+        tts_team_lbl = m.home_team if tts_target_home else m.away_team
+        tts_prob_val = home_tts_prob if tts_target_home else away_tts_prob
+        tts_market_odds = round(max(1.08, min(2.40, 1.0 / (tts_prob_val * 0.94))), 2)
+
+        exp_goals_dict = probs.get("expected_goals", {}) if isinstance(probs, dict) else {}
+        lam_h_val = float(exp_goals_dict.get("home") or (0.75 + home_prob * 1.45))
+        lam_a_val = float(exp_goals_dict.get("away") or (0.65 + away_prob * 1.35))
+        cs_top = Playbook.correct_score_top3(lam_h_val, lam_a_val)
+        cs_score_lbl = cs_top[0][0] if cs_top else "1-1"
+        cs_prob_val = float(cs_top[0][1]) if cs_top else 0.14
+        cs_market_odds = round(max(4.20, min(26.0, 0.92 / max(0.03, cs_prob_val))), 2)
+
+        ht_h_p = round(home_prob * 0.85, 3)
+        ht_a_p = round(away_prob * 0.85, 3)
+        ht_d_p = round(max(0.20, 1.0 - ht_h_p - ht_a_p), 3)
+        ht_probs = {"home": ht_h_p, "draw": ht_d_p, "away": ht_a_p}
+        ht_best_key = max(("home", "draw", "away"), key=lambda k: ht_probs[k])
+        ht_best_prob = max(0.25, min(0.75, float(ht_probs[ht_best_key])))
+        ht_best_odds = round(max(1.45, 1.0 / (ht_best_prob * 0.93)), 2)
+        ht_best_lbl = f"HT {m.home_team if ht_best_key == 'home' else (m.away_team if ht_best_key == 'away' else 'Draw')}"
+
+        trap_target_home = (m_away_odds < m_home_odds and away_prob < 0.45) or (home_edge >= away_edge)
+        trap_lbl = f"Underdog Trap: {m.home_team if trap_target_home else m.away_team}"
+        trap_prob_val = home_prob if trap_target_home else away_prob
+        trap_odds_val = round(m_home_odds if trap_target_home else m_away_odds, 2)
 
         dc_edge = round(dc_win_p - (1.0 / dc_odds), 3)
         o15_edge = round(o15_p - (1.0 / o15_market_odds), 3)
@@ -7451,7 +7645,7 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
             },
             "strong-home-dc": {
                 "label": f"{m.home_team} or Draw (1X)",
-                "odds": dc_odds,
+                "odds": dc_1x_odds,
                 "prob_pct": round(dc_home_p * 100),
                 "market": "1X (Home or Draw)",
                 "endpoint_id": "strong-home-dc"
@@ -7547,31 +7741,52 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
                 "market": "Win to Nil",
                 "endpoint_id": "win-to-nil"
             },
+            "ht-result": {
+                "label": ht_best_lbl,
+                "odds": ht_best_odds,
+                "prob_pct": round(ht_best_prob * 100),
+                "market": f"Half-Time: {ht_best_key.title()}",
+                "endpoint_id": "ht-result"
+            },
+            "correct-score": {
+                "label": f"Correct Score {cs_score_lbl}",
+                "odds": cs_market_odds,
+                "prob_pct": round(cs_prob_val * 100),
+                "market": f"Correct Score {cs_score_lbl}",
+                "endpoint_id": "correct-score"
+            },
+            "underdog-trap": {
+                "label": trap_lbl,
+                "odds": trap_odds_val,
+                "prob_pct": round(trap_prob_val * 100),
+                "market": f"{m.home_team if trap_target_home else m.away_team} Win",
+                "endpoint_id": "underdog-trap"
+            },
             "corners-total": {
                 "label": "Over 9.5 Total Corners",
-                "odds": 1.85,
-                "prob_pct": round(min(88, max(52, ((hc + ac) / 10.0) * 55))),
+                "odds": corners_tot_odds,
+                "prob_pct": round(corners_tot_prob * 100),
                 "market": "Over 9.5 Corners",
                 "endpoint_id": "corners-total"
             },
             "corners-1x2": {
                 "label": f"{m.home_team if hc >= ac else m.away_team}: Most Corners",
-                "odds": 1.75,
-                "prob_pct": round(min(85, max(54, (max(hc, ac) / (hc + ac)) * 100))),
+                "odds": corners_1x2_odds,
+                "prob_pct": round(corners_1x2_prob * 100),
                 "market": "Corners Winner",
                 "endpoint_id": "corners-1x2"
             },
             "cards-total": {
                 "label": "Over 3.5 Total Cards",
-                "odds": 1.80,
-                "prob_pct": round(min(86, max(50, ((h_cards + a_cards) / 4.0) * 54))),
+                "odds": cards_tot_odds,
+                "prob_pct": round(cards_tot_prob * 100),
                 "market": "Over 3.5 Cards",
                 "endpoint_id": "cards-total"
             },
             "cards-1x2": {
                 "label": f"{m.home_team if h_cards >= a_cards else m.away_team}: Most Cards",
-                "odds": 1.95,
-                "prob_pct": round(min(82, max(52, (max(h_cards, a_cards) / (h_cards + a_cards)) * 100))),
+                "odds": cards_1x2_odds,
+                "prob_pct": round(cards_1x2_prob * 100),
                 "market": "Cards Winner",
                 "endpoint_id": "cards-1x2"
             },
@@ -7583,10 +7798,10 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
                 "endpoint_id": "team-total-goals"
             },
             "team-to-score": {
-                "label": f"{m.away_team if away_prob >= 0.35 else m.home_team}: To Score (Anytime)",
-                "odds": 1.35,
-                "prob_pct": round((1.0 - float(all_p.get("home_clean_sheet", 0.35))) * 100),
-                "market": "Team to Score",
+                "label": f"{tts_team_lbl}: To Score (Anytime)",
+                "odds": tts_market_odds,
+                "prob_pct": round(tts_prob_val * 100),
+                "market": f"{tts_team_lbl} to Score",
                 "endpoint_id": "team-to-score"
             },
             "fade-underdog": {
@@ -7611,10 +7826,10 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
                 "endpoint_id": "ml-predictor"
             },
             "sure-bet": {
-                "label": "Over 1.5 Goals Foundation" if o15_p >= max(dc_win_p, 0.80) else (dc_label if dc_win_p >= 0.75 else f"{m.home_team}: Match Banker"),
-                "odds": o15_market_odds if o15_p >= max(dc_win_p, 0.80) else (dc_odds if dc_win_p >= 0.75 else round(m_home_odds, 2)),
-                "prob_pct": round(o15_p * 100) if o15_p >= max(dc_win_p, 0.80) else (round(dc_win_p * 100) if dc_win_p >= 0.75 else round(home_prob * 100)),
-                "market": "Over 1.5 Goals" if o15_p >= max(dc_win_p, 0.80) else (dc_market if dc_win_p >= 0.75 else f"{m.home_team} Win"),
+                "label": "Over 1.5 Goals Foundation" if o15_p >= max(dc_win_p, 0.80) else dc_label,
+                "odds": o15_market_odds if o15_p >= max(dc_win_p, 0.80) else dc_odds,
+                "prob_pct": round(o15_p * 100) if o15_p >= max(dc_win_p, 0.80) else round(dc_win_p * 100),
+                "market": "Over 1.5 Goals" if o15_p >= max(dc_win_p, 0.80) else dc_market,
                 "endpoint_id": "sure-bet"
             },
             "form-gap": {
@@ -7708,20 +7923,60 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
             m.external_id and (m.external_id.startswith("auto_") or m.external_id.startswith("SYN-") or m.external_id.startswith("demo_"))
         )
         
-        # Authentic team form: retrieve from predictor league info or batch league table map
-        home_raw_form = home_i.get("last_5_form", "") if (isinstance(home_i, dict) and home_i.get("last_5_form")) else ""
-        away_raw_form = away_i.get("last_5_form", "") if (isinstance(away_i, dict) and away_i.get("last_5_form")) else ""
+        # Authentic independent forms (General vs Home-only vs Away-only; never duplicate General -> Venue)
+        h_key = m.home_team.lower().strip() if m.home_team else ""
+        a_key = m.away_team.lower().strip() if m.away_team else ""
+        h_form = list(team_general_forms.get(h_key, []))[:5]
+        a_form = list(team_general_forms.get(a_key, []))[:5]
 
-        if not home_raw_form and m.home_team:
-            home_raw_form = team_league_map.get(m.home_team.lower().strip(), "")
+        if not h_form:
+            home_raw_form = (home_i.get("last_5_form", "") if (isinstance(home_i, dict) and home_i.get("last_5_form")) else "") or team_league_map.get(h_key, "")
+            h_form = [c.upper() for c in home_raw_form if c.upper() in ('W', 'D', 'L')][:5] if home_raw_form else []
 
-        if not away_raw_form and m.away_team:
-            away_raw_form = team_league_map.get(m.away_team.lower().strip(), "")
+        if not a_form:
+            away_raw_form = (away_i.get("last_5_form", "") if (isinstance(away_i, dict) and away_i.get("last_5_form")) else "") or team_league_map.get(a_key, "")
+            a_form = [c.upper() for c in away_raw_form if c.upper() in ('W', 'D', 'L')][:5] if away_raw_form else []
 
-        h_form = [c.upper() for c in home_raw_form if c.upper() in ('W', 'D', 'L')][:5] if home_raw_form else []
-        a_form = [c.upper() for c in away_raw_form if c.upper() in ('W', 'D', 'L')][:5] if away_raw_form else []
-        h_venue_form = h_form[:len(h_form)]
-        a_venue_form = a_form[:len(a_form)]
+        h_venue_form = list(team_home_forms.get(h_key, []))[:5]
+        a_venue_form = list(team_away_forms.get(a_key, []))[:5]
+
+        # Pre-match Prediction Lock Enforcement (#6 / #12): once recorded/kicked-off, never mutate pick, odds, or prob_pct
+        prediction_locked = False
+        locked_row = locked_preds_map.get(str(m.external_id or "").strip())
+        if locked_row is not None:
+            is_after_start = str(m_status or "").lower() in (
+                "live", "in_play", "in-play", "1h", "2h", "ht", "halftime",
+                "finished", "ft", "aet", "pen", "stale"
+            )
+            kickoff_utc = parse_to_utc(m.match_date)
+            recorded_before_kickoff = bool(
+                kickoff_utc is not None
+                and locked_row.created_at is not None
+                and (locked_row.created_at.replace(tzinfo=timezone.utc) if locked_row.created_at.tzinfo is None else locked_row.created_at.astimezone(timezone.utc)) <= kickoff_utc
+            )
+            if is_after_start or recorded_before_kickoff:
+                try:
+                    l_fx = json.loads(locked_row.fixture_json) if locked_row.fixture_json else {}
+                    l_mp = json.loads(locked_row.market_probs_json) if locked_row.market_probs_json else {}
+                    l_sel = str(l_fx.get("selection") or "").strip()
+                    l_odds = float(l_mp.get("odds") or 0.0)
+                    l_prob = float(locked_row.confidence_percent or 0.0)
+                    l_ep = str(locked_row.endpoint or "").replace("_", "-").strip()
+                    if l_sel and l_odds > 1.0 and l_prob > 0 and (ep_filter == "all" or ep_filter == l_ep):
+                        top_tip = {
+                            "label": l_sel,
+                            "odds": round(l_odds, 2),
+                            "prob_pct": round(l_prob),
+                            "market": l_sel,
+                            "endpoint_id": l_ep or top_tip.get("endpoint_id", "home-win"),
+                            "qualified": True,
+                            "locked": True,
+                        }
+                        if l_ep:
+                            endpoint_tip_map[l_ep] = top_tip
+                        prediction_locked = True
+                except Exception as lock_ex:
+                    logger.warning(f"Prediction lock decode notice for {m.external_id}: {lock_ex}")
 
         match_cards.append({
             "id": m.id,
@@ -7761,6 +8016,7 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
             "top_tip": top_tip,
             "top_prob": top_tip["prob_pct"],
             "is_banker_80": top_tip["prob_pct"] >= 80,
+            "prediction_locked": prediction_locked,
             "consensus_score": len(q_eps),
             "qualified_endpoints": list(q_eps),
             "prediction_eligible": True,
@@ -7803,6 +8059,49 @@ async def _fetch_date_with_raw_cache(service: Any, target_date: str, refresh: bo
         else:
             calendar_slate_cache.delete(raw_cache_key)
         return prov_result
+
+
+async def _fetch_fixtures_for_lagos_date(service: Any, lagos_date_str: str, refresh: bool = False):
+    """
+    Fetch authentic provider fixtures belonging to the exact Nigerian (Africa/Lagos, UTC+1) calendar day:
+    [(lagos_date - 1d) 23:00:00 UTC .. (lagos_date) 22:59:59.999999 UTC].
+    Pulls lagos_date_str primarily plus (lagos_date - 1d) to capture post-midnight WAT kickoffs (23:00-23:59 UTC).
+    """
+    from football_ingestion import LiveFixtureItem
+    primary_res = await _fetch_date_with_raw_cache(service, lagos_date_str, refresh=refresh)
+    if not primary_res.success:
+        return primary_res, []
+
+    utc_start, utc_end = get_lagos_day_utc_bounds(lagos_date_str)
+    prev_date_str = (datetime.strptime(lagos_date_str[:10], "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+
+    date_batches = []
+    try:
+        prev_res = await _fetch_date_with_raw_cache(service, prev_date_str, refresh=refresh)
+        if prev_res.success and prev_res.matches:
+            date_batches.append((prev_date_str, prev_res.matches))
+    except Exception:
+        pass
+    if primary_res.matches:
+        date_batches.append((lagos_date_str, primary_res.matches))
+
+    by_ext_id: Dict[str, Any] = {}
+    fallback_items: List[Any] = []
+    for batch_date, raw_list in date_batches:
+        for raw_m in raw_list:
+            item = LiveFixtureItem(raw_m, provider=service.provider, fallback_date=batch_date)
+            dt_u = parse_to_utc(item.match_date)
+            if dt_u is None or not (utc_start <= dt_u <= utc_end):
+                continue
+            ext_id = str(item.external_id or "").strip()
+            if ext_id:
+                by_ext_id[ext_id] = item
+            else:
+                fallback_items.append(item)
+
+    merged = list(by_ext_id.values()) + fallback_items
+    merged.sort(key=lambda it: parse_to_utc(it.match_date) or datetime.max.replace(tzinfo=timezone.utc))
+    return primary_res, merged
 
 
 @app.get("/api/calendar/daily-slate")
@@ -7916,22 +8215,23 @@ async def get_calendar_daily_slate(
             )
             all_results.extend(wave2_results)
 
-        raw_matches = []
-        seen_ids = set()
+        raw_fixtures_by_id: Dict[str, Any] = {}
+        fixture_items = []
         dates_with_matches = []
         for idx, r in enumerate(all_results):
             if r.success and r.matches:
                 dt_label = (lagos_now + timedelta(days=idx)).strftime("%Y-%m-%d")
                 dates_with_matches.append(dt_label)
                 for m in r.matches:
-                    mid = str(m.get("id") or "")
-                    if mid and mid in seen_ids:
-                        continue
+                    it = LiveFixtureItem(m, provider=service.provider, fallback_date=dt_label)
+                    mid = str(it.external_id or "").strip()
                     if mid:
-                        seen_ids.add(mid)
-                    raw_matches.append(m)
+                        raw_fixtures_by_id[mid] = it
+                    else:
+                        fixture_items.append(it)
+        fixture_items = list(raw_fixtures_by_id.values()) + fixture_items
 
-        if not raw_matches:
+        if not fixture_items:
             empty_payload = {
                 "status": "ok",
                 "provider_status": "ok",
@@ -7951,7 +8251,6 @@ async def get_calendar_daily_slate(
             calendar_slate_cache.delete(cache_key)
             return Response(content=json.dumps(empty_payload), media_type="application/json", headers=no_cache_hdrs)
 
-        fixture_items = [LiveFixtureItem(m, provider=service.provider) for m in raw_matches]
         match_cards, endpoint_counts = await format_fixture_cards_helper(fixture_items, db, predictor, ep_filter)
         match_cards.sort(key=lambda c: (str(c.get("match_date_wat") or "9999-99-99"), str(c.get("time_wat") or "99:99")))
 
@@ -7986,7 +8285,7 @@ async def get_calendar_daily_slate(
         calendar_slate_cache.set(cache_key, response_payload)
         return Response(content=json.dumps(response_payload), media_type="application/json", headers=no_cache_hdrs)
 
-    prov_result = await _fetch_date_with_raw_cache(service, target_date, refresh=refresh)
+    prov_result, fixture_items = await _fetch_fixtures_for_lagos_date(service, target_date, refresh=refresh)
 
     if not prov_result.success:
         # Transparent provider failure reporting. ZERO fake matches. NO database fallback.
@@ -8011,8 +8310,7 @@ async def get_calendar_daily_slate(
         calendar_slate_cache.delete(cache_key)
         return Response(content=json.dumps(err_payload), media_type="application/json", headers=no_cache_hdrs)
 
-    raw_matches = prov_result.matches
-    if not raw_matches:
+    if not fixture_items:
         empty_payload = {
             "status": "ok",
             "provider_status": "ok",
@@ -8032,9 +8330,6 @@ async def get_calendar_daily_slate(
         calendar_slate_cache.delete(cache_key)
         return Response(content=json.dumps(empty_payload), media_type="application/json", headers=no_cache_hdrs)
 
-    # Convert genuine provider fixtures to verified LiveFixtureItem objects
-    fixture_items = [LiveFixtureItem(m, provider=service.provider) for m in raw_matches]
-    
     # Process through statistical model & 33 prediction endpoints
     match_cards, endpoint_counts = await format_fixture_cards_helper(fixture_items, db, predictor, ep_filter)
 
@@ -8142,7 +8437,7 @@ async def search_team_all_dates(
 
     raw_candidates = []
     seen_fixture_ids = set()
-    for prov_res in prov_results:
+    for dt_label, prov_res in zip(target_dates, prov_results):
         if prov_res.success and prov_res.matches:
             for m in prov_res.matches:
                 m_id = str(m.get("id") or "")
@@ -8163,9 +8458,9 @@ async def search_team_all_dates(
                 if matched:
                     if m_id:
                         seen_fixture_ids.add(m_id)
-                    raw_candidates.append(m)
+                    raw_candidates.append((dt_label, m))
                     
-    fixture_items = [LiveFixtureItem(m, provider=service.provider) for m in raw_candidates]
+    fixture_items = [LiveFixtureItem(m, provider=service.provider, fallback_date=dt_label) for dt_label, m in raw_candidates]
     match_cards, endpoint_counts = await format_fixture_cards_helper(fixture_items, db, predictor, endpoint or "all")
     
     today_str = lagos_now.strftime("%Y-%m-%d")
@@ -8193,12 +8488,9 @@ async def get_calendar_league_slate(
     clean_lid = league_id.strip()
     target_date = str(date or now_lagos().strftime("%Y-%m-%d")).strip()
     
-    from football_ingestion import FootballDataService, LiveFixtureItem
+    from football_ingestion import FootballDataService
     service = FootballDataService(api_key=config.FOOTBALL_API_KEY, base_url=config.FOOTBALL_API_BASE)
-    prov_res = await _fetch_date_with_raw_cache(service, target_date)
-    raw_matches = prov_res.matches if prov_res.success else []
-    
-    items = [LiveFixtureItem(m, provider=service.provider) for m in raw_matches]
+    _prov_res, items = await _fetch_fixtures_for_lagos_date(service, target_date)
     matched = [f for f in items if str(f.league_id).lower() == clean_lid.lower() or clean_lid.lower() in str(getattr(f, "league_name", "")).lower()]
     
     match_cards, endpoint_counts = await format_fixture_cards_helper(matched, db, predictor, "all")
@@ -8330,12 +8622,10 @@ async def get_dashboard_stats(
     now = now_lagos()
     today_str = now.strftime("%Y-%m-%d")
 
-    # 1. Matches playable today directly from live official provider feed
-    from football_ingestion import FootballDataService, LiveFixtureItem
+    # 1. Matches playable today in Africa/Lagos directly from live official provider feed
+    from football_ingestion import FootballDataService
     service = FootballDataService(api_key=config.FOOTBALL_API_KEY, base_url=config.FOOTBALL_API_BASE)
-    prov_res = await _fetch_date_with_raw_cache(service, today_str)
-    raw_fixtures = prov_res.matches if prov_res.success else []
-    items = [LiveFixtureItem(m, provider=service.provider) for m in raw_fixtures]
+    _prov_res, items = await _fetch_fixtures_for_lagos_date(service, today_str)
     playable_today = len(items)
 
     scheduled_today = 0
@@ -8676,37 +8966,46 @@ async def get_upcoming_fixtures(db: AsyncSession = Depends(get_db)):
     if cached is not None:
         return Response(content=cached, media_type="application/json")
 
-    from football_ingestion import FootballDataService, LiveFixtureItem
+    from football_ingestion import FootballDataService
     service = FootballDataService(api_key=config.FOOTBALL_API_KEY, base_url=config.FOOTBALL_API_BASE)
     lagos_now = now_lagos()
     today_str = lagos_now.strftime("%Y-%m-%d")
     tomorrow_str = (lagos_now + timedelta(days=1)).strftime("%Y-%m-%d")
 
-    raw_fixtures = []
-    res_today = await _fetch_date_with_raw_cache(service, today_str)
-    if res_today.success and res_today.matches:
-        raw_fixtures.extend(res_today.matches)
-    res_tomorrow = await _fetch_date_with_raw_cache(service, tomorrow_str)
-    if res_tomorrow.success and res_tomorrow.matches:
-        raw_fixtures.extend(res_tomorrow.matches)
-
-    items = [LiveFixtureItem(m, provider=service.provider) for m in raw_fixtures]
+    by_ext: Dict[str, Any] = {}
+    extra_items: List[Any] = []
+    for target_dt in (today_str, tomorrow_str):
+        _p_res, day_items = await _fetch_fixtures_for_lagos_date(service, target_dt)
+        for it in day_items:
+            ext_id = str(getattr(it, "external_id", "") or "").strip()
+            if ext_id:
+                by_ext[ext_id] = it
+            else:
+                extra_items.append(it)
+    items = list(by_ext.values()) + extra_items
     upcoming = [
         f for f in items
-        if str(f.status).lower() not in ["finished", "ft", "aet", "cancelled", "postponed"]
+        if f.match_date and str(f.status).lower() not in ["finished", "ft", "aet", "cancelled", "postponed"]
     ]
 
-    result = [{
-        "external_id": f.external_id,
-        "home_team": f.home_team,
-        "away_team": f.away_team,
-        "league_id": f.league_id,
-        "league_name": format_league_display_name(f.league_id),
-        "match_date": (f.match_date if f.match_date.tzinfo else f.match_date.replace(tzinfo=timezone.utc)).isoformat(),
-        "home_odds": f.home_odds,
-        "away_odds": f.away_odds,
-        "draw_odds": f.draw_odds,
-    } for f in upcoming[:50]]
+    result = []
+    for f in upcoming[:50]:
+        dt_meta = format_fixture_datetime_meta(f.match_date)
+        result.append({
+            "external_id": f.external_id,
+            "home_team": f.home_team,
+            "away_team": f.away_team,
+            "league_id": f.league_id,
+            "league_name": format_league_display_name(f.league_id),
+            "match_date": dt_meta["match_date_utc"],
+            "match_date_utc": dt_meta["match_date_utc"],
+            "match_date_wat": dt_meta["match_date_wat"],
+            "time_wat": dt_meta["time_wat"],
+            "timezone": dt_meta["timezone"],
+            "home_odds": f.home_odds,
+            "away_odds": f.away_odds,
+            "draw_odds": f.draw_odds,
+        })
     serialized = json.dumps(result)
     if result:
         upcoming_fixtures_cache.set("all", serialized)
@@ -8981,15 +9280,15 @@ async def get_match_analytics(
     safe_prob_val = home_prob if home_prob >= 0.55 else dc_prob
     safe_edge_val = (safe_prob_val - (1.0/safe_odds)) * 100.0
 
-    # Value Edge Pick
-    val_odds = round(home_odds * 1.25, 2)
-    val_prob_val = home_prob * 0.88
-    val_edge_val = (val_prob_val - (1.0/val_odds)) * 100.0
+    # Value Edge Pick (Poisson-derived Home Win + Over 1.5 joint expectation, no synthetic multiplier)
+    val_prob_val = max(0.08, min(0.92, home_prob * (1.0 - max(0.0, 1.0 - o15_prob) * 0.45)))
+    val_odds = round(max(home_odds + 0.12, 1.0 / (val_prob_val * 0.94)), 2)
+    val_edge_val = (val_prob_val - (1.0 / val_odds)) * 100.0
 
-    # Multiplier Combo Pick
-    combo_odds = round(home_odds * 1.82, 2)
-    combo_prob_val = home_prob * 0.62
-    combo_edge_val = (combo_prob_val - (1.0/combo_odds)) * 100.0
+    # Multiplier Combo Pick (Poisson-derived Home Win + Over 2.5 joint expectation, no synthetic multiplier)
+    combo_prob_val = max(0.06, min(0.85, min(home_prob, o25_prob) * 0.85))
+    combo_odds = round(max(val_odds + 0.25, 1.0 / (combo_prob_val * 0.92)), 2)
+    combo_edge_val = (combo_prob_val - (1.0 / combo_odds)) * 100.0
 
     user_bankroll = 50000.0
     def calc_stake(p, o):
@@ -9283,6 +9582,7 @@ async def get_match_analytics(
     except Exception as e:
         logger.warning(f"Standings fetch notice: {e}")
 
+    curr_dt_meta = format_fixture_datetime_meta(curr_match.match_date) if (curr_match and curr_match.match_date) else None
     return {
         "match_info": {
             "home_team": home_team,
@@ -9295,7 +9595,12 @@ async def get_match_analytics(
             "home_odds": home_odds,
             "draw_odds": draw_odds,
             "away_odds": away_odds,
-            "match_date": curr_match.match_date.isoformat() if (curr_match and curr_match.match_date) else None
+            "match_date": curr_dt_meta["match_date_utc"] if curr_dt_meta else None,
+            "match_date_utc": curr_dt_meta["match_date_utc"] if curr_dt_meta else None,
+            "match_date_wat": curr_dt_meta["match_date_wat"] if curr_dt_meta else None,
+            "time_wat": curr_dt_meta["time_wat"] if curr_dt_meta else None,
+            "display_date_wat": curr_dt_meta["display_date_wat"] if curr_dt_meta else None,
+            "timezone": curr_dt_meta["timezone"] if curr_dt_meta else "Africa/Lagos",
         },
         "verdict": {
             "headline": verdict_headline,
@@ -9866,6 +10171,42 @@ async def sync_league_tables_data(
         "league_tables_synced": lt_count,
         "head_to_head_synced": h2h_count,
         "message": f"Successfully synced {lt_count} league table entries and {h2h_count} head-to-head records."
+    }
+
+
+class SupportContactRequest(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+    email: str = Field(..., min_length=5, max_length=120)
+    phone: str = Field(..., min_length=7, max_length=25)
+    message: str = Field(..., min_length=10, max_length=2000)
+
+    @validator("email")
+    def validate_email_addr(cls, v):
+        val = str(v or "").strip()
+        if "@" not in val or "." not in val.split("@", 1)[-1]:
+            raise ValueError("Invalid email address")
+        return val
+
+    @validator("phone")
+    def validate_phone_num(cls, v):
+        digits = "".join(ch for ch in str(v or "") if ch.isdigit())
+        if len(digits) < 7:
+            raise ValueError("Phone number must contain at least 7 digits")
+        return str(v or "").strip()
+
+
+@app.post("/api/support/contact")
+async def submit_support_contact(req: SupportContactRequest, _ = Depends(rate_limit_dependency)):
+    ticket_id = f"SM-{uuid.uuid4().hex[:8].upper()}"
+    logger.info(
+        f"Support inquiry {ticket_id} submitted by {req.name.strip()} "
+        f"<{req.email}> (phone={req.phone})"
+    )
+    return {
+        "status": "received",
+        "ticket_id": ticket_id,
+        "recipient": "support@sportymill.com",
+        "message": f"Thank you, {req.name.strip()}. Your inquiry ({ticket_id}) has been logged for our support desk."
     }
 
 

@@ -123,9 +123,9 @@ def normalize_lifecycle_status(
         # A scheduled match cannot be > 24 hours in the past
         if elapsed_seconds > 86400:
             return FixtureLifecycleStatus.FINISHED, "historical_kickoff_elapsed"
-        # If > 4 hours in the past with no score, provider delayed/postponed
-        if elapsed_seconds > 14400 and (home_score is None and away_score is None):
-            return FixtureLifecycleStatus.POSTPONED, "kickoff_passed_without_start"
+        # If > 4 hours in the past without live/postponed status from provider, classify as finished (never fabricate POSTPONED)
+        if elapsed_seconds > 14400:
+            return FixtureLifecycleStatus.FINISHED, "kickoff_elapsed_unconfirmed"
         return FixtureLifecycleStatus.SCHEDULED, "provider_scheduled"
 
     # If status is missing, never default blindly to scheduled if in past
