@@ -993,6 +993,7 @@
       home_team: f.home_team,
       away_team: f.away_team,
       league_id: f.league_id || 'PL',
+      provider_fixture_id: f.external_id ? String(f.external_id) : undefined,
       bankroll: state.user?.bankroll || 1000000.0,
       personality_mode: persona,
       locale: 'NG'
@@ -2280,23 +2281,29 @@
     const topNavSlipHistory = document.querySelector('#topNavSlipHistory .item-title');
     if (topNavSlipHistory) topNavSlipHistory.textContent = isBanter ? 'Chop Slip History' : 'Bet Slip History';
 
-    // Mobile Menu Drawer Links
+    // Mobile Menu Drawer Links & Controls (Instant Pidgin / English Sync)
     const mobNavMatches = document.querySelector('#mobNavMatches span');
-    if (mobNavMatches) mobNavMatches.textContent = isBanter ? 'Matches Slate' : 'Matches Slate';
+    if (mobNavMatches) mobNavMatches.textContent = isBanter ? 'Today Games (Matches)' : 'Matches Slate';
     const mobNavGrand = document.querySelector('#mobNavGrand span');
-    if (mobNavGrand) mobNavGrand.textContent = isBanter ? '33 Endpoints' : '33 Endpoints';
+    if (mobNavGrand) mobNavGrand.textContent = isBanter ? 'All 33 Markets' : '33 Endpoints';
     const mobNavBankers = document.querySelector('#mobNavBankers span');
     if (mobNavBankers) mobNavBankers.textContent = isBanter ? '80%+ Sure Bankers' : '80%+ Bankers';
     const mobNavScreener = document.querySelector('#mobNavScreener span');
-    if (mobNavScreener) mobNavScreener.textContent = isBanter ? 'Value Edge Scanner' : 'Value Screener';
+    if (mobNavScreener) mobNavScreener.textContent = isBanter ? 'Sweet Odds Scanner' : 'Value Screener';
     const mobNavAccu = document.querySelector('#mobNavAccu span');
     if (mobNavAccu) mobNavAccu.textContent = isBanter ? 'Accu-Forge Multi' : 'Accu-Forge';
     const mobNavBatch = document.querySelector('#mobNavBatch span');
-    if (mobNavBatch) mobNavBatch.textContent = isBanter ? 'Full Slate Scanner' : 'Full Slate';
+    if (mobNavBatch) mobNavBatch.textContent = isBanter ? 'Scan All Matches' : 'Full Slate';
     const mobNavHistory = document.querySelector('#mobNavHistory span');
-    if (mobNavHistory) mobNavHistory.textContent = isBanter ? 'Prediction History' : 'Prediction History';
+    if (mobNavHistory) mobNavHistory.textContent = isBanter ? 'Past Result Ledger' : 'Prediction History';
     const mobNavAbout = document.querySelector('#mobNavAbout span');
-    if (mobNavAbout) mobNavAbout.textContent = isBanter ? 'About SportyMill' : 'About Model';
+    if (mobNavAbout) mobNavAbout.textContent = isBanter ? 'How E Dey Work' : 'About Model';
+    const mobileToneLabel = document.querySelector('.mobile-tone-label');
+    if (mobileToneLabel) mobileToneLabel.textContent = isBanter ? 'Talk Mode (Pidgin)' : 'Commentary Tone';
+    const mobNavSupportSpan = document.querySelector('#mobNavSupport span');
+    if (mobNavSupportSpan) mobNavSupportSpan.textContent = isBanter ? 'Help & Customer Care' : 'Support';
+    const btnMobLogin = document.getElementById('btnMobileLogin');
+    if (btnMobLogin) btnMobLogin.textContent = state.token ? (isBanter ? 'Comot (Sign Out)' : 'Sign Out') : (isBanter ? 'Enter Inside' : 'Sign In');
 
     // Notifications Popover Header & Dynamic Updates
     const notifHeader = document.querySelector('.notif-popover-title');
@@ -2378,15 +2385,25 @@
     if (filterTitle) filterTitle.textContent = isBanter ? 'Arrange Your Matches' : 'Sort Your Games';
     const filterSub = document.querySelector('.filter-sidebar-sub') || document.querySelector('.filter-sidebar-header p');
     if (filterSub) filterSub.textContent = isBanter ? 'Filter games by league, chance to win, chop stake & all 33 markets' : 'Filter matches by league, win chance, stake size & 33 endpoints';
+    const filterTitleDateScope = document.getElementById('filterTitleDateScope');
+    if (filterTitleDateScope) {
+      const svg = filterTitleDateScope.querySelector('svg');
+      filterTitleDateScope.innerHTML = `${svg ? svg.outerHTML : ''} ${isBanter ? 'Which Days You Wan See' : 'Schedule Date Range'}`;
+    }
     const filterTitleLeague = document.getElementById('filterTitleLeague');
     if (filterTitleLeague) {
       const svg = filterTitleLeague.querySelector('svg');
-      filterTitleLeague.innerHTML = `${svg ? svg.outerHTML : ''} ${isBanter ? 'League / Tournament' : 'League / Competition'}`;
+      filterTitleLeague.innerHTML = `${svg ? svg.outerHTML : ''} ${isBanter ? 'League / Tournament' : 'Competition / League'}`;
+    }
+    const filterTitleEndpoint = document.getElementById('filterTitleEndpoint');
+    if (filterTitleEndpoint) {
+      const svg = filterTitleEndpoint.querySelector('svg');
+      filterTitleEndpoint.innerHTML = `${svg ? svg.outerHTML : ''} ${isBanter ? 'Single Market Pick' : 'Betting Market'}`;
     }
     const filterTitleProb = document.getElementById('filterTitleProb');
     if (filterTitleProb) {
       const svg = filterTitleProb.querySelector('svg');
-      filterTitleProb.innerHTML = `${svg ? svg.outerHTML : ''} ${isBanter ? 'Win Chance & Sure Bankers' : 'Win Chance & Sure Bankers'}`;
+      filterTitleProb.innerHTML = `${svg ? svg.outerHTML : ''} ${isBanter ? 'Win Chance & Sure Bankers' : 'Win Likelihood & Bankers'}`;
     }
     const filterTitleStake = document.getElementById('filterTitleStake');
     if (filterTitleStake) {
@@ -2396,20 +2413,44 @@
     const filterTitleTree = document.getElementById('filterTitleTree');
     if (filterTitleTree) {
       const svg = filterTitleTree.querySelector('svg');
-      filterTitleTree.innerHTML = `${svg ? svg.outerHTML : ''} ${isBanter ? 'All 33 Betting Markets' : 'Betting Market'}`;
+      filterTitleTree.innerHTML = `${svg ? svg.outerHTML : ''} ${isBanter ? 'All 33 Chop Markets' : '33 Market Checkboxes'}`;
     }
     const btnSelectAll = document.getElementById('btnSelectAllEndpoints');
     if (btnSelectAll) btnSelectAll.textContent = isBanter ? 'Select All Markets' : 'Select All';
     const btnClearAll = document.getElementById('btnClearAllEndpoints');
     if (btnClearAll) btnClearAll.textContent = isBanter ? 'Clear All' : 'Clear';
     const filterSearchInput = document.getElementById('inputFilterSearchEndpoints');
-    if (filterSearchInput) filterSearchInput.placeholder = isBanter ? 'Search 33 endpoints (e.g. Over 2.5, BTTS, 1X)...' : 'Search 33 endpoints (e.g. Over 2.5, Both Teams Score, Home Win)...';
+    if (filterSearchInput) filterSearchInput.placeholder = isBanter ? 'Find market (e.g. Over 2.5, BTTS, 1X)...' : 'Search 33 markets (e.g. Over 2.5, BTTS)...';
     const btnFilterReset = document.getElementById('btnResetAllFilters') || document.getElementById('btnResetFilters');
-    if (btnFilterReset) btnFilterReset.textContent = isBanter ? 'Clear All Filter' : 'Reset All';
+    if (btnFilterReset) btnFilterReset.textContent = isBanter ? 'Wipe Filters' : 'Reset';
     const btnApplyFiltersText = document.getElementById('btnApplyFiltersText');
-    if (btnApplyFiltersText) btnApplyFiltersText.textContent = isBanter ? 'Load Matching Games (Oya Run Am)' : 'Apply Filters';
-    if (!state.betslip.items || !state.betslip.items.length) {
-      updateSlipUI();
+    if (btnApplyFiltersText) btnApplyFiltersText.textContent = isBanter ? 'Show Games (Oya Run Am)' : 'Apply Filters';
+
+    // Standalone Tool Views & Section Headings (Pidgin / Pro)
+    const bankersHeading = document.querySelector('#view-bankers .panel-section-header h2');
+    if (bankersHeading) bankersHeading.textContent = isBanter ? 'Sure Banker Games' : 'Banker Picks';
+    const screenerHeading = document.querySelector('#view-screener .screener-banner-header h2');
+    if (screenerHeading) screenerHeading.textContent = isBanter ? 'Sweet Odds Value Scanner' : 'Value Screener';
+    const btnExecScreener = document.getElementById('btnExecuteScreener');
+    if (btnExecScreener) btnExecScreener.textContent = isBanter ? 'Check Sweet Edge →' : 'Run Screener Analysis →';
+    const accuHeading = document.querySelector('#view-accumulator .accu-config-bar h2');
+    if (accuHeading) accuHeading.textContent = isBanter ? 'Accu-Forge Multi Builder' : 'Accu-Forge Parlay';
+    const btnGenAccu = document.getElementById('btnGenerateAccuTicket');
+    if (btnGenAccu) btnGenAccu.textContent = isBanter ? 'Arrange My Ticket →' : 'Forge Ticket →';
+    const batchHeading = document.querySelector('#view-batch .panel-section-header h2');
+    if (batchHeading) batchHeading.textContent = isBanter ? 'Scan All Games Together' : 'Full Slate Scanner';
+    const btnExecBatch = document.getElementById('btnExecuteBatchScan');
+    if (btnExecBatch) btnExecBatch.textContent = isBanter ? 'Scan Today Slate Now' : 'Scan All Fixtures Now';
+    const historyHeading = document.querySelector('#view-history .history-title-row h2');
+    if (historyHeading) historyHeading.textContent = isBanter ? 'Past Prediction Scoreboard' : 'Prediction History';
+    const btnSettleSpan = document.querySelector('#btnSettlePendingMatches span');
+    if (btnSettleSpan) btnSettleSpan.textContent = isBanter ? 'Check Final Scores' : 'Sync & Settle';
+    const slipHistoryHeading = document.querySelector('#view-slip-history .slip-history-title-row h2, #view-slip-history h2');
+    if (slipHistoryHeading) slipHistoryHeading.textContent = isBanter ? 'Saved Chop Slips' : 'Bet Slip History';
+
+    // Sync active view header title text cleanly
+    if (typeof renderSlip === 'function') {
+      renderSlip();
     }
 
     // Sidebar items
@@ -4695,34 +4736,35 @@
     // Dynamic Header Title Update
     const titleEl = document.getElementById('headerTitleText');
     const subEl = document.getElementById('headerSubtitleText');
+    const isBanterHdr = state.personalityMode === 'BANTER';
     if (subEl) subEl.textContent = '';
     if (titleEl) {
       if (viewId === 'view-calendar') {
-        titleEl.textContent = 'Matches';
+        titleEl.textContent = isBanterHdr ? 'Today Matches' : 'Matches';
       } else if (viewId === 'view-grand') {
-        titleEl.textContent = '33 Prediction Markets';
+        titleEl.textContent = isBanterHdr ? '33 Chop Markets' : '33 Prediction Markets';
       } else if (viewId === 'view-match-analytics') {
-        titleEl.textContent = 'Match Analytics';
+        titleEl.textContent = isBanterHdr ? 'Match Gist & Stats' : 'Match Analytics';
       } else if (viewId === 'view-bankers') {
-        titleEl.textContent = 'Banker Picks';
+        titleEl.textContent = isBanterHdr ? 'Sure Banker Picks' : 'Banker Picks';
       } else if (viewId === 'view-screener') {
-        titleEl.textContent = 'Value Screener';
+        titleEl.textContent = isBanterHdr ? 'Sweet Odds Scanner' : 'Value Screener';
       } else if (viewId === 'view-accumulator') {
-        titleEl.textContent = 'Accu-Forge Parlay';
+        titleEl.textContent = isBanterHdr ? 'Accu-Forge Multi' : 'Accu-Forge Parlay';
       } else if (viewId === 'view-batch') {
-        titleEl.textContent = 'Full Slate Scanner';
+        titleEl.textContent = isBanterHdr ? 'Scan All Games' : 'Full Slate Scanner';
       } else if (viewId === 'view-contest') {
-        titleEl.textContent = 'Top Banker Pick';
+        titleEl.textContent = isBanterHdr ? 'Oga Banker Pick' : 'Top Banker Pick';
       } else if (viewId === 'view-about') {
-        titleEl.textContent = 'About';
+        titleEl.textContent = isBanterHdr ? 'How SportyMill Work' : 'About';
       } else if (viewId === 'view-profile') {
-        titleEl.textContent = 'Profile';
+        titleEl.textContent = isBanterHdr ? 'My Profile' : 'Profile';
       } else if (viewId === 'view-dashboard') {
-        titleEl.textContent = 'Dashboard';
+        titleEl.textContent = isBanterHdr ? 'Control Room' : 'Dashboard';
       } else if (viewId === 'view-history') {
-        titleEl.textContent = 'Prediction History';
+        titleEl.textContent = isBanterHdr ? 'Past Scoreboard' : 'Prediction History';
       } else if (viewId === 'view-slip-history') {
-        titleEl.textContent = 'Bet Slip History';
+        titleEl.textContent = isBanterHdr ? 'Saved Chop Slips' : 'Bet Slip History';
       }
     }
 
@@ -9845,7 +9887,9 @@
         localStorage.setItem('tipalgo_tone', state.personalityMode);
       } catch (e) {}
       applyLanguageMode(state.personalityMode);
-      toast(state.personalityMode === 'BANTER' ? 'Oya! Naija Banter Mode Don Active 🔥' : 'Commentary Mode: Professional Quant Mode', 'info');
+      if (typeof renderCalendarDateStrip === 'function') {
+        renderCalendarDateStrip();
+      }
       if (typeof renderCalendarMatchesFeed === 'function') {
         renderCalendarMatchesFeed();
       }
@@ -9854,6 +9898,16 @@
       }
       if (state.currentView === 'view-bankers' && typeof renderBankerSlate === 'function') {
         renderBankerSlate(state.activeBankerProb || 0.80);
+      } else if (state.currentView === 'view-grand' && typeof renderGrandEndpointsPage === 'function') {
+        renderGrandEndpointsPage();
+      } else if (state.currentView === 'view-match-analytics' && state.activeFixture && typeof loadMatchAnalytics === 'function') {
+        loadMatchAnalytics(state.activeFixture);
+      } else if (state.currentView === 'view-screener' && typeof runValueScreener === 'function') {
+        runValueScreener();
+      } else if (state.currentView === 'view-contest' && typeof updateActiveFixtureUI === 'function') {
+        updateActiveFixtureUI();
+      } else if (state.currentView === 'view-slip-history' && typeof loadSlipHistory === 'function') {
+        loadSlipHistory();
       }
       if (state.calendar && state.calendar.data && state.calendar.data.matches) {
         updateLiveModelNotifications(state.calendar.data.matches);
@@ -11075,7 +11129,7 @@
         away_odds: awayOdds,
         bankroll: bankrollVal,
         min_edge: minEdgeVal,
-        personality_mode: state.commentaryTone || 'PROFESSIONAL',
+        personality_mode: state.personalityMode || 'PROFESSIONAL',
         locale: 'NG'
       };
 

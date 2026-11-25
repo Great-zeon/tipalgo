@@ -5479,7 +5479,14 @@ async def enrich_with_total_predictions(response: dict, endpoint: str, db: Async
                     a_team = parts[1].strip()
 
             prov_fid = response.get("provider_fixture_id")
-            s_class = "provider_verified" if (prov_fid and len(str(prov_fid).strip()) >= 10 and h_team and a_team and h_team.lower() != "home") else "unverified"
+            prov_fid_str = str(prov_fid).strip() if prov_fid is not None else ""
+            if h_team and a_team and h_team.lower() != "home" and a_team.lower() != "away":
+                if prov_fid_str and len(prov_fid_str) >= 5 and not prov_fid_str.startswith(("ext_", "SYN-", "HM-GEN", "auto_")):
+                    s_class = "provider_verified"
+                else:
+                    s_class = "live_recorded"
+            else:
+                s_class = "unverified"
 
             pred_log = PredictionLog(
                 prediction_id=str(uuid.uuid4()),
@@ -6491,12 +6498,15 @@ async def get_predictions_history(
 
 
 @app.post("/api/predictions/settle")
-async def settle_all_pending_predictions(db: AsyncSession = Depends(get_db)):
-    # Strictly settle authentic provider-verified predictions; synthetic and orphan records are quarantined
+async def settle_all_pending_predictions(
+    db: AsyncSession = Depends(get_db),
+    predictor: PredictorService = Depends(get_predictor)
+):
+    # Strictly settle authentic provider-verified & live-recorded predictions against real scores
     unsettled = (await db.execute(
         select(PredictionLog).where(
             and_(
-                PredictionLog.source_classification.in_(["provider_verified", "provider_cached"]),
+                PredictionLog.source_classification.in_(["provider_verified", "provider_cached", "live_recorded"]),
                 PredictionLog.home_team != "Home",
                 PredictionLog.away_team != "Away",
                 or_(PredictionLog.outcome.is_(None), PredictionLog.outcome.in_(["PENDING", "pending"]))
@@ -6504,25 +6514,91 @@ async def settle_all_pending_predictions(db: AsyncSession = Depends(get_db)):
         )
     )).scalars().all()
 
+    # Pull latest finished match scores directly from live provider API for pending dates before settling
+    live_finished_by_id = {}
+    live_finished_by_pair = {}
+    if unsettled:
+        try:
+            from football_ingestion import FootballDataService, LiveFixtureItem
+            service = FootballDataService(api_key=config.FOOTBALL_API_KEY, base_url=config.FOOTBALL_API_BASE)
+            if service.is_configured:
+                lagos_now = now_lagos()
+                candidate_dates = []
+                for dt_cand in [
+                    lagos_now.strftime("%Y-%m-%d"),
+                    (lagos_now - timedelta(days=1)).strftime("%Y-%m-%d"),
+                ]:
+                    if dt_cand not in candidate_dates:
+                        candidate_dates.append(dt_cand)
+                for p_row in unsettled:
+                    if p_row.match_date:
+                        p_d = str(p_row.match_date)[:10]
+                        if p_d not in candidate_dates and len(candidate_dates) < 4:
+                            candidate_dates.append(p_d)
+
+                for dt_sync in candidate_dates:
+                    try:
+                        prov_res = await service.fetch_live_fixtures_with_provenance(dt_sync)
+                        if prov_res.success and prov_res.matches:
+                            for raw_m in prov_res.matches:
+                                item = LiveFixtureItem(raw_m, provider=service.provider)
+                                st_lower = str(item.status or "").lower()
+                                if st_lower in ["finished", "ft", "aet", "pen"] and item.home_score is not None and item.away_score is not None:
+                                    if item.external_id:
+                                        live_finished_by_id[str(item.external_id)] = (item.home_score, item.away_score)
+                                    pair_key = (item.home_team.strip().lower(), item.away_team.strip().lower())
+                                    live_finished_by_pair[pair_key] = (item.home_score, item.away_score)
+                    except Exception as sync_ex:
+                        logger.warning(f"Settle live fetch skipped for {dt_sync}: {sync_ex}")
+        except Exception as outer_sync_ex:
+            logger.warning(f"Settle live fetch setup notice: {outer_sync_ex}")
+
     settled_count = 0
     for p in unsettled:
-        p_date_str = str(p.match_date)[:10] if p.match_date else None
-        filters = [
-            HistoricalMatch.home_team == p.home_team,
-            HistoricalMatch.away_team == p.away_team,
-            HistoricalMatch.status == "finished",
-            HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"]),
-            HistoricalMatch.home_score.isnot(None),
-            HistoricalMatch.away_score.isnot(None)
-        ]
-        if p_date_str:
-            filters.append(func.substr(func.cast(HistoricalMatch.match_date, String), 1, 10) == p_date_str)
+        hs = None
+        as_ = None
+        if p.provider_fixture_id and str(p.provider_fixture_id) in live_finished_by_id:
+            hs, as_ = live_finished_by_id[str(p.provider_fixture_id)]
+        elif p.home_team and p.away_team:
+            pair_k = (p.home_team.strip().lower(), p.away_team.strip().lower())
+            if pair_k in live_finished_by_pair:
+                hs, as_ = live_finished_by_pair[pair_k]
 
-        m_res = await db.execute(select(HistoricalMatch).where(and_(*filters)))
-        match = m_res.scalars().first()
-        if match:
-            hs = match.home_score
-            as_ = match.away_score
+        if hs is None or as_ is None:
+            p_date_str = str(p.match_date)[:10] if p.match_date else None
+            filters = [
+                HistoricalMatch.home_team == p.home_team,
+                HistoricalMatch.away_team == p.away_team,
+                HistoricalMatch.status == "finished",
+                HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"]),
+                HistoricalMatch.home_score.isnot(None),
+                HistoricalMatch.away_score.isnot(None)
+            ]
+            if p_date_str:
+                filters.append(func.substr(func.cast(HistoricalMatch.match_date, String), 1, 10) == p_date_str)
+
+            m_res = await db.execute(select(HistoricalMatch).where(and_(*filters)))
+            match = m_res.scalars().first()
+            if not match:
+                m_res_wide = await db.execute(
+                    select(HistoricalMatch)
+                    .where(
+                        HistoricalMatch.home_team == p.home_team,
+                        HistoricalMatch.away_team == p.away_team,
+                        HistoricalMatch.status == "finished",
+                        HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached"]),
+                        HistoricalMatch.home_score.isnot(None),
+                        HistoricalMatch.away_score.isnot(None)
+                    )
+                    .order_by(HistoricalMatch.match_date.desc())
+                    .limit(1)
+                )
+                match = m_res_wide.scalars().first()
+            if match:
+                hs = match.home_score
+                as_ = match.away_score
+
+        if hs is not None and as_ is not None:
             p.actual_home_score = hs
             p.actual_away_score = as_
             p.processed = True
@@ -6538,9 +6614,10 @@ async def settle_all_pending_predictions(db: AsyncSession = Depends(get_db)):
             except Exception:
                 pass
 
-            ep = p.endpoint
+            ep = str(p.endpoint or "").replace("_", "-").lower()
+            sel_l = selection.lower()
             # Strict protection: Ineligible or informational predictions must never settle as lost
-            if ep in ["info", "none", "ineligible"] or odds <= 0.0 or not selection or p.confidence_percent == 0:
+            if ep in ["info", "none", "ineligible"] or odds <= 0.0 or not selection or p.confidence_percent == 0 or "pass (" in sel_l:
                 p.outcome = "INELIGIBLE"
                 p.unit_return = 0.0
                 p.feedback_notes = f"Ineligible prediction: Match finished {hs}-{as_}. Excluded from betting performance metrics."
@@ -6557,20 +6634,51 @@ async def settle_all_pending_predictions(db: AsyncSession = Depends(get_db)):
             elif ep == "draw":
                 won = (hs == as_)
             elif ep in ["double-chance", "strong-home-dc"]:
-                if "X2" in selection:
+                if "x2" in sel_l or (p.away_team and f"{p.away_team.lower()} or draw" in sel_l):
                     won = (as_ >= hs)
                 else:
                     won = (hs >= as_)
-            elif ep == "over-1-5":
+            elif ep == "over-1-5" or "over 1.5" in sel_l:
                 won = (total_goals >= 2)
-            elif ep == "over-2-5":
+            elif ep == "over-2-5" or "over 2.5" in sel_l:
                 won = (total_goals >= 3)
-            elif ep in ["under-2-5", "no-three-goals"]:
+            elif ep == "over-3-5" or "over 3.5" in sel_l:
+                won = (total_goals >= 4)
+            elif ep == "over-4-5" or "over 4.5" in sel_l:
+                won = (total_goals >= 5)
+            elif ep in ["under-2-5", "no-three-goals"] or "under 2.5" in sel_l:
                 won = (total_goals < 3)
-            elif ep == "btts-yes":
+            elif "under 3.5" in sel_l:
+                won = (total_goals < 4)
+            elif "under 4.5" in sel_l:
+                won = (total_goals < 5)
+            elif ep == "btts-yes" or "btts yes" in sel_l or "both teams to score (yes" in sel_l:
                 won = (hs > 0 and as_ > 0)
-            elif ep == "btts-no":
+            elif ep == "btts-no" or "btts no" in sel_l or "clean sheet" in sel_l:
                 won = (hs == 0 or as_ == 0)
+            elif ep == "btts-over-2-5":
+                won = (hs > 0 and as_ > 0 and total_goals >= 3)
+            elif ep == "win-to-nil":
+                if p.away_team and p.away_team.lower() in sel_l:
+                    won = (as_ > hs and hs == 0)
+                else:
+                    won = (hs > as_ and as_ == 0)
+            elif ep == "team-to-score":
+                if p.away_team and p.away_team.lower() in sel_l:
+                    won = (as_ > 0)
+                else:
+                    won = (hs > 0)
+            elif "x2" in sel_l or "or draw" in sel_l:
+                if p.away_team and p.away_team.lower() in sel_l:
+                    won = (as_ >= hs)
+                else:
+                    won = (hs >= as_)
+            elif p.away_team and f"{p.away_team.lower()} win" in sel_l:
+                won = (as_ > hs)
+            elif p.home_team and f"{p.home_team.lower()} win" in sel_l:
+                won = (hs > as_)
+            elif "draw" in sel_l:
+                won = (hs == as_)
             else:
                 won = (hs >= as_)
 
