@@ -2463,8 +2463,8 @@
     const notifsPageSub = document.getElementById('notificationsPageSub');
     if (notifsPageSub) {
       notifsPageSub.textContent = isBanter
-        ? 'Real-time sure bankers, goals gist, +EV sharp drops, and your saved slip updates.'
-        : 'Real-time high-conviction picks, goals radar, and slip activity alerts.';
+        ? 'Live sure bankers, goals gist, +EV sharp drops, and your saved slip updates.'
+        : 'Live high-conviction picks, goals radar, and slip activity alerts.';
     }
     const notifsBackSpan = document.querySelector('#btnNotifsBack span');
     if (notifsBackSpan) notifsBackSpan.textContent = isBanter ? 'Back to Matches' : 'Back to Matches';
@@ -11108,7 +11108,7 @@
         if (statSettledSub) {
           const settledN = stats.settled_predictions_count || 0;
           const brierVal = stats.brier_score != null ? stats.brier_score : '—';
-          statSettledSub.textContent = settledN > 0 ? `${settledN} settled · Brier ${brierVal}` : 'Real settled prediction ledger';
+          statSettledSub.textContent = settledN > 0 ? `${settledN} settled · Brier ${brierVal}` : 'Settled prediction ledger';
         }
         if (statLeagues) statLeagues.textContent = `${stats.total_leagues_tracked != null ? stats.total_leagues_tracked : 0}`;
         if (userStakedEl) userStakedEl.textContent = formatNaira(ua.total_staked || 0);
@@ -12811,7 +12811,7 @@
       if (legCorrect) legCorrect.textContent = `${correctCount} (${correctRatio}%)`;
       if (legIncorrect) legIncorrect.textContent = `${incorrectCount} (${incorrectRatio}%)`;
       if (legPending) legPending.textContent = `${pendingCount} Matches`;
-      if (chartBadge) chartBadge.textContent = `${accuracyPct}% Real Accuracy`;
+      if (chartBadge) chartBadge.textContent = `${accuracyPct}% Accuracy`;
 
       // Graphical Market Accuracy Comparison Bars
       const marketBarsList = document.getElementById('marketBarsList');

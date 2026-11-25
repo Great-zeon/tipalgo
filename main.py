@@ -2284,6 +2284,19 @@ def resolve_team_name(team_name: str, table: Dict[str, Any]) -> Optional[str]:
 # ------------------------------------------------------------------
 # PREDICTOR SERVICE (continued from Part 1)
 # ------------------------------------------------------------------
+def _naive_utc_now() -> datetime:
+    """Return timezone-naive UTC datetime compatible with both SQLite and PostgreSQL TIMESTAMP WITHOUT TIME ZONE."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+def _to_naive_utc(dt: Optional[datetime]) -> datetime:
+    if dt is None:
+        return _naive_utc_now()
+    if getattr(dt, "tzinfo", None) is not None:
+        return dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt
+
+
 class PredictorService:
     def __init__(self):
         self.ml_model = OnlineLearningModel()
@@ -2311,7 +2324,7 @@ class PredictorService:
             endpoint=endpoint,
             home_team=home_team,
             away_team=away_team,
-            match_date=datetime.now(timezone.utc),
+            match_date=_naive_utc_now(),
             fixture_json=json.dumps(fixture),
             raw_probs_json=json.dumps(raw_probs),
             market_probs_json=json.dumps(market_probs) if market_probs else None,
@@ -5503,7 +5516,7 @@ async def enrich_with_total_predictions(response: dict, endpoint: str, db: Async
                 endpoint=endpoint,
                 home_team=h_team or "Home",
                 away_team=a_team or "Away",
-                match_date=datetime.now(timezone.utc),
+                match_date=_naive_utc_now(),
                 fixture_json=json.dumps({"selection": response.get("selection")}),
                 raw_probs_json=json.dumps({"probability": response.get("probability")}),
                 market_probs_json=json.dumps({"odds": response.get("odds")}),
@@ -6428,11 +6441,11 @@ async def persist_and_settle_verified_cards(db: AsyncSession, match_cards: list)
             as_ = c.get("away_score")
             is_finished = st_lower in finished_statuses and hs is not None and as_ is not None
 
-            m_dt = datetime.now(timezone.utc)
+            m_dt = _naive_utc_now()
             raw_dt = str(c.get("match_date_utc") or c.get("match_date") or "").strip()
             if raw_dt:
                 try:
-                    m_dt = datetime.fromisoformat(raw_dt.replace("Z", "+00:00"))
+                    m_dt = _to_naive_utc(datetime.fromisoformat(raw_dt.replace("Z", "+00:00")))
                 except Exception:
                     pass
 
@@ -6459,7 +6472,7 @@ async def persist_and_settle_verified_cards(db: AsyncSession, match_cards: list)
                             existing.outcome = out_val
                             existing.unit_return = u_ret
                             existing.processed = True
-                            existing.settled_at = datetime.now(timezone.utc)
+                            existing.settled_at = _naive_utc_now()
                             existing.feedback_notes = note
                             changed += 1
                 continue
@@ -6478,7 +6491,7 @@ async def persist_and_settle_verified_cards(db: AsyncSession, match_cards: list)
                 )
                 a_hs = int(hs)
                 a_as = int(as_)
-                settled_dt = datetime.now(timezone.utc)
+                settled_dt = _naive_utc_now()
                 processed_flag = True
 
             new_log = PredictionLog(
@@ -6515,7 +6528,7 @@ async def persist_and_settle_verified_cards(db: AsyncSession, match_cards: list)
             prediction_count_cache.clear()
         return changed
     except Exception as ex:
-        logger.debug(f"Verified prediction persistence notice: {ex}")
+        logger.warning(f"Verified prediction persistence notice: {ex}")
         try:
             await db.rollback()
         except Exception:
@@ -6623,7 +6636,7 @@ async def _settle_pending_predictions_impl(db: AsyncSession) -> int:
             p.actual_home_score = int(hs)
             p.actual_away_score = int(as_)
             p.processed = True
-            p.settled_at = datetime.now(timezone.utc)
+            p.settled_at = _naive_utc_now()
 
             odds = 1.85
             selection = ""
@@ -6706,7 +6719,10 @@ async def get_predictions_history(
                             await format_fixture_cards_helper(fetched_items[:60], db, predictor, "all")
                     await _settle_pending_predictions_impl(db)
                     total_audited = (await db.execute(select(func.count(PredictionLog.id)).where(verified_base))).scalar() or 0
+                    if total_audited == 0:
+                        _history_auto_sync_ts = 0.0
                 except Exception as hist_sync_ex:
+                    _history_auto_sync_ts = 0.0
                     logger.warning(f"Prediction history auto-sync notice: {hist_sync_ex}")
 
     won_res = await db.execute(select(func.count(PredictionLog.id)).where(and_(verified_base, PredictionLog.outcome.in_(["WON", "correct"]))))

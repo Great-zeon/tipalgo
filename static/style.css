@@ -19235,22 +19235,77 @@ body.light-theme-mode .footer-bottom-row {
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
+  .history-page-header {
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
   .history-metrics-strip {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+  }
+
+  .history-metrics-strip .metric-card.card-accuracy {
+    grid-column: 1 / -1;
   }
 
   .history-filter-bar {
     flex-direction: column;
     align-items: stretch;
+    gap: 0.65rem;
   }
 
   .history-status-tabs {
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+    width: 100%;
+    padding: 0.4rem;
+    box-sizing: border-box;
   }
 
+  .hist-filter-btn {
+    width: 100%;
+    text-align: center;
+    padding: 0.56rem 0.5rem;
+    font-size: 0.78rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .history-filter-inputs {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+    width: 100%;
+  }
+
+  .history-select-styled,
   .history-search-input {
     width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+@media (max-width: 420px) {
+  .history-status-tabs {
+    gap: 0.32rem;
+    padding: 0.35rem;
+  }
+
+  .hist-filter-btn {
+    padding: 0.5rem 0.35rem;
+    font-size: 0.73rem;
+  }
+
+  .history-metrics-strip .metric-card {
+    padding: 0.78rem 0.82rem;
+  }
+
+  .history-metrics-strip .metric-num {
+    font-size: 1.25rem;
   }
 }
 
