@@ -6179,7 +6179,7 @@
         const data = await api(url);
         if (!data) return;
 
-        if (data.provider_status === 'error' || data.status === 'error') {
+        if (data.provider_status === 'error' || data.status === 'error' || !Array.isArray(data.matches) || data.matches.length === 0) {
           clientSlateMemoryCache.delete(cacheKey);
           try { sessionStorage.removeItem(`sportymill_slate_${cacheKey}`); } catch (e) { }
         } else if (data && Array.isArray(data.matches) && data.matches.length > 0) {
@@ -7628,15 +7628,25 @@
                   Reset Filters &amp; Show All
                 </button>
               ` : `
-                <button class="btn-empty-today" id="btnEmptyViewUpcomingSlate" style="background: #00d665; color: #052e16; font-weight: 800; border: none; display: inline-flex; align-items: center; gap: 0.45rem;">
+                <button class="btn-empty-today" id="btnEmptyRetryCurrentSlate" style="background: #00d665; color: #052e16; font-weight: 800; border: none; display: inline-flex; align-items: center; gap: 0.45rem;">
                   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
-                  <span>View Verified Match Slate</span>
+                  <span>Refresh Live Slate</span>
+                </button>
+                <button class="btn-empty-today" id="btnEmptyViewUpcomingSlate" style="background: rgba(56, 189, 248, 0.14); color: #38bdf8; font-weight: 700; border: 1px solid rgba(56, 189, 248, 0.35); display: inline-flex; align-items: center; gap: 0.45rem;">
+                  <span>View Upcoming Days →</span>
                 </button>
               `}
             `}
           </div>
         </div>
       `;
+
+      const btnRetryCurrent = document.getElementById('btnEmptyRetryCurrentSlate');
+      if (btnRetryCurrent) {
+        btnRetryCurrent.addEventListener('click', () => {
+          loadCalendarSlate(state.calendar.selectedDate || getSystemTodayDateStr(), state.calendar.selectedEndpoint || 'all', 1, 100, true);
+        });
+      }
 
       const btnViewUpcoming = document.getElementById('btnEmptyViewUpcomingSlate');
       if (btnViewUpcoming) {

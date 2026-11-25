@@ -4410,10 +4410,10 @@ async def get_all_candidate_bets(db: AsyncSession, predictor: PredictorService,
     tomorrow_str = (lagos_now + timedelta(days=1)).strftime("%Y-%m-%d")
 
     raw_matches = []
-    res_today = await service.fetch_live_fixtures_with_provenance(today_str)
+    res_today = await _fetch_date_with_raw_cache(service, today_str)
     if res_today.success and res_today.matches:
         raw_matches.extend(res_today.matches)
-    res_tomorrow = await service.fetch_live_fixtures_with_provenance(tomorrow_str)
+    res_tomorrow = await _fetch_date_with_raw_cache(service, tomorrow_str)
     if res_tomorrow.success and res_tomorrow.matches:
         raw_matches.extend(res_tomorrow.matches)
 
@@ -6572,7 +6572,7 @@ async def _settle_pending_predictions_impl(db: AsyncSession) -> int:
 
             for dt_sync in candidate_dates:
                 try:
-                    prov_res = await service.fetch_live_fixtures_with_provenance(dt_sync)
+                    prov_res = await _fetch_date_with_raw_cache(service, dt_sync)
                     if prov_res.success and prov_res.matches:
                         for raw_m in prov_res.matches:
                             item = LiveFixtureItem(raw_m, provider=service.provider)
@@ -7775,18 +7775,36 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
 
     return match_cards, endpoint_counts
 
+_raw_date_locks: Dict[str, asyncio.Lock] = {}
+
+
 async def _fetch_date_with_raw_cache(service: Any, target_date: str, refresh: bool = False):
     raw_cache_key = f"raw_prov:{target_date}"
     if not refresh:
         cached = calendar_slate_cache.get(raw_cache_key)
-        if cached is not None:
+        if cached is not None and getattr(cached, "success", False) and getattr(cached, "matches", None):
             return cached
-    prov_result = await service.fetch_live_fixtures_with_provenance(target_date)
-    if prov_result.success:
-        calendar_slate_cache.set(raw_cache_key, prov_result)
-    else:
-        calendar_slate_cache.delete(raw_cache_key)
-    return prov_result
+
+    lock = _raw_date_locks.setdefault(target_date, asyncio.Lock())
+    async with lock:
+        if not refresh:
+            cached = calendar_slate_cache.get(raw_cache_key)
+            if cached is not None and getattr(cached, "success", False) and getattr(cached, "matches", None):
+                return cached
+
+        prov_result = await service.fetch_live_fixtures_with_provenance(target_date)
+        # Absorb transient empty HTTP 200 glitches before declaring no matches
+        if prov_result.success and not prov_result.matches:
+            await asyncio.sleep(0.25)
+            retry_res = await service.fetch_live_fixtures_with_provenance(target_date)
+            if retry_res.success and retry_res.matches:
+                prov_result = retry_res
+
+        if prov_result.success and prov_result.matches:
+            calendar_slate_cache.set(raw_cache_key, prov_result)
+        else:
+            calendar_slate_cache.delete(raw_cache_key)
+        return prov_result
 
 
 @app.get("/api/calendar/daily-slate")
@@ -7931,7 +7949,7 @@ async def get_calendar_daily_slate(
                 "matches_count": 0,
                 "matches": []
             }
-            calendar_slate_cache.set(cache_key, empty_payload)
+            calendar_slate_cache.delete(cache_key)
             return Response(content=json.dumps(empty_payload), media_type="application/json")
 
         fixture_items = [LiveFixtureItem(m, provider=service.provider) for m in raw_matches]
@@ -8012,7 +8030,7 @@ async def get_calendar_daily_slate(
             "matches_count": 0,
             "matches": []
         }
-        calendar_slate_cache.set(cache_key, empty_payload)
+        calendar_slate_cache.delete(cache_key)
         return Response(content=json.dumps(empty_payload), media_type="application/json")
 
     # Convert genuine provider fixtures to verified LiveFixtureItem objects
@@ -8178,7 +8196,7 @@ async def get_calendar_league_slate(
     
     from football_ingestion import FootballDataService, LiveFixtureItem
     service = FootballDataService(api_key=config.FOOTBALL_API_KEY, base_url=config.FOOTBALL_API_BASE)
-    prov_res = await service.fetch_live_fixtures_with_provenance(target_date)
+    prov_res = await _fetch_date_with_raw_cache(service, target_date)
     raw_matches = prov_res.matches if prov_res.success else []
     
     items = [LiveFixtureItem(m, provider=service.provider) for m in raw_matches]
@@ -8316,7 +8334,7 @@ async def get_dashboard_stats(
     # 1. Matches playable today directly from live official provider feed
     from football_ingestion import FootballDataService, LiveFixtureItem
     service = FootballDataService(api_key=config.FOOTBALL_API_KEY, base_url=config.FOOTBALL_API_BASE)
-    prov_res = await service.fetch_live_fixtures_with_provenance(today_str)
+    prov_res = await _fetch_date_with_raw_cache(service, today_str)
     raw_fixtures = prov_res.matches if prov_res.success else []
     items = [LiveFixtureItem(m, provider=service.provider) for m in raw_fixtures]
     playable_today = len(items)
@@ -8666,10 +8684,10 @@ async def get_upcoming_fixtures(db: AsyncSession = Depends(get_db)):
     tomorrow_str = (lagos_now + timedelta(days=1)).strftime("%Y-%m-%d")
 
     raw_fixtures = []
-    res_today = await service.fetch_live_fixtures_with_provenance(today_str)
+    res_today = await _fetch_date_with_raw_cache(service, today_str)
     if res_today.success and res_today.matches:
         raw_fixtures.extend(res_today.matches)
-    res_tomorrow = await service.fetch_live_fixtures_with_provenance(tomorrow_str)
+    res_tomorrow = await _fetch_date_with_raw_cache(service, tomorrow_str)
     if res_tomorrow.success and res_tomorrow.matches:
         raw_fixtures.extend(res_tomorrow.matches)
 
@@ -8691,7 +8709,8 @@ async def get_upcoming_fixtures(db: AsyncSession = Depends(get_db)):
         "draw_odds": f.draw_odds,
     } for f in upcoming[:50]]
     serialized = json.dumps(result)
-    upcoming_fixtures_cache.set("all", serialized)
+    if result:
+        upcoming_fixtures_cache.set("all", serialized)
     return Response(content=serialized, media_type="application/json")
 
 @app.get("/api/banker-slate")
