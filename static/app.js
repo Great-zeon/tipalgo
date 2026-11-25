@@ -2199,8 +2199,8 @@
           odds: Number(latestSlip.total_odds || 1).toFixed(2),
           edge_text: `${latestSlip.created_at || 'Saved'}`,
           summary: isBanter
-            ? `Code ${latestSlip.booking_code}: ${(latestSlip.items || []).length} picks @${Number(latestSlip.total_odds || 1).toFixed(2)}. Tap to edit or add more games.`
-            : `Booking code ${latestSlip.booking_code} (${(latestSlip.items || []).length} picks @${Number(latestSlip.total_odds || 1).toFixed(2)}). Ready to reload or update.`,
+            ? `Slip ${latestSlip.booking_code}: ${(latestSlip.items || []).length} picks @${Number(latestSlip.total_odds || 1).toFixed(2)}. Tap to edit or add more games.`
+            : `Saved slip ${latestSlip.booking_code} (${(latestSlip.items || []).length} picks @${Number(latestSlip.total_odds || 1).toFixed(2)}). Ready to reload or print.`,
           team: firstLeg.home_team || '',
           booking_code: latestSlip.booking_code || '',
           time: latestSlip.created_at || 'Saved'
@@ -2540,8 +2540,10 @@
     if (slipAddedLabel) slipAddedLabel.textContent = isBanter ? 'Games Wey You Add:' : 'Games Added:';
     const slipOddsLabel = document.getElementById('slipOddsLabel');
     if (slipOddsLabel) slipOddsLabel.textContent = isBanter ? 'Total Combined Odds:' : 'Combined Odds:';
+    const btnQuickSaveSlipSpan = document.getElementById('btnQuickSaveSlipLabel');
+    if (btnQuickSaveSlipSpan) btnQuickSaveSlipSpan.textContent = isBanter ? 'Save Slip' : 'Save Slip';
     const btnValidatePrintSlipSpan = document.querySelector('#btnValidatePrintSlip span');
-    if (btnValidatePrintSlipSpan) btnValidatePrintSlipSpan.textContent = isBanter ? 'Book Ticket / Check Slip' : 'Check Slip & Print';
+    if (btnValidatePrintSlipSpan) btnValidatePrintSlipSpan.textContent = isBanter ? 'Print Slip' : 'Print Slip';
 
     // Filter Modal & Drawer Elements
     const filterTitle = document.querySelector('.filter-sidebar-title') || document.querySelector('.filter-sidebar-header h3');
@@ -8675,7 +8677,7 @@
         dom.btnValidatePrintSlip.setAttribute('disabled', 'disabled');
         dom.btnValidatePrintSlip.classList.add('disabled');
         dom.btnValidatePrintSlip.setAttribute('aria-disabled', 'true');
-        dom.btnValidatePrintSlip.title = "Your bet slip is empty. Click odds on any prediction to add matches before validating.";
+        dom.btnValidatePrintSlip.title = "Your bet slip is empty. Click odds on any prediction to add matches before printing.";
       }
       if (dom.btnValidateSlip && dom.btnValidateSlip !== dom.btnValidatePrintSlip) {
         dom.btnValidateSlip.disabled = true;
@@ -8895,7 +8897,7 @@
         if (document.getElementById('view-dashboard')?.classList.contains('active')) {
           loadDashboardStats();
         }
-        toast(res.updated ? `Slip ${res.booking_code} updated!` : `Slip saved! Booking Code: ${res.booking_code}`, 'success');
+        toast(res.updated ? `Slip ${res.booking_code} updated!` : `Slip saved! Slip Code: ${res.booking_code}`, 'success');
         if (dom.modalValidateSlip) {
           dom.modalValidateSlip.classList.remove('open');
         }
@@ -8914,7 +8916,7 @@
         <div class="tool-empty-card">
           <h3 class="tool-empty-title">No Saved Bet Slips Yet</h3>
           <p class="tool-empty-desc">
-            Add selections to your Bet Slip from any match on the board, then click "Save Slip" to archive booking codes and odds.
+            Add selections to your Bet Slip from any match on the board, then click "Save Slip" to archive your slip codes and odds.
           </p>
           <button class="btn-hero-screener" style="margin-top: 1.25rem;" onclick="switchView('view-calendar')">
             Browse Active Matches →
@@ -8980,9 +8982,9 @@
         const code = el.getAttribute('data-code');
         if (code) {
           navigator.clipboard.writeText(code).then(() => {
-            toast(`Copied booking code: ${code}`);
+            toast(`Copied slip code: ${code}`);
           }).catch(() => {
-            toast(`Booking code: ${code}`);
+            toast(`Slip code: ${code}`);
           });
         }
       });
