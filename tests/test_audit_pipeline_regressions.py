@@ -439,3 +439,69 @@ async def test_all_33_predict_endpoints_independently_and_contact_form(isolated_
                 assert tts_odd_seen != 1.43
     finally:
         app.dependency_overrides.clear()
+
+
+@pytest.mark.asyncio
+async def test_auto_persist_finished_history_and_club_disambiguation(isolated_db):
+    db, _, _ = isolated_db
+    # Seed ambiguous same-name club ("Inter") across two completely different countries/leagues:
+    # - El Salvador (EL_PRIM) Inter lost 0-2 at home vs Alianza
+    # - Italy (SA) Inter won 3-0 at home vs Bologna
+    base_dt = datetime(2026, 11, 20, 18, 0)
+    db.add_all([
+        HistoricalMatch(
+            external_id="hist_sv_inter_1", league_id="EL_PRIM",
+            home_team="Inter", away_team="Alianza",
+            home_team_id="sv_inter_99", away_team_id="sv_ali_88",
+            match_date=base_dt, home_score=0, away_score=2,
+            status="finished", source_classification="provider_verified",
+        ),
+        HistoricalMatch(
+            external_id="hist_it_inter_1", league_id="SA",
+            home_team="Inter", away_team="Bologna",
+            home_team_id="it_inter_1", away_team_id="it_bol_2",
+            match_date=base_dt + timedelta(hours=1), home_score=3, away_score=0,
+            status="finished", source_classification="provider_verified",
+        ),
+    ])
+    await db.commit()
+
+    # Upcoming fixture for El Salvador Inter MUST show ['L'], NEVER Inter Milan's ['W']!
+    sv_fixture = LiveFixtureItem(
+        {
+            "id": 991234,
+            "home": {"id": "sv_inter_99", "name": "Inter"},
+            "away": {"id": "sv_aguila_77", "name": "Águila"},
+            "kickoff": "20:00",
+            "league": {"id": 999, "name": "Primera Division", "country": "El Salvador"},
+            "status": {"status": "NS", "state": "notstarted"},
+        },
+        provider="live-football-api",
+        fallback_date="2026-11-26",
+    )
+    cards, _ = await format_fixture_cards_helper([sv_fixture], db, _DummyPredictor(), endpoint="all")
+    assert len(cards) == 1
+    assert cards[0]["home_form"] == ["L"]
+    assert cards[0]["home_venue_form"] == ["L"]
+
+    # Rendering a finished fixture automatically persists it into historical_matches
+    ft_fixture = LiveFixtureItem(
+        {
+            "id": 995678,
+            "home": {"id": "pan_udelas_1", "name": "UDELAS", "score": 2},
+            "away": {"id": "pan_chor_2", "name": "Chorrillo", "score": 1},
+            "kickoff": "16:00",
+            "league": {"id": 888, "name": "Liga Prom", "country": "Panama"},
+            "status": {"status": "FT", "state": "finished"},
+        },
+        provider="live-football-api",
+        fallback_date="2026-11-25",
+    )
+    await format_fixture_cards_helper([ft_fixture], db, _DummyPredictor(), endpoint="all")
+    saved_hm = (await db.execute(select(HistoricalMatch).where(HistoricalMatch.external_id == "995678"))).scalar_one_or_none()
+    assert saved_hm is not None
+    assert saved_hm.home_score == 2
+    assert saved_hm.away_score == 1
+    assert saved_hm.home_team_id == "pan_udelas_1"
+    assert saved_hm.source_classification == "provider_verified"
+

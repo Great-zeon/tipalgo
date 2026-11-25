@@ -5120,7 +5120,7 @@ async def lifespan(app: FastAPI):
 
     logger.info("SportyMill v21 started – Paid-only mode with Value Screener")
 
-    # Non-blocking background maintenance, whitelisted users, screener load & cache pre-warm after server bind
+    # Non-blocking background maintenance, whitelisted users, 14-day verified history backfill, screener load & cache pre-warm
     async def _prewarm_initial_cache():
         try:
             async with AsyncSessionLocal() as session:
@@ -5129,12 +5129,13 @@ async def lifespan(app: FastAPI):
                     await purge_synthetic_records_on_startup(session)
                     if not screener.load():
                         await screener.train_from_db(session)
+                    await ensure_recent_history_populated(session, days=14)
                 predictor_bg = PredictorService()
                 today_str = now_lagos().strftime("%Y-%m-%d")
                 await get_calendar_daily_slate(date=today_str, endpoint="all", db=session, predictor=predictor_bg)
                 await get_leagues_and_teams(db=session)
                 await get_banker_slate(db=session, predictor=predictor_bg)
-                logger.info(f"Startup cache successfully pre-warmed for today ({today_str}), leagues, and bankers")
+                logger.info(f"Startup cache & 14-day history successfully pre-warmed for {today_str}")
         except Exception as e:
             logger.warning(f"Startup cache pre-warm error: {e}")
 
@@ -7145,6 +7146,245 @@ def _derive_dc_odds_from_1x2(leg_odds: float, draw_odds: float) -> float:
     return round(max(1.05, min(upper_bound, raw_dc)), 2)
 
 
+_history_backfill_lock = asyncio.Lock()
+_history_backfill_done = False
+
+
+async def persist_finished_provider_records_to_history(db: AsyncSession, records: List[Dict[str, Any]]) -> int:
+    """
+    Idempotently persist verified finished provider matches (with authentic final scores) into
+    historical_matches so General / Home / Away Last-5 forms always reflect real match results.
+    """
+    if not records:
+        return 0
+    finished_statuses = {"finished", "ft", "aet", "pen", "ended", "full_time"}
+    clean_recs = []
+    ext_ids = []
+    for r in records:
+        ext_id = str(r.get("external_id") or "").strip()
+        if not ext_id or len(ext_id) < 5 or ext_id.startswith(("ext_", "SYN-", "HM-GEN", "auto_", "demo_")):
+            continue
+        st = str(r.get("status") or "").strip().lower()
+        hs = r.get("home_score")
+        as_ = r.get("away_score")
+        if st not in finished_statuses or hs is None or as_ is None:
+            continue
+        h_team = str(r.get("home_team") or "").strip()
+        a_team = str(r.get("away_team") or "").strip()
+        if not h_team or not a_team:
+            continue
+        raw_dt = r.get("match_date")
+        dt_utc = parse_to_utc(raw_dt) if raw_dt else None
+        if dt_utc is None:
+            continue
+        clean_recs.append({
+            **r,
+            "external_id": ext_id,
+            "home_team": h_team,
+            "away_team": a_team,
+            "home_score": int(hs),
+            "away_score": int(as_),
+            "match_date_naive": dt_utc.replace(tzinfo=None),
+        })
+        ext_ids.append(ext_id)
+
+    if not clean_recs:
+        return 0
+
+    try:
+        existing_rows = (
+            await db.execute(select(HistoricalMatch).where(HistoricalMatch.external_id.in_(list(set(ext_ids)))))
+        ).scalars().all()
+        existing_by_ext = {str(row.external_id): row for row in existing_rows}
+
+        changed = 0
+        now_naive = _naive_utc_now()
+        for r in clean_recs:
+            ext_id = r["external_id"]
+            existing = existing_by_ext.get(ext_id)
+            if existing:
+                updated = False
+                if existing.home_score is None or existing.away_score is None:
+                    existing.home_score = r["home_score"]
+                    existing.away_score = r["away_score"]
+                    existing.status = "finished"
+                    updated = True
+                if not existing.home_team_id and r.get("home_team_id"):
+                    existing.home_team_id = str(r["home_team_id"])
+                    updated = True
+                if not existing.away_team_id and r.get("away_team_id"):
+                    existing.away_team_id = str(r["away_team_id"])
+                    updated = True
+                if existing.source_classification not in ("provider_verified", "provider_cached", "live_recorded"):
+                    existing.source_classification = "provider_verified"
+                    updated = True
+                if updated:
+                    existing.synced_at = now_naive
+                    changed += 1
+            else:
+                new_hm = HistoricalMatch(
+                    external_id=ext_id,
+                    home_team=r["home_team"],
+                    away_team=r["away_team"],
+                    home_logo=r.get("home_logo"),
+                    away_logo=r.get("away_logo"),
+                    home_score=r["home_score"],
+                    away_score=r["away_score"],
+                    league_id=str(r.get("league_id") or "INT")[:30],
+                    match_date=r["match_date_naive"],
+                    home_odds=float(r.get("home_odds") or 2.10),
+                    draw_odds=float(r.get("draw_odds") or 3.25),
+                    away_odds=float(r.get("away_odds") or 3.40),
+                    status="finished",
+                    source_classification="provider_verified",
+                    provider=str(r.get("provider") or "live-football-api"),
+                    provider_fixture_id=ext_id,
+                    home_team_id=str(r.get("home_team_id") or "") or None,
+                    away_team_id=str(r.get("away_team_id") or "") or None,
+                    provider_status=str(r.get("provider_status") or "finished"),
+                    provider_updated_at=now_naive,
+                    synced_at=now_naive,
+                )
+                db.add(new_hm)
+                existing_by_ext[ext_id] = new_hm
+                changed += 1
+
+        if changed > 0:
+            await db.commit()
+            recent_matches_cache.clear()
+            venue_form_cache.clear()
+        return changed
+    except Exception as ex:
+        logger.warning(f"Persist finished provider history notice: {ex}")
+        try:
+            await db.rollback()
+        except Exception:
+            pass
+        return 0
+
+
+async def ensure_recent_history_populated(db: AsyncSession, days: int = 14) -> Dict[str, Any]:
+    """
+    1. Hydrate verified historical matches from bundled gzip snapshot if DB is fresh/sparse (0 API credits).
+    2. Fetch any missing recent days (last `days` calendar days) from the live football provider and store finished scores.
+    """
+    global _history_backfill_done
+    if _history_backfill_done:
+        return {"skipped": True, "reason": "already_checked"}
+
+    async with _history_backfill_lock:
+        if _history_backfill_done:
+            return {"skipped": True, "reason": "already_checked"}
+
+        snapshot_loaded = 0
+        backfilled_days = 0
+        backfilled_matches = 0
+
+        try:
+            ver_cnt = (
+                await db.execute(
+                    select(func.count(HistoricalMatch.id)).where(
+                        and_(
+                            HistoricalMatch.source_classification == "provider_verified",
+                            HistoricalMatch.home_score.isnot(None),
+                            HistoricalMatch.away_score.isnot(None),
+                        )
+                    )
+                )
+            ).scalar() or 0
+
+            snapshot_path = Path(BASE_DIR) / "static" / "data" / "verified_historical_snapshot.json.gz"
+            if ver_cnt < 500 and snapshot_path.exists():
+                import gzip
+                with gzip.open(snapshot_path, "rt", encoding="utf-8") as gz_f:
+                    snap_rows = json.load(gz_f)
+                if isinstance(snap_rows, list) and snap_rows:
+                    for idx in range(0, len(snap_rows), 500):
+                        snapshot_loaded += await persist_finished_provider_records_to_history(db, snap_rows[idx:idx + 500])
+                    logger.info(f"Hydrated {snapshot_loaded} verified historical matches from bundled snapshot.")
+
+            # Determine which of the last N Lagos dates lack sufficient verified finished fixtures (< 15)
+            lagos_today = now_lagos()
+            target_past_dates = [(lagos_today - timedelta(days=d)).strftime("%Y-%m-%d") for d in range(1, max(1, days) + 1)]
+            min_date_str = target_past_dates[-1]
+            day_rows = (
+                await db.execute(
+                    select(
+                        func.substr(func.cast(HistoricalMatch.match_date, String), 1, 10),
+                        func.count(HistoricalMatch.id),
+                    )
+                    .where(
+                        and_(
+                            HistoricalMatch.source_classification == "provider_verified",
+                            HistoricalMatch.home_score.isnot(None),
+                            func.substr(func.cast(HistoricalMatch.match_date, String), 1, 10) >= min_date_str,
+                        )
+                    )
+                    .group_by(func.substr(func.cast(HistoricalMatch.match_date, String), 1, 10))
+                )
+            ).fetchall()
+            day_counts = {str(r[0]): int(r[1]) for r in day_rows if r[0]}
+            missing_dates = [dt for dt in target_past_dates if day_counts.get(dt, 0) < 15]
+
+            if missing_dates:
+                from football_ingestion import FootballDataService, LiveFixtureItem
+                service = FootballDataService(api_key=config.FOOTBALL_API_KEY, base_url=config.FOOTBALL_API_BASE)
+                if service.is_configured:
+                    sem = asyncio.Semaphore(4)
+
+                    async def _pull_one(dt_s: str):
+                        async with sem:
+                            res = await _fetch_date_with_raw_cache(service, dt_s)
+                            return dt_s, res
+
+                    results = await asyncio.gather(*[_pull_one(dt) for dt in missing_dates], return_exceptions=True)
+                    records_to_store = []
+                    for item_res in results:
+                        if isinstance(item_res, Exception):
+                            continue
+                        dt_s, res = item_res
+                        if getattr(res, "success", False) and getattr(res, "matches", None):
+                            backfilled_days += 1
+                            for raw_m in res.matches:
+                                fx = LiveFixtureItem(raw_m, provider=service.provider, fallback_date=dt_s)
+                                if str(fx.status or "").lower() in ("finished", "ft", "aet", "pen") and fx.home_score is not None and fx.away_score is not None and fx.match_date is not None:
+                                    records_to_store.append({
+                                        "external_id": fx.external_id,
+                                        "home_team": fx.home_team,
+                                        "away_team": fx.away_team,
+                                        "home_team_id": fx.home_team_id,
+                                        "away_team_id": fx.away_team_id,
+                                        "home_logo": fx.home_logo,
+                                        "away_logo": fx.away_logo,
+                                        "home_score": fx.home_score,
+                                        "away_score": fx.away_score,
+                                        "league_id": fx.league_id,
+                                        "match_date": fx.match_date,
+                                        "status": fx.status,
+                                        "provider": fx.provider,
+                                        "provider_status": fx.provider_status,
+                                        "home_odds": fx.home_odds,
+                                        "draw_odds": fx.draw_odds,
+                                        "away_odds": fx.away_odds,
+                                    })
+                    for idx in range(0, len(records_to_store), 500):
+                        backfilled_matches += await persist_finished_provider_records_to_history(db, records_to_store[idx:idx + 500])
+
+            _history_backfill_done = True
+            logger.info(
+                f"History population complete: snapshot_loaded={snapshot_loaded}, "
+                f"backfilled_days={backfilled_days}/{len(missing_dates)}, backfilled_matches={backfilled_matches}"
+            )
+        except Exception as e:
+            logger.warning(f"History population notice: {e}")
+
+        return {
+            "snapshot_loaded": snapshot_loaded,
+            "backfilled_days": backfilled_days,
+            "backfilled_matches": backfilled_matches,
+        }
+
+
 async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: PredictorService, endpoint: Optional[str] = "all"):
     endpoint_counts = {ep["id"]: 0 for ep in ALL_33_ENDPOINTS_METADATA}
     match_cards = []
@@ -7152,47 +7392,72 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
 
     # Batch lookups for league table overall form, independent venue forms (General/Home/Away), and locked pre-match predictions
     all_team_names = set()
+    all_team_ids = set()
     all_ext_ids = []
     for m in fixtures:
         if m.home_team:
             all_team_names.add(m.home_team)
         if m.away_team:
             all_team_names.add(m.away_team)
+        if getattr(m, "home_team_id", None):
+            all_team_ids.add(str(m.home_team_id).strip())
+        if getattr(m, "away_team_id", None):
+            all_team_ids.add(str(m.away_team_id).strip())
         if getattr(m, "external_id", None):
             all_ext_ids.append(str(m.external_id).strip())
 
     all_team_lower_set = {t.lower().strip() for t in all_team_names if t}
     team_league_map = {}
+    id_general_forms: Dict[str, List[str]] = {}
+    id_home_forms: Dict[str, List[str]] = {}
+    id_away_forms: Dict[str, List[str]] = {}
+    lg_general_forms: Dict[Tuple[str, str], List[str]] = {}
+    lg_home_forms: Dict[Tuple[str, str], List[str]] = {}
+    lg_away_forms: Dict[Tuple[str, str], List[str]] = {}
     team_general_forms: Dict[str, List[str]] = {}
     team_home_forms: Dict[str, List[str]] = {}
     team_away_forms: Dict[str, List[str]] = {}
+    team_leagues_seen: Dict[str, set] = defaultdict(set)
     locked_preds_map: Dict[str, PredictionLog] = {}
 
     if all_team_names:
         try:
             lt_res = await db.execute(
-                select(LeagueTable).where(LeagueTable.team_name.in_(list(all_team_names)))
+                select(LeagueTable).where(func.lower(LeagueTable.team_name).in_(list(all_team_lower_set)))
             )
             for lt_row in lt_res.scalars().all():
                 if lt_row.team_name and lt_row.last_5_form:
-                    team_league_map[lt_row.team_name.lower().strip()] = lt_row.last_5_form
+                    t_low = lt_row.team_name.lower().strip()
+                    team_league_map[t_low] = lt_row.last_5_form
+                    if lt_row.league_id:
+                        team_league_map[f"{lt_row.league_id}::{t_low}"] = lt_row.last_5_form
         except Exception as e:
             logger.warning(f"Batch league table form query notice: {e}")
 
         try:
+            match_clauses = [
+                func.lower(HistoricalMatch.home_team).in_(list(all_team_lower_set)),
+                func.lower(HistoricalMatch.away_team).in_(list(all_team_lower_set)),
+            ]
+            if all_team_ids:
+                match_clauses.extend([
+                    HistoricalMatch.home_team_id.in_(list(all_team_ids)),
+                    HistoricalMatch.away_team_id.in_(list(all_team_ids)),
+                ])
+
             hm_res = await db.execute(
                 select(
                     HistoricalMatch.home_team,
                     HistoricalMatch.away_team,
+                    HistoricalMatch.home_team_id,
+                    HistoricalMatch.away_team_id,
+                    HistoricalMatch.league_id,
                     HistoricalMatch.home_score,
                     HistoricalMatch.away_score,
                 )
                 .where(
                     and_(
-                        or_(
-                            HistoricalMatch.home_team.in_(list(all_team_names)),
-                            HistoricalMatch.away_team.in_(list(all_team_names)),
-                        ),
+                        or_(*match_clauses),
                         HistoricalMatch.home_score.isnot(None),
                         HistoricalMatch.away_score.isnot(None),
                         or_(
@@ -7203,23 +7468,51 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
                 )
                 .order_by(HistoricalMatch.match_date.desc())
             )
-            for ht, at, hs_val, as_val in hm_res.fetchall():
+            for ht, at, h_tid, a_tid, lg_val, hs_val, as_val in hm_res.fetchall():
                 if hs_val is None or as_val is None:
                     continue
                 h_k = str(ht or "").lower().strip()
                 a_k = str(at or "").lower().strip()
+                h_id_str = str(h_tid or "").strip()
+                a_id_str = str(a_tid or "").strip()
+                lg_str = str(lg_val or "").strip()
                 if hs_val > as_val:
                     h_ch, a_ch = "W", "L"
                 elif hs_val < as_val:
                     h_ch, a_ch = "L", "W"
                 else:
                     h_ch, a_ch = "D", "D"
+
+                if h_id_str and h_id_str in all_team_ids:
+                    if len(id_general_forms.get(h_id_str, [])) < 5:
+                        id_general_forms.setdefault(h_id_str, []).append(h_ch)
+                    if len(id_home_forms.get(h_id_str, [])) < 5:
+                        id_home_forms.setdefault(h_id_str, []).append(h_ch)
+                if a_id_str and a_id_str in all_team_ids:
+                    if len(id_general_forms.get(a_id_str, [])) < 5:
+                        id_general_forms.setdefault(a_id_str, []).append(a_ch)
+                    if len(id_away_forms.get(a_id_str, [])) < 5:
+                        id_away_forms.setdefault(a_id_str, []).append(a_ch)
+
                 if h_k and h_k in all_team_lower_set:
+                    if lg_str:
+                        team_leagues_seen[h_k].add(lg_str)
+                        if len(lg_general_forms.get((lg_str, h_k), [])) < 5:
+                            lg_general_forms.setdefault((lg_str, h_k), []).append(h_ch)
+                        if len(lg_home_forms.get((lg_str, h_k), [])) < 5:
+                            lg_home_forms.setdefault((lg_str, h_k), []).append(h_ch)
                     if len(team_general_forms.get(h_k, [])) < 5:
                         team_general_forms.setdefault(h_k, []).append(h_ch)
                     if len(team_home_forms.get(h_k, [])) < 5:
                         team_home_forms.setdefault(h_k, []).append(h_ch)
+
                 if a_k and a_k in all_team_lower_set:
+                    if lg_str:
+                        team_leagues_seen[a_k].add(lg_str)
+                        if len(lg_general_forms.get((lg_str, a_k), [])) < 5:
+                            lg_general_forms.setdefault((lg_str, a_k), []).append(a_ch)
+                        if len(lg_away_forms.get((lg_str, a_k), [])) < 5:
+                            lg_away_forms.setdefault((lg_str, a_k), []).append(a_ch)
                     if len(team_general_forms.get(a_k, [])) < 5:
                         team_general_forms.setdefault(a_k, []).append(a_ch)
                     if len(team_away_forms.get(a_k, [])) < 5:
@@ -7923,22 +8216,44 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
             m.external_id and (m.external_id.startswith("auto_") or m.external_id.startswith("SYN-") or m.external_id.startswith("demo_"))
         )
         
-        # Authentic independent forms (General vs Home-only vs Away-only; never duplicate General -> Venue)
+        # Authentic disambiguated forms (ID-scoped > League+Name > Unambiguous Name; General vs Home-only vs Away-only)
         h_key = m.home_team.lower().strip() if m.home_team else ""
         a_key = m.away_team.lower().strip() if m.away_team else ""
-        h_form = list(team_general_forms.get(h_key, []))[:5]
-        a_form = list(team_general_forms.get(a_key, []))[:5]
+        h_tid_k = str(getattr(m, "home_team_id", "") or "").strip()
+        a_tid_k = str(getattr(m, "away_team_id", "") or "").strip()
+        lg_k = str(league_id or "").strip()
+
+        def _pick_club_form(tid_val, name_key, lg_val, id_map, lg_map, gen_map):
+            if tid_val and id_map.get(tid_val):
+                return list(id_map[tid_val])[:5]
+            if lg_val and name_key and lg_map.get((lg_val, name_key)):
+                return list(lg_map[(lg_val, name_key)])[:5]
+            # Only fall back to cross-league name form if this team name is NOT shared across multiple leagues
+            if name_key and len(team_leagues_seen.get(name_key, set())) <= 1 and gen_map.get(name_key):
+                return list(gen_map[name_key])[:5]
+            return []
+
+        h_form = _pick_club_form(h_tid_k, h_key, lg_k, id_general_forms, lg_general_forms, team_general_forms)
+        a_form = _pick_club_form(a_tid_k, a_key, lg_k, id_general_forms, lg_general_forms, team_general_forms)
 
         if not h_form:
-            home_raw_form = (home_i.get("last_5_form", "") if (isinstance(home_i, dict) and home_i.get("last_5_form")) else "") or team_league_map.get(h_key, "")
+            home_raw_form = (
+                (home_i.get("last_5_form", "") if (isinstance(home_i, dict) and home_i.get("last_5_form")) else "")
+                or team_league_map.get(f"{lg_k}::{h_key}", "")
+                or (team_league_map.get(h_key, "") if len(team_leagues_seen.get(h_key, set())) <= 1 else "")
+            )
             h_form = [c.upper() for c in home_raw_form if c.upper() in ('W', 'D', 'L')][:5] if home_raw_form else []
 
         if not a_form:
-            away_raw_form = (away_i.get("last_5_form", "") if (isinstance(away_i, dict) and away_i.get("last_5_form")) else "") or team_league_map.get(a_key, "")
+            away_raw_form = (
+                (away_i.get("last_5_form", "") if (isinstance(away_i, dict) and away_i.get("last_5_form")) else "")
+                or team_league_map.get(f"{lg_k}::{a_key}", "")
+                or (team_league_map.get(a_key, "") if len(team_leagues_seen.get(a_key, set())) <= 1 else "")
+            )
             a_form = [c.upper() for c in away_raw_form if c.upper() in ('W', 'D', 'L')][:5] if away_raw_form else []
 
-        h_venue_form = list(team_home_forms.get(h_key, []))[:5]
-        a_venue_form = list(team_away_forms.get(a_key, []))[:5]
+        h_venue_form = _pick_club_form(h_tid_k, h_key, lg_k, id_home_forms, lg_home_forms, team_home_forms)
+        a_venue_form = _pick_club_form(a_tid_k, a_key, lg_k, id_away_forms, lg_away_forms, team_away_forms)
 
         # Pre-match Prediction Lock Enforcement (#6 / #12): once recorded/kicked-off, never mutate pick, odds, or prob_pct
         prediction_locked = False
@@ -8026,6 +8341,36 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
 
     if ep_filter == "all" and match_cards:
         await persist_and_settle_verified_cards(db, match_cards)
+
+    # Automatically persist any finished verified fixtures encountered into HistoricalMatch for live form growth
+    if fixtures:
+        finished_records = []
+        for fx in fixtures:
+            st_l = str(getattr(fx, "status", "") or "").lower()
+            hs_f = getattr(fx, "home_score", None)
+            as_f = getattr(fx, "away_score", None)
+            if st_l in ("finished", "ft", "aet", "pen") and hs_f is not None and as_f is not None and getattr(fx, "match_date", None):
+                finished_records.append({
+                    "external_id": getattr(fx, "external_id", None),
+                    "home_team": getattr(fx, "home_team", None),
+                    "away_team": getattr(fx, "away_team", None),
+                    "home_team_id": getattr(fx, "home_team_id", None),
+                    "away_team_id": getattr(fx, "away_team_id", None),
+                    "home_logo": getattr(fx, "home_logo", None),
+                    "away_logo": getattr(fx, "away_logo", None),
+                    "home_score": hs_f,
+                    "away_score": as_f,
+                    "league_id": getattr(fx, "league_id", None),
+                    "match_date": getattr(fx, "match_date", None),
+                    "status": st_l,
+                    "provider": getattr(fx, "provider", "live-football-api"),
+                    "provider_status": getattr(fx, "provider_status", "finished"),
+                    "home_odds": getattr(fx, "home_odds", None),
+                    "draw_odds": getattr(fx, "draw_odds", None),
+                    "away_odds": getattr(fx, "away_odds", None),
+                })
+        if finished_records:
+            await persist_finished_provider_records_to_history(db, finished_records)
 
     return match_cards, endpoint_counts
 

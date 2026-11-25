@@ -587,7 +587,7 @@ class FootballDataService:
             url = f"https://live-football-api.com/api/v1/matches?api_key={self.api_key}&date={target_date}"
             try:
                 async with aiohttp.ClientSession() as session:
-                    async with session.get(url, timeout=20) as resp:
+                    async with session.get(url, timeout=30) as resp:
                         body_text = await resp.text()
                         try:
                             data = json.loads(body_text) if body_text else {}
