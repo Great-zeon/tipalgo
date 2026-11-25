@@ -387,7 +387,7 @@
     headers['X-Device-Id'] = getOrCreateDeviceId();
     headers['Content-Type'] = 'application/json';
 
-    const res = await fetch(path, { ...options, headers });
+    const res = await fetch(path, { cache: options.cache || 'no-store', ...options, headers });
     if (!res.ok) {
       if (res.status === 422) {
         const data = await res.json().catch(() => null);
@@ -6176,8 +6176,17 @@
       try {
         const refreshParam = isRefresh ? `&refresh=1&_t=${Date.now()}` : '';
         const url = `/api/calendar/daily-slate?date=${encodeURIComponent(targetDate)}&endpoint=${encodeURIComponent(targetEndpoint)}&page=${curPage}&limit=${curLimit}${refreshParam}`;
-        const data = await api(url);
+        let data = await api(url);
         if (!data) return;
+
+        // Automatic 1-shot fresh retry if default initial load returned empty non-error slate
+        if (!isRefresh && targetDate === getSystemTodayDateStr() && targetEndpoint === 'all' && data.status !== 'error' && data.provider_status !== 'error' && (!Array.isArray(data.matches) || data.matches.length === 0)) {
+          const retryUrl = `/api/calendar/daily-slate?date=${encodeURIComponent(targetDate)}&endpoint=${encodeURIComponent(targetEndpoint)}&page=${curPage}&limit=${curLimit}&refresh=1&_t=${Date.now()}`;
+          const retryData = await api(retryUrl).catch(() => null);
+          if (retryData && Array.isArray(retryData.matches) && retryData.matches.length > 0) {
+            data = retryData;
+          }
+        }
 
         if (data.provider_status === 'error' || data.status === 'error' || !Array.isArray(data.matches) || data.matches.length === 0) {
           clientSlateMemoryCache.delete(cacheKey);

@@ -5092,10 +5092,8 @@ async def lifespan(app: FastAPI):
         try:
             async with AsyncSessionLocal() as session:
                 predictor = PredictorService()
-                today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                today_str = now_lagos().strftime("%Y-%m-%d")
                 await get_calendar_daily_slate(date=today_str, endpoint="all", db=session, predictor=predictor)
-                await get_calendar_daily_slate(date="2026-10-13", endpoint="all", db=session, predictor=predictor)
-                await get_calendar_daily_slate(date="2026-10-09", endpoint="all", db=session, predictor=predictor)
                 await get_leagues_and_teams(db=session)
                 await get_banker_slate(db=session, predictor=predictor)
                 logger.info(f"Startup cache successfully pre-warmed for today ({today_str}), leagues, and bankers")
@@ -7865,11 +7863,12 @@ async def get_calendar_daily_slate(
         for ep in ALL_33_ENDPOINTS_METADATA
     ]
 
+    no_cache_hdrs = {"Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache"}
     cache_key = f"slate:{target_date}:{ep_filter}:p{safe_page}:l{safe_limit}"
     if not refresh:
         cached_data = calendar_slate_cache.get(cache_key)
-        if cached_data:
-            return Response(content=json.dumps(cached_data), media_type="application/json")
+        if cached_data and cached_data.get("matches"):
+            return Response(content=json.dumps(cached_data), media_type="application/json", headers=no_cache_hdrs)
     else:
         calendar_slate_cache.delete(cache_key)
 
@@ -7906,7 +7905,7 @@ async def get_calendar_daily_slate(
                 "matches": []
             }
             calendar_slate_cache.delete(cache_key)
-            return Response(content=json.dumps(err_payload), media_type="application/json")
+            return Response(content=json.dumps(err_payload), media_type="application/json", headers=no_cache_hdrs)
 
         all_results = list(wave1_results)
         # Continue into days +7..+13 only if the end of week 1 still returned live schedule data
@@ -7950,7 +7949,7 @@ async def get_calendar_daily_slate(
                 "matches": []
             }
             calendar_slate_cache.delete(cache_key)
-            return Response(content=json.dumps(empty_payload), media_type="application/json")
+            return Response(content=json.dumps(empty_payload), media_type="application/json", headers=no_cache_hdrs)
 
         fixture_items = [LiveFixtureItem(m, provider=service.provider) for m in raw_matches]
         match_cards, endpoint_counts = await format_fixture_cards_helper(fixture_items, db, predictor, ep_filter)
@@ -7985,7 +7984,7 @@ async def get_calendar_daily_slate(
             "provider_message": f"Retrieved {total_fixtures_count} upcoming fixtures across {len(dates_with_matches)} matchdays."
         }
         calendar_slate_cache.set(cache_key, response_payload)
-        return Response(content=json.dumps(response_payload), media_type="application/json")
+        return Response(content=json.dumps(response_payload), media_type="application/json", headers=no_cache_hdrs)
 
     prov_result = await _fetch_date_with_raw_cache(service, target_date, refresh=refresh)
 
@@ -8010,7 +8009,7 @@ async def get_calendar_daily_slate(
         }
         # CRITICAL: Never cache provider errors so retries always query the live provider fresh
         calendar_slate_cache.delete(cache_key)
-        return Response(content=json.dumps(err_payload), media_type="application/json")
+        return Response(content=json.dumps(err_payload), media_type="application/json", headers=no_cache_hdrs)
 
     raw_matches = prov_result.matches
     if not raw_matches:
@@ -8031,7 +8030,7 @@ async def get_calendar_daily_slate(
             "matches": []
         }
         calendar_slate_cache.delete(cache_key)
-        return Response(content=json.dumps(empty_payload), media_type="application/json")
+        return Response(content=json.dumps(empty_payload), media_type="application/json", headers=no_cache_hdrs)
 
     # Convert genuine provider fixtures to verified LiveFixtureItem objects
     fixture_items = [LiveFixtureItem(m, provider=service.provider) for m in raw_matches]
@@ -8070,7 +8069,7 @@ async def get_calendar_daily_slate(
     if ep_filter == "all" and safe_page == 1:
         calendar_slate_cache.set(f"slate:{target_date}:all", response_payload)
 
-    return Response(content=json.dumps(response_payload), media_type="application/json")
+    return Response(content=json.dumps(response_payload), media_type="application/json", headers=no_cache_hdrs)
 
 TEAM_SEARCH_ALIASES = {
     "man utd": ["Manchester United", "Man United"],
