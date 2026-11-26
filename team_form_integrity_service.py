@@ -458,13 +458,21 @@ def compute_independent_team_form(
 
     candidates: List[Dict[str, Any]] = []
     seen_fixture_ids: Set[str] = set()
-    seen_match_keys: Set[Tuple[str, str, str]] = set()
+    # Map sorted team-pair -> list of accepted kickoff datetimes (handles ±36h legacy hex vs fresh numeric duplicates)
+    seen_pair_times: Dict[Tuple[str, str], List[datetime]] = {}
 
+    # Sort source records so authentic numeric Live Football API IDs and newest timestamps win deduplication
+    sorted_pool: List[Dict[str, Any]] = []
     for raw_rec in verified_matches:
         rec = raw_rec if "home_full_canon" in raw_rec else validate_provider_historical_fixture(raw_rec)
-        if not rec:
-            continue
+        if rec:
+            sorted_pool.append(rec)
+    sorted_pool.sort(
+        key=lambda r: (1 if str(r["fixture_id"]).strip().isdigit() else 0, r["kickoff_utc"], str(r["fixture_id"])),
+        reverse=True,
+    )
 
+    for rec in sorted_pool:
         fid = str(rec["fixture_id"]).strip()
         if excl_id and fid == excl_id:
             continue
@@ -489,14 +497,14 @@ def compute_independent_team_form(
         if req_venue == "away" and side:
             continue
 
-        # Dedup identical real-world game if fixture_id differs across ingestion tables
+        # Dedup identical real-world game across legacy hex IDs vs live numeric IDs (±48h window)
         pair = tuple(sorted([rec["home_full_canon"], rec["away_full_canon"]]))
-        dedup_sig = (ko_utc.strftime("%Y-%m-%d"), pair[0], pair[1])
-        if dedup_sig in seen_match_keys:
+        prev_times = seen_pair_times.get(pair, [])
+        if any(abs((ko_utc - prev_dt).total_seconds()) <= 48 * 3600 for prev_dt in prev_times):
             continue
 
         seen_fixture_ids.add(fid)
-        seen_match_keys.add(dedup_sig)
+        seen_pair_times.setdefault(pair, []).append(ko_utc)
 
         hs = int(rec["home_score"])
         as_ = int(rec["away_score"])

@@ -214,15 +214,20 @@ def test_validation_rejects_seed_espn_bad_scores_and_duplicates():
     assert validate_provider_historical_fixture(_lfa_match("123457", "2026-11-20 15:00", "Arsenal", "Chelsea", True, 1)) is None
     assert validate_provider_historical_fixture(_lfa_match("123458", "2026-11-20 15:00", "Arsenal", "Chelsea", -1, 1)) is None
 
-    # Deduplicate same fixture_id and same-day pair duplicate
+    # Deduplicate same fixture_id and same-day / ±48h legacy hex duplicate (numeric ID always wins)
     dups = [
         _lfa_match("55501", "2026-11-20 18:00", "Boca Juniors", "River Plate", 1, 0, home_id="17958", away_id="9122"),
         _lfa_match("55501", "2026-11-20 18:00", "Boca Juniors", "River Plate", 1, 0, home_id="17958", away_id="9122"),
         _lfa_match("55502", "2026-11-20 18:00", "Boca Juniors", "CA River Plate", 1, 0, home_id="17958", away_id="9122"),
+        _lfa_match("f3muqo8nhjkxwqgv9kmrwnuhg", "2026-11-08 21:00", "Atl. Mineiro", "Grêmio", 1, 1, home_id="1209", away_id="5002"),
+        _lfa_match("887644", "2026-11-07 21:00", "Atl. Mineiro", "Grêmio", 1, 1, home_id="1209", away_id="5002"),
     ]
     res = compute_independent_team_form(dups, team_name="Boca Juniors", team_id="17958")
     assert res["verified_count"] == 1
     assert res["symbols"] == ["W"]
+    res_gremio = compute_independent_team_form(dups, team_name="Atl. Mineiro", team_id="1209")
+    assert res_gremio["verified_count"] == 1
+    assert res_gremio["matches"][0]["fixture_id"] == "887644"
 
 
 # ==============================================================================

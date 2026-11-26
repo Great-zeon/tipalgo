@@ -9806,6 +9806,7 @@ async def get_match_analytics(
     dc_odds = round(max(1.18, 1.0 / (dc_prob * 0.95)), 2)
     o15_prob = all_probs.get('over_1_5', 0.78)
     o15_odds = round(max(1.22, 1.0 / (o15_prob * 0.94)), 2)
+    o25_prob = all_probs.get('over_2_5', 0.52)
     
     # Safe Banker Pick
     safe_sel = f"{home_team} Win" if home_prob >= 0.55 else f"{home_team} or Draw (1X)"
