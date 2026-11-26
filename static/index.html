@@ -3157,15 +3157,7 @@
   <!-- Toast Notification -->
   <div id="platformToast" class="platform-toast"></div>
 
-  <script>
-    // Asynchronous preload of comprehensive team form metrics
-    window.__teamForms = window.__teamForms || null;
-    fetch('/static/data/team_forms.json')
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (data) { if (data) window.__teamForms = data; })
-      .catch(function () { });
-  </script>
-  <script src="/static/app.js?v=141"></script>
+  <script src="/static/app.js?v=142"></script>
 </body>
 
 </html>

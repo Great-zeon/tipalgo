@@ -13368,6 +13368,63 @@ body.light-theme-mode .btn-quick-save-slip {
   white-space: nowrap;
 }
 
+.em-form-row.has-proof {
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background 0.15s ease;
+}
+
+.em-form-row.has-proof:hover {
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.em-form-count-tag {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #64748b;
+  margin-left: 2px;
+}
+
+.em-form-proof-drawer {
+  margin-top: 0.35rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(15, 23, 42, 0.55);
+  font-size: 0.68rem;
+  line-height: 1.35;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+body.light-theme-mode .em-form-proof-drawer {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #1e293b;
+}
+
+.em-form-proof-title {
+  font-weight: 700;
+  font-size: 0.68rem;
+  color: #94a3b8;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.em-form-proof-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.em-form-proof-meta {
+  color: #94a3b8;
+  font-size: 0.64rem;
+}
+
 @media (max-width: 640px) {
   .em-club-duel-col .em-team-title {
     font-size: 0.84rem;

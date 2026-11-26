@@ -3594,25 +3594,81 @@
   }
 
   // Helper: Form Run Pills (W/D/L badges) - strictly verified data, neutral dashes for unrecorded slots
-  function renderFormRunPills(formArray, _teamName) {
+  window.__sportymillFormProofs = window.__sportymillFormProofs || {};
+  function renderFormRunPills(formArray, _teamName, detailsArray, metaObj) {
+    const esc = escapeHtmlUtil;
     const list = Array.isArray(formArray)
       ? formArray.map(x => String(x || '').trim().charAt(0).toUpperCase()).filter(ch => ch === 'W' || ch === 'D' || ch === 'L').slice(0, 5)
       : [];
+    const details = Array.isArray(detailsArray) ? detailsArray : [];
     const pills = [];
     for (let i = 0; i < 5; i++) {
       if (i < list.length) {
         const ch = list[i];
         const cls = ch === 'W' ? 'w' : (ch === 'L' ? 'l' : 'd');
-        const title = ch === 'W' ? 'Win (Verified match result)' : (ch === 'L' ? 'Loss (Verified match result)' : 'Draw (Verified match result)');
-        pills.push(`<span class="em-form-pill ${cls}" title="${title}">${ch}</span>`);
+        const det = details[i];
+        const title = det
+          ? `${ch === 'W' ? 'Win' : (ch === 'L' ? 'Loss' : 'Draw')} vs ${det.opponent || 'Opponent'} (${det.score || ''}) • ${det.date_display || ''} • #${det.fixture_id || ''}`
+          : (ch === 'W' ? 'Win (Verified match result)' : (ch === 'L' ? 'Loss (Verified match result)' : 'Draw (Verified match result)'));
+        pills.push(`<span class="em-form-pill ${cls}" title="${esc(title)}">${ch}</span>`);
       } else {
-        pills.push(`<span class="em-form-pill empty" title="No verified match history on record" style="background:rgba(148,163,184,0.12);color:#64748b;border:1px solid rgba(148,163,184,0.22);">-</span>`);
+        const emptyTitle = (metaObj && metaObj.error_message)
+          ? `Provider error: ${metaObj.error_message}`
+          : (list.length > 0 ? `Only ${list.length}/5 verified matches available` : 'Recent form unavailable');
+        pills.push(`<span class="em-form-pill empty" title="${esc(emptyTitle)}" style="background:rgba(148,163,184,0.12);color:#64748b;border:1px solid rgba(148,163,184,0.22);">-</span>`);
       }
     }
-    const containerTitle = list.length > 0
-      ? `${list.length} verified match result(s) on record`
-      : 'No verified historical matches recorded for this scope';
-    return `<div class="em-form-pills-row" title="${containerTitle}">${pills.join('')}</div>`;
+    const containerTitle = (metaObj && metaObj.error_message && list.length === 0)
+      ? `Provider error: ${metaObj.error_message}`
+      : (list.length === 5
+        ? '5/5 verified Live Football API matches — click to inspect'
+        : (list.length > 0 ? `${list.length}/5 verified matches — click to inspect` : 'Recent form unavailable'));
+    return `<div class="em-form-pills-row" title="${esc(containerTitle)}">${pills.join('')}</div>`;
+  }
+
+  function renderInlineFormProofHtml(teamName, scopeLabel, details) {
+    const esc = escapeHtmlUtil;
+    if (!Array.isArray(details) || !details.length) return '';
+    return `
+      <div class="em-form-proof-title">
+        <span>${esc(teamName)} • ${esc(scopeLabel)} (${details.length}/5 verified)</span>
+        <span>Live Football API</span>
+      </div>
+      ${details.map(d => {
+        const vTag = String(d.venue || '').toLowerCase() === 'away' ? 'A' : 'H';
+        const ch = String(d.result || 'D').toUpperCase();
+        const cls = ch === 'W' ? 'w' : (ch === 'L' ? 'l' : 'd');
+        return `
+          <div class="em-form-proof-row">
+            <span><span class="em-form-pill ${cls}" style="width:15px;height:15px;font-size:0.58rem;margin-right:4px;">${ch}</span>[${vTag}] vs <strong>${esc(d.opponent || 'Opponent')}</strong></span>
+            <span><strong>${esc(d.score || '')}</strong> <span class="em-form-proof-meta">${esc(d.date_display || '')} • ${esc(d.competition || '')} • #${esc(String(d.fixture_id || ''))}</span></span>
+          </div>
+        `;
+      }).join('')}
+    `;
+  }
+
+  if (!window.__sportymillFormProofListenerBound) {
+    window.__sportymillFormProofListenerBound = true;
+    document.addEventListener('click', (ev) => {
+      const row = ev.target && ev.target.closest ? ev.target.closest('.em-form-row.has-proof') : null;
+      if (!row) return;
+      ev.stopPropagation();
+      const col = row.closest('.em-team-form-col');
+      const drawer = col ? col.querySelector('.em-form-proof-drawer') : null;
+      const key = row.getAttribute('data-proof-key');
+      if (!drawer || !key) return;
+      const entry = window.__sportymillFormProofs[key];
+      if (!entry) return;
+      if (!drawer.hasAttribute('hidden') && drawer.getAttribute('data-active-key') === key) {
+        drawer.setAttribute('hidden', '');
+        drawer.removeAttribute('data-active-key');
+      } else {
+        drawer.innerHTML = renderInlineFormProofHtml(entry.teamName, entry.scopeLabel, entry.details);
+        drawer.setAttribute('data-active-key', key);
+        drawer.removeAttribute('hidden');
+      }
+    });
   }
 
   // Helper: Unified Employer Mockup Match Card (Canva Layout)
@@ -3789,14 +3845,32 @@
                   ${(isFinished || isLive) && m.home_score != null ? `<span class="em-score-digit">${m.home_score}</span>` : ''}
                 </div>
                 <div class="em-team-form-col">
-                  <div class="em-form-row">
-                    ${renderFormRunPills(m.home_form, m.home_team)}
-                    <span class="em-form-text-lbl">${isBanter ? 'Last 5 Matches' : 'Last 5 Games'}</span>
-                  </div>
-                  <div class="em-form-row">
-                    ${renderFormRunPills(m.home_venue_form, m.home_team)}
-                    <span class="em-form-text-lbl">${isBanter ? 'Last 5 Home Matches' : 'Last 5 Home Games'}</span>
-                  </div>
+                  ${(() => {
+                    const fxIdKey = String(m.external_id || m.id || `${m.home_team}_${m.away_team}`);
+                    const hGenDet = Array.isArray(m.home_form_details) ? m.home_form_details : [];
+                    const hHmDet = Array.isArray(m.home_venue_form_details) ? m.home_venue_form_details : [];
+                    const hGenKey = `${fxIdKey}::h_gen`;
+                    const hHmKey = `${fxIdKey}::h_home`;
+                    if (hGenDet.length) window.__sportymillFormProofs[hGenKey] = { teamName: m.home_team, scopeLabel: 'Last 5 Games', details: hGenDet };
+                    if (hHmDet.length) window.__sportymillFormProofs[hHmKey] = { teamName: m.home_team, scopeLabel: 'Last 5 Home Games', details: hHmDet };
+                    const hGenCnt = Array.isArray(m.home_form) ? m.home_form.length : 0;
+                    const hHmCnt = Array.isArray(m.home_venue_form) ? m.home_venue_form.length : 0;
+                    const hGenBase = isBanter ? 'Last 5 Matches' : 'Last 5 Games';
+                    const hHmBase = isBanter ? 'Last 5 Home Matches' : 'Last 5 Home Games';
+                    const hGenLbl = hGenCnt === 0 ? (m.form_error_message ? 'Form provider error' : 'Recent form unavailable') : (hGenCnt < 5 ? `${hGenBase} (${hGenCnt}/5)` : hGenBase);
+                    const hHmLbl = hHmCnt === 0 ? (m.form_error_message ? 'Home form unavailable' : 'Home form unavailable') : (hHmCnt < 5 ? `${hHmBase} (${hHmCnt}/5)` : hHmBase);
+                    return `
+                      <div class="em-form-row ${hGenDet.length ? 'has-proof' : ''}" data-proof-key="${esc(hGenKey)}">
+                        ${renderFormRunPills(m.home_form, m.home_team, hGenDet, { error_message: m.form_error_message })}
+                        <span class="em-form-text-lbl">${esc(hGenLbl)}</span>
+                      </div>
+                      <div class="em-form-row ${hHmDet.length ? 'has-proof' : ''}" data-proof-key="${esc(hHmKey)}">
+                        ${renderFormRunPills(m.home_venue_form, m.home_team, hHmDet, { error_message: m.form_error_message })}
+                        <span class="em-form-text-lbl">${esc(hHmLbl)}</span>
+                      </div>
+                      <div class="em-form-proof-drawer" hidden></div>
+                    `;
+                  })()}
                 </div>
               </div>
 
@@ -3813,14 +3887,32 @@
                   ${(isFinished || isLive) && m.away_score != null ? `<span class="em-score-digit">${m.away_score}</span>` : ''}
                 </div>
                 <div class="em-team-form-col">
-                  <div class="em-form-row">
-                    ${renderFormRunPills(m.away_form, m.away_team)}
-                    <span class="em-form-text-lbl">${isBanter ? 'Last 5 Matches' : 'Last 5 Games'}</span>
-                  </div>
-                  <div class="em-form-row">
-                    ${renderFormRunPills(m.away_venue_form, m.away_team)}
-                    <span class="em-form-text-lbl">${isBanter ? 'Last 5 Away Matches' : 'Last 5 Away Games'}</span>
-                  </div>
+                  ${(() => {
+                    const fxIdKey = String(m.external_id || m.id || `${m.home_team}_${m.away_team}`);
+                    const aGenDet = Array.isArray(m.away_form_details) ? m.away_form_details : [];
+                    const aAwDet = Array.isArray(m.away_venue_form_details) ? m.away_venue_form_details : [];
+                    const aGenKey = `${fxIdKey}::a_gen`;
+                    const aAwKey = `${fxIdKey}::a_away`;
+                    if (aGenDet.length) window.__sportymillFormProofs[aGenKey] = { teamName: m.away_team, scopeLabel: 'Last 5 Games', details: aGenDet };
+                    if (aAwDet.length) window.__sportymillFormProofs[aAwKey] = { teamName: m.away_team, scopeLabel: 'Last 5 Away Games', details: aAwDet };
+                    const aGenCnt = Array.isArray(m.away_form) ? m.away_form.length : 0;
+                    const aAwCnt = Array.isArray(m.away_venue_form) ? m.away_venue_form.length : 0;
+                    const aGenBase = isBanter ? 'Last 5 Matches' : 'Last 5 Games';
+                    const aAwBase = isBanter ? 'Last 5 Away Matches' : 'Last 5 Away Games';
+                    const aGenLbl = aGenCnt === 0 ? (m.form_error_message ? 'Form provider error' : 'Recent form unavailable') : (aGenCnt < 5 ? `${aGenBase} (${aGenCnt}/5)` : aGenBase);
+                    const aAwLbl = aAwCnt === 0 ? (m.form_error_message ? 'Away form unavailable' : 'Away form unavailable') : (aAwCnt < 5 ? `${aAwBase} (${aAwCnt}/5)` : aAwBase);
+                    return `
+                      <div class="em-form-row ${aGenDet.length ? 'has-proof' : ''}" data-proof-key="${esc(aGenKey)}">
+                        ${renderFormRunPills(m.away_form, m.away_team, aGenDet, { error_message: m.form_error_message })}
+                        <span class="em-form-text-lbl">${esc(aGenLbl)}</span>
+                      </div>
+                      <div class="em-form-row ${aAwDet.length ? 'has-proof' : ''}" data-proof-key="${esc(aAwKey)}">
+                        ${renderFormRunPills(m.away_venue_form, m.away_team, aAwDet, { error_message: m.form_error_message })}
+                        <span class="em-form-text-lbl">${esc(aAwLbl)}</span>
+                      </div>
+                      <div class="em-form-proof-drawer" hidden></div>
+                    `;
+                  })()}
                 </div>
               </div>
             </div>
@@ -5018,7 +5110,17 @@
     }
 
     try {
-      const url = `/api/match-analytics?home_team=${encodeURIComponent(f.home_team)}&away_team=${encodeURIComponent(f.away_team)}&league_id=${f.league_id || 'PL'}&personality_mode=${state.personalityMode}`;
+      const qs = new URLSearchParams({
+        home_team: f.home_team || '',
+        away_team: f.away_team || '',
+        league_id: f.league_id || 'PL',
+        personality_mode: state.personalityMode || 'PROFESSIONAL'
+      });
+      if (f.external_id) qs.set('external_id', String(f.external_id));
+      if (f.match_date_utc || f.match_date) qs.set('match_date', String(f.match_date_utc || f.match_date));
+      if (f.home_team_id) qs.set('home_team_id', String(f.home_team_id));
+      if (f.away_team_id) qs.set('away_team_id', String(f.away_team_id));
+      const url = `/api/match-analytics?${qs.toString()}`;
       const data = await api(url);
       if (data && (data.status === 'insufficient_data' || !data.match_info)) {
         if (narrativeBox) {
@@ -5143,12 +5245,14 @@
       const rawForm = data.form_and_h2h?.home?.form;
       const validFormRun = (rawForm && rawForm.toUpperCase() !== 'N/A') ? rawForm.toUpperCase().split('').filter(ch => ['W', 'D', 'L'].includes(ch)).slice(0, 5) : [];
       if (validFormRun.length > 0) {
+        const homeLbl = data.form_and_h2h?.home?.label || `${validFormRun.length}/5 verified`;
         footyHomeSquares.innerHTML = validFormRun.map(c => {
           const cls = c === 'W' ? 'w' : (c === 'L' ? 'l' : 'd');
-          return `<span class="footy-sq ${cls}">${c}</span>`;
+          return `<span class="footy-sq ${cls}" title="${esc(homeLbl)}">${c}</span>`;
         }).join('');
       } else {
-        footyHomeSquares.innerHTML = `<span class="footy-sq empty" title="No prior matches recorded">-</span>`;
+        const unavailTitle = data.form_and_h2h?.home?.label || 'Recent form unavailable';
+        footyHomeSquares.innerHTML = `<span class="footy-sq empty" title="${esc(unavailTitle)}">-</span>`;
       }
     }
 
@@ -5164,12 +5268,14 @@
       const rawFormAway = data.form_and_h2h?.away?.form;
       const validFormRunAway = (rawFormAway && rawFormAway.toUpperCase() !== 'N/A') ? rawFormAway.toUpperCase().split('').filter(ch => ['W', 'D', 'L'].includes(ch)).slice(0, 5) : [];
       if (validFormRunAway.length > 0) {
+        const awayLbl = data.form_and_h2h?.away?.label || `${validFormRunAway.length}/5 verified`;
         footyAwaySquares.innerHTML = validFormRunAway.map(c => {
           const cls = c === 'W' ? 'w' : (c === 'L' ? 'l' : 'd');
-          return `<span class="footy-sq ${cls}">${c}</span>`;
+          return `<span class="footy-sq ${cls}" title="${esc(awayLbl)}">${c}</span>`;
         }).join('');
       } else {
-        footyAwaySquares.innerHTML = `<span class="footy-sq empty" title="No prior matches recorded">-</span>`;
+        const unavailTitleAway = data.form_and_h2h?.away?.label || 'Recent form unavailable';
+        footyAwaySquares.innerHTML = `<span class="footy-sq empty" title="${esc(unavailTitleAway)}">-</span>`;
       }
     }
 
@@ -5648,32 +5754,56 @@
     if (!data) return '';
     const home = data.home || { name: matchInfo.home_team, form: '', matches: [] };
     const away = data.away || { name: matchInfo.away_team, form: '', matches: [] };
-    const h2h = data.h2h || { total_matches: 0, home_wins: 0, draws: 0, away_wins: 0, avg_goals: '0.0' };
+    const h2h = data.h2h || { total_matches: 0, home_wins: 0, draws: 0, away_wins: 0, avg_goals: '0.0', matches: [] };
     const isBanter = state.personalityMode === 'BANTER';
-    const homeFormStr = home.form ? home.form : '- - - - -';
-    const awayFormStr = away.form ? away.form : '- - - - -';
-    const homeMatches = home.matches || [];
-    const awayMatches = away.matches || [];
+    const homeFormStr = (home.form && home.form !== 'N/A') ? home.form : 'Unavailable';
+    const awayFormStr = (away.form && away.form !== 'N/A') ? away.form : 'Unavailable';
+    const homeMatches = Array.isArray(home.matches) ? home.matches : [];
+    const homeVenueMatches = Array.isArray(home.home_matches) ? home.home_matches : [];
+    const awayMatches = Array.isArray(away.matches) ? away.matches : [];
+    const awayVenueMatches = Array.isArray(away.away_matches) ? away.away_matches : [];
 
-    const homeMatchesHtml = homeMatches.length ? homeMatches.map(m => `
-      <div class="form-match-item">
-        <span>vs ${m.opp || 'Opponent'} (${m.date || 'Recent'})</span>
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <strong>${m.score || '0 - 0'}</strong>
-          <span class="streak-pill ${m.res ? m.res.toLowerCase() : 'd'}">${m.res || 'D'}</span>
-        </div>
-      </div>
-    `).join('') : `<div style="padding: 0.75rem; color: #94a3b8; font-size: 0.82rem;">No previous matches recorded in tracked database.</div>`;
+    const renderProofList = (items, emptyMsg) => {
+      if (!items.length) {
+        return `<div style="padding: 0.75rem; color: #94a3b8; font-size: 0.82rem;">${esc(emptyMsg)}</div>`;
+      }
+      return items.map(m => {
+        const venueTag = (String(m.venue || '').toLowerCase() === 'away') ? 'A' : 'H';
+        const compTxt = m.competition ? ` • ${esc(m.competition)}` : '';
+        const idTxt = m.fixture_id ? ` • #${esc(String(m.fixture_id))}` : '';
+        const dtTxt = m.kickoff_wat ? esc(String(m.kickoff_wat).slice(0, 16).replace('T', ' ') + ' WAT') : esc(m.date || 'Recent');
+        return `
+          <div class="form-match-item">
+            <div style="display:flex;flex-direction:column;gap:2px;">
+              <span><strong>[${venueTag}]</strong> vs ${esc(m.opp || 'Opponent')} <span style="color:#94a3b8;">(${esc(m.date || 'Recent')})</span></span>
+              <span style="font-size:0.72rem;color:#64748b;">${dtTxt}${compTxt}${idTxt}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <strong>${esc(m.score || '0 - 0')}</strong>
+              <span class="streak-pill ${m.res ? m.res.toLowerCase() : 'd'}">${esc(m.res || 'D')}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    };
 
-    const awayMatchesHtml = awayMatches.length ? awayMatches.map(m => `
-      <div class="form-match-item">
-        <span>vs ${m.opp || 'Opponent'} (${m.date || 'Recent'})</span>
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <strong>${m.score || '0 - 0'}</strong>
-          <span class="streak-pill ${m.res ? m.res.toLowerCase() : 'd'}">${m.res || 'D'}</span>
-        </div>
-      </div>
-    `).join('') : `<div style="padding: 0.75rem; color: #94a3b8; font-size: 0.82rem;">No previous matches recorded in tracked database.</div>`;
+    const homeEmptyMsg = home.error_message ? `Provider error: ${home.error_message}` : (home.label || 'Recent form unavailable from Live Football API.');
+    const awayEmptyMsg = away.error_message ? `Provider error: ${away.error_message}` : (away.label || 'Recent form unavailable from Live Football API.');
+    const homeMatchesHtml = renderProofList(homeMatches, homeEmptyMsg);
+    const homeVenueHtml = renderProofList(homeVenueMatches, home.home_label || 'Home form unavailable.');
+    const awayMatchesHtml = renderProofList(awayMatches, awayEmptyMsg);
+    const awayVenueHtml = renderProofList(awayVenueMatches, away.away_label || 'Away form unavailable.');
+
+    const h2hRowsHtml = (Array.isArray(h2h.matches) && h2h.matches.length)
+      ? `<div style="margin-top:0.6rem;width:100%;display:flex;flex-direction:column;gap:0.35rem;border-top:1px solid var(--border-light);padding-top:0.6rem;">
+          ${h2h.matches.map(hm => `
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.78rem;color:#475569;">
+              <span>${esc(hm.date_display || (hm.kickoff_utc || '').slice(0, 10))} • ${esc(hm.home_team)} vs ${esc(hm.away_team)} <span style="color:#94a3b8;">${hm.competition ? `(${esc(hm.competition)})` : ''} #${esc(String(hm.fixture_id || ''))}</span></span>
+              <strong style="color:#0f172a;">${esc(hm.score || `${hm.home_score} - ${hm.away_score}`)}</strong>
+            </div>
+          `).join('')}
+        </div>`
+      : '';
 
     let h2hHtml = '';
     if (h2h.total_matches > 0) {
@@ -5681,14 +5811,15 @@
         <div style="grid-column: 1 / -1; background: #ffffff; border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 0.85rem 1.15rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; font-size: 0.82rem;">
           <div>
             <strong>${isBanter ? 'Head-to-Head Clash Record' : 'Head-to-Head History'}:</strong>
-            <span style="color: var(--text-muted); margin-left: 0.35rem;">${h2h.total_matches} Competitive Encounters</span>
+            <span style="color: var(--text-muted); margin-left: 0.35rem;">${h2h.total_matches} Verified Encounters</span>
           </div>
           <div style="display: flex; gap: 1.25rem; font-weight: 700;">
-            <span style="color: #4f46e5;">${home.name}: ${h2h.home_wins} Wins</span>
+            <span style="color: #4f46e5;">${esc(home.name)}: ${h2h.home_wins} Wins</span>
             <span style="color: #64748b;">Draws: ${h2h.draws}</span>
-            <span style="color: #ef4444;">${away.name}: ${h2h.away_wins} Wins</span>
-            <span style="color: #059669;">Avg: ${h2h.avg_goals}</span>
+            <span style="color: #ef4444;">${esc(away.name)}: ${h2h.away_wins} Wins</span>
+            <span style="color: #059669;">Avg: ${esc(h2h.avg_goals)}</span>
           </div>
+          ${h2hRowsHtml}
         </div>
       `;
     } else {
@@ -5696,7 +5827,7 @@
         <div style="grid-column: 1 / -1; background: #ffffff; border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 0.85rem 1.15rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; font-size: 0.82rem;">
           <div>
             <strong>${isBanter ? 'Head-to-Head Clash Record' : 'Head-to-Head History'}:</strong>
-            <span style="color: var(--text-muted); margin-left: 0.35rem;">First recorded meeting in current tracked database</span>
+            <span style="color: var(--text-muted); margin-left: 0.35rem;">${esc(h2h.message || 'No prior verified encounters recorded before kickoff')}</span>
           </div>
           <div style="color: #64748b; font-weight: 600;">
             No previous head-to-head encounters on file
@@ -5708,18 +5839,28 @@
     return `
       <div class="form-history-col">
         <div class="form-col-title">
-          <span>${home.name} ${isBanter ? '(Last 5 Games)' : '(Recent 5 Results)'}</span>
-          <span style="letter-spacing: 2px;">${homeFormStr}</span>
+          <span>${esc(home.name)} — Last 5 Games <small style="color:#64748b;">(${esc(home.label || `${homeMatches.length}/5 verified`)})</small></span>
+          <span style="letter-spacing: 2px;">${esc(homeFormStr)}</span>
         </div>
         ${homeMatchesHtml}
+        <div class="form-col-title" style="margin-top:0.75rem;">
+          <span>${esc(home.name)} — Last 5 Home Games <small style="color:#64748b;">(${esc(home.home_label || `${homeVenueMatches.length}/5 verified`)})</small></span>
+          <span style="letter-spacing: 2px;">${esc((home.home_form && home.home_form !== 'N/A') ? home.home_form : 'Unavailable')}</span>
+        </div>
+        ${homeVenueHtml}
       </div>
 
       <div class="form-history-col">
         <div class="form-col-title">
-          <span>${away.name} ${isBanter ? '(Last 5 Games)' : '(Recent 5 Results)'}</span>
-          <span style="letter-spacing: 2px;">${awayFormStr}</span>
+          <span>${esc(away.name)} — Last 5 Games <small style="color:#64748b;">(${esc(away.label || `${awayMatches.length}/5 verified`)})</small></span>
+          <span style="letter-spacing: 2px;">${esc(awayFormStr)}</span>
         </div>
         ${awayMatchesHtml}
+        <div class="form-col-title" style="margin-top:0.75rem;">
+          <span>${esc(away.name)} — Last 5 Away Games <small style="color:#64748b;">(${esc(away.away_label || `${awayVenueMatches.length}/5 verified`)})</small></span>
+          <span style="letter-spacing: 2px;">${esc((away.away_form && away.away_form !== 'N/A') ? away.away_form : 'Unavailable')}</span>
+        </div>
+        ${awayVenueHtml}
       </div>
 
       ${h2hHtml}

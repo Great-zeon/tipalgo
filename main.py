@@ -1106,11 +1106,17 @@ def get_deterministic_form_list(team_name: str, venue: str = "all", base_form: s
     return res
 
 def compute_form_score(form_str: str) -> float:
-    if not form_str or len(form_str) < 5:
+    clean = [ch.upper() for ch in str(form_str or "") if ch.upper() in ("W", "D", "L")][:5]
+    if not clean:
         return 0.5
     weights = [0.35, 0.25, 0.20, 0.12, 0.08]
     mapping = {'W': 1.0, 'D': 0.5, 'L': 0.0}
-    score = sum(mapping.get(ch.upper(), 0.5) * weights[i] for i, ch in enumerate(form_str[:5]))
+    used_weights = weights[:len(clean)]
+    total_w = sum(used_weights)
+    weighted = sum(mapping[ch] * w for ch, w in zip(clean, used_weights)) / (total_w if total_w > 0 else 1.0)
+    # Mild sample-size shrinkage toward 0.5 when fewer than 5 verified matches exist
+    alpha = len(clean) / 5.0
+    score = (1.0 - alpha) * 0.5 + alpha * weighted
     return min(0.95, max(0.05, score))
 
 def compute_streak(form_str: str) -> int:
@@ -2344,7 +2350,49 @@ class PredictorService:
         await db.commit()
         return pred_id
 
-    async def get_probabilities(self, db, home_team, away_team, league_id, advanced_stats=None):
+    async def get_probabilities(
+        self,
+        db,
+        home_team,
+        away_team,
+        league_id,
+        advanced_stats=None,
+        *,
+        target_kickoff_utc: Optional[datetime] = None,
+        exclude_fixture_id: Optional[str] = None,
+        home_team_id: Optional[str] = None,
+        away_team_id: Optional[str] = None,
+        allow_live_fetch: bool = True,
+    ):
+        from team_form_integrity_service import get_team_form_integrity_engine
+        integrity_engine = get_team_form_integrity_engine()
+        form_bundle = await integrity_engine.get_fixture_forms(
+            db,
+            home_team=home_team,
+            away_team=away_team,
+            home_team_id=home_team_id,
+            away_team_id=away_team_id,
+            league_id=league_id,
+            target_kickoff_utc=target_kickoff_utc,
+            target_external_id=exclude_fixture_id,
+            allow_live_fetch=allow_live_fetch,
+            limit=5,
+        )
+        h2h_bundle = await integrity_engine.get_head_to_head(
+            db,
+            home_team=home_team,
+            away_team=away_team,
+            home_team_id=home_team_id,
+            away_team_id=away_team_id,
+            target_kickoff_utc=target_kickoff_utc,
+            target_external_id=exclude_fixture_id,
+            allow_live_fetch=allow_live_fetch,
+            limit=5,
+        )
+        verified_home_form = "".join(form_bundle["home_form"])
+        verified_away_form = "".join(form_bundle["away_form"])
+        verified_h2h_wins = int(h2h_bundle.get("home_wins") or 0)
+
         if advanced_stats:
             fixture = {
                 'league_avg_goals': advanced_stats.get('league_avg_goals', 2.8),
@@ -2367,11 +2415,15 @@ class PredictorService:
                 "home_prob": probs.get('home_win', 0.33),
                 "draw_prob": probs.get('draw', 0.33),
                 "away_prob": probs.get('away_win', 0.33),
-                "home_form_raw": "N/A",
-                "away_form_raw": "N/A",
+                "home_form_raw": verified_home_form or "N/A",
+                "away_form_raw": verified_away_form or "N/A",
+                "home_venue_form_raw": "".join(form_bundle["home_venue_form"]),
+                "away_venue_form_raw": "".join(form_bundle["away_venue_form"]),
+                "form_integrity": form_bundle["form_completeness"],
+                "h2h_details": h2h_bundle,
                 "home_pos": 0,
                 "away_pos": 0,
-                "h2h_wins": 0,
+                "h2h_wins": verified_h2h_wins,
                 "source": "advanced",
                 "home_info": {},
                 "away_info": {},
@@ -2396,11 +2448,12 @@ class PredictorService:
             )
         home_pos = home_info.get("position", 10)
         away_pos = away_info.get("position", 10)
-        home_form_raw = home_info.get("last_5_form", "")
-        away_form_raw = away_info.get("last_5_form", "")
+        # Authoritative Live Football API verified form ONLY (never seeded LeagueTable.last_5_form)
+        home_form_raw = verified_home_form
+        away_form_raw = verified_away_form
         home_form_score = compute_form_score(home_form_raw)
         away_form_score = compute_form_score(away_form_raw)
-        h2h_wins = await get_h2h_home_wins(db, home_team, away_team)
+        h2h_wins = verified_h2h_wins
         played_home = max(home_info.get("played", 1), 1)
         played_away = max(away_info.get("played", 1), 1)
         home_strength = home_info.get("points", 30) / played_home * 10
@@ -2469,6 +2522,10 @@ class PredictorService:
             "away_prob": away_prob,
             "home_form_raw": home_form_raw,
             "away_form_raw": away_form_raw,
+            "home_venue_form_raw": "".join(form_bundle["home_venue_form"]),
+            "away_venue_form_raw": "".join(form_bundle["away_venue_form"]),
+            "form_integrity": form_bundle["form_completeness"],
+            "h2h_details": h2h_bundle,
             "home_pos": home_pos,
             "away_pos": away_pos,
             "h2h_wins": h2h_wins,
@@ -2570,8 +2627,10 @@ async def fetch_league_table(db: AsyncSession, league_id: str) -> Dict[str, Any]
         # Dynamically compute real standings from finished HistoricalMatch records
         stmt = select(HistoricalMatch).where(
             HistoricalMatch.league_id == league_id,
+            HistoricalMatch.provider == "live-football-api",
+            HistoricalMatch.source_classification == "provider_verified",
             HistoricalMatch.home_score.isnot(None),
-            HistoricalMatch.away_score.isnot(None)
+            HistoricalMatch.away_score.isnot(None),
         ).order_by(HistoricalMatch.match_date.asc())
         m_res = await db.execute(stmt)
         matches = m_res.scalars().all()
@@ -2692,59 +2751,71 @@ async def fetch_league_table_team(db: AsyncSession, team_name: str) -> Optional[
     league_table_cache.set(cache_key, None)
     return None
 
-async def get_h2h_home_wins(db: AsyncSession, home_team: str, away_team: str, limit: int = 5) -> int:
-    h2h_key = f"h2h_wins:{home_team}:{away_team}:{limit}"
-    cached = h2h_cache.get(h2h_key)
-    if cached is not None:
-        return cached
-    result = await db.execute(
-        select(HeadToHead).where(and_(HeadToHead.home_team == home_team, HeadToHead.away_team == away_team))
-        .order_by(HeadToHead.match_date.desc()).limit(limit)
+async def get_h2h_home_wins(
+    db: AsyncSession,
+    home_team: str,
+    away_team: str,
+    limit: int = 5,
+    *,
+    before_utc: Optional[datetime] = None,
+    exclude_fixture_id: Optional[str] = None,
+    allow_live_fetch: bool = False,
+) -> int:
+    from team_form_integrity_service import get_team_form_integrity_engine
+    h2h = await get_team_form_integrity_engine().get_head_to_head(
+        db,
+        home_team=home_team,
+        away_team=away_team,
+        target_kickoff_utc=before_utc,
+        target_external_id=exclude_fixture_id,
+        allow_live_fetch=allow_live_fetch,
+        limit=limit,
     )
-    matches = result.scalars().all()
-    val = sum(1 for m in matches if m.home_score > m.away_score)
-    h2h_cache.set(h2h_key, val)
-    return val
+    return int(h2h.get("home_wins") or 0)
 
-async def get_h2h_draw_count(db: AsyncSession, home_team: str, away_team: str, limit: int = 5) -> int:
-    h2h_key = f"h2h_draws:{home_team}:{away_team}:{limit}"
-    cached = h2h_cache.get(h2h_key)
-    if cached is not None:
-        return cached
-    result = await db.execute(
-        select(HeadToHead).where(
-            or_(
-                and_(HeadToHead.home_team == home_team, HeadToHead.away_team == away_team),
-                and_(HeadToHead.home_team == away_team, HeadToHead.away_team == home_team)
-            )
-        ).order_by(HeadToHead.match_date.desc()).limit(limit)
+async def get_h2h_draw_count(
+    db: AsyncSession,
+    home_team: str,
+    away_team: str,
+    limit: int = 5,
+    *,
+    before_utc: Optional[datetime] = None,
+    exclude_fixture_id: Optional[str] = None,
+    allow_live_fetch: bool = False,
+) -> int:
+    from team_form_integrity_service import get_team_form_integrity_engine
+    h2h = await get_team_form_integrity_engine().get_head_to_head(
+        db,
+        home_team=home_team,
+        away_team=away_team,
+        target_kickoff_utc=before_utc,
+        target_external_id=exclude_fixture_id,
+        allow_live_fetch=allow_live_fetch,
+        limit=limit,
     )
-    matches = result.scalars().all()
-    val = sum(1 for m in matches if m.home_score == m.away_score)
-    h2h_cache.set(h2h_key, val)
-    return val
+    return int(h2h.get("draws") or 0)
 
-async def get_h2h_with_scoring(db: AsyncSession, home_team: str, away_team: str, limit: int = 5) -> List[Dict]:
-    result = await db.execute(
-        select(HeadToHead).where(
-            or_(
-                and_(HeadToHead.home_team == home_team, HeadToHead.away_team == away_team),
-                and_(HeadToHead.home_team == away_team, HeadToHead.away_team == home_team)
-            )
-        ).order_by(HeadToHead.match_date.desc()).limit(limit)
+async def get_h2h_with_scoring(
+    db: AsyncSession,
+    home_team: str,
+    away_team: str,
+    limit: int = 5,
+    *,
+    before_utc: Optional[datetime] = None,
+    exclude_fixture_id: Optional[str] = None,
+    allow_live_fetch: bool = False,
+) -> List[Dict]:
+    from team_form_integrity_service import get_team_form_integrity_engine
+    h2h = await get_team_form_integrity_engine().get_head_to_head(
+        db,
+        home_team=home_team,
+        away_team=away_team,
+        target_kickoff_utc=before_utc,
+        target_external_id=exclude_fixture_id,
+        allow_live_fetch=allow_live_fetch,
+        limit=limit,
     )
-    matches = result.scalars().all()
-    h2h_data = []
-    for m in matches:
-        is_home_team = m.home_team == home_team
-        h2h_data.append({
-            'result': f"{m.home_team} {m.home_score}-{m.away_score} {m.away_team}",
-            'home_scored': m.home_scored,
-            'away_scored': m.away_scored,
-            'target_scored': m.home_scored if is_home_team else m.away_scored,
-            'date': m.match_date.isoformat() if m.match_date else None,
-        })
-    return h2h_data
+    return list(h2h.get("matches") or [])
 
 async def get_team_rest_days(db: AsyncSession, team: str, match_date: datetime) -> int:
     result = await db.execute(
@@ -2754,123 +2825,87 @@ async def get_team_rest_days(db: AsyncSession, team: str, match_date: datetime) 
     last_match = result.scalar_one_or_none()
     return max(0, (match_date - last_match.match_date).days) if last_match else 7
 
-async def get_team_venue_form(db: AsyncSession, team: str, venue: str, limit: int = 5) -> str:
-    cache_key = f"venue_form:{team}:{venue}:{limit}"
-    cached = venue_form_cache.get(cache_key)
-    if cached is not None:
-        return cached
-    fc, sc = _canon_team_keys(team)
-    idx = await _get_history_form_index(db)
-    scope = "home" if venue == "home" else "away"
-    seen_sigs = set()
-    merged: List[Tuple[str, str]] = []
-    if idx:
-        for sig, ch in idx[f"full_{scope}"].get(fc, ()):
-            if sig not in seen_sigs:
-                seen_sigs.add(sig)
-                merged.append((sig[0], ch))
-        if len(merged) < limit and sc:
-            # Fallback to short_canon within unambiguous domestic families
-            for (fam_s, short_s), recs in idx[f"fam_short_{scope}"].items():
-                if short_s == sc:
-                    for sig, ch in recs:
-                        if sig not in seen_sigs:
-                            seen_sigs.add(sig)
-                            merged.append((sig[0], ch))
-                    break
-    merged.sort(key=lambda pair: pair[0], reverse=True)
-    result_str = "".join(ch for _, ch in merged[:limit])
-    venue_form_cache.set(cache_key, result_str)
-    return result_str
-
-
-async def get_team_recent_matches(db: AsyncSession, team: str, venue: Optional[str] = None, limit: int = 5) -> List[Dict]:
-    cache_key = f"recent_matches:{team}:{venue if venue else 'all'}:{limit}"
-    cached = recent_matches_cache.get(cache_key)
-    if cached is not None:
-        return cached
-
-    fc, sc = _canon_team_keys(team)
-    candidates = list(dict.fromkeys(list(get_team_alias_candidates(team)) + ([fc] if fc else []) + ([sc] if sc and len(sc) >= 4 else [])))
-    home_clauses = [HistoricalMatch.home_team.ilike(f"%{c}%") for c in candidates]
-    away_clauses = [HistoricalMatch.away_team.ilike(f"%{c}%") for c in candidates]
-
-    verified_clause = or_(
-        HistoricalMatch.source_classification.is_(None),
-        HistoricalMatch.source_classification.in_(["provider_verified", "provider_cached", "live_recorded"]),
+async def get_team_venue_form(
+    db: AsyncSession,
+    team: str,
+    venue: str,
+    limit: int = 5,
+    *,
+    before_utc: Optional[datetime] = None,
+    exclude_fixture_id: Optional[str] = None,
+    team_id: Optional[str] = None,
+    allow_live_fetch: bool = False,
+) -> str:
+    from team_form_integrity_service import get_team_form_integrity_engine
+    ds = await get_team_form_integrity_engine().get_team_form(
+        db,
+        team_name=team,
+        team_id=team_id,
+        venue=venue,
+        before_utc=before_utc,
+        exclude_fixture_id=exclude_fixture_id,
+        allow_live_fetch=allow_live_fetch,
+        limit=limit,
     )
-    if venue == "home":
-        stmt = select(HistoricalMatch).where(
-            or_(*home_clauses),
-            HistoricalMatch.home_score.isnot(None),
-            HistoricalMatch.away_score.isnot(None),
-            verified_clause,
-        ).order_by(HistoricalMatch.match_date.desc()).limit(limit * 3)
-    elif venue == "away":
-        stmt = select(HistoricalMatch).where(
-            or_(*away_clauses),
-            HistoricalMatch.home_score.isnot(None),
-            HistoricalMatch.away_score.isnot(None),
-            verified_clause,
-        ).order_by(HistoricalMatch.match_date.desc()).limit(limit * 3)
-    else:
-        stmt = select(HistoricalMatch).where(
-            or_(*(home_clauses + away_clauses)),
-            HistoricalMatch.home_score.isnot(None),
-            HistoricalMatch.away_score.isnot(None),
-            verified_clause,
-        ).order_by(HistoricalMatch.match_date.desc()).limit(limit * 3)
+    return str(ds.get("string") or "")
 
-    result = await db.execute(stmt)
-    matches = result.scalars().all()
-    recent_matches = []
-    seen_sigs = set()
-    norm_candidates = {normalize_team_name(c) for c in candidates}
-    for m in matches:
-        mh_full, mh_short = _canon_team_keys(m.home_team)
-        ma_full, ma_short = _canon_team_keys(m.away_team)
-        m_home_norm = normalize_team_name(m.home_team)
-        is_home = (mh_full == fc) or (sc and mh_short == sc) or any(c in m_home_norm or m_home_norm in c for c in norm_candidates)
-        if venue == "home" and not is_home:
-            continue
-        if venue == "away" and is_home:
-            continue
-        if not is_home and not ((ma_full == fc) or (sc and ma_short == sc)):
-            m_away_norm = normalize_team_name(m.away_team)
-            if not any(c in m_away_norm or m_away_norm in c for c in norm_candidates):
-                continue
-        dt_s = m.match_date.strftime("%Y-%m-%d") if m.match_date else ""
-        sig = (dt_s, tuple(sorted((mh_short, ma_short))))
-        if sig in seen_sigs:
-            continue
-        seen_sigs.add(sig)
-        score_for = m.home_score if is_home else m.away_score
-        score_against = m.away_score if is_home else m.home_score
-        opponent = m.away_team if is_home else m.home_team
-        result_str = "W" if score_for > score_against else ("D" if score_for == score_against else "L")
-        recent_matches.append({
-            "opponent": opponent,
-            "venue": "home" if is_home else "away",
-            "score": f"{score_for}-{score_against}",
-            "result": result_str,
-            "date": m.match_date.isoformat() if m.match_date else None,
-            "league_id": m.league_id
-        })
-        if len(recent_matches) >= limit:
-            break
-    recent_matches_cache.set(cache_key, recent_matches)
-    return recent_matches
 
-async def get_both_teams_recent_matches(db: AsyncSession, home_team: str, away_team: str, limit: int = 5) -> Dict:
-    home_all = await get_team_recent_matches(db, home_team, None, limit)
-    home_home = await get_team_recent_matches(db, home_team, "home", limit)
-    home_away = await get_team_recent_matches(db, home_team, "away", limit)
-    away_all = await get_team_recent_matches(db, away_team, None, limit)
-    away_home = await get_team_recent_matches(db, away_team, "home", limit)
-    away_away = await get_team_recent_matches(db, away_team, "away", limit)
+async def get_team_recent_matches(
+    db: AsyncSession,
+    team: str,
+    venue: Optional[str] = None,
+    limit: int = 5,
+    *,
+    before_utc: Optional[datetime] = None,
+    exclude_fixture_id: Optional[str] = None,
+    team_id: Optional[str] = None,
+    allow_live_fetch: bool = False,
+) -> List[Dict]:
+    from team_form_integrity_service import get_team_form_integrity_engine
+    ds = await get_team_form_integrity_engine().get_team_form(
+        db,
+        team_name=team,
+        team_id=team_id,
+        venue=venue,
+        before_utc=before_utc,
+        exclude_fixture_id=exclude_fixture_id,
+        allow_live_fetch=allow_live_fetch,
+        limit=limit,
+    )
+    return list(ds.get("matches") or [])
+
+
+async def get_both_teams_recent_matches(
+    db: AsyncSession,
+    home_team: str,
+    away_team: str,
+    limit: int = 5,
+    *,
+    before_utc: Optional[datetime] = None,
+    exclude_fixture_id: Optional[str] = None,
+    allow_live_fetch: bool = False,
+) -> Dict:
+    home_all = await get_team_recent_matches(
+        db, home_team, None, limit, before_utc=before_utc, exclude_fixture_id=exclude_fixture_id, allow_live_fetch=allow_live_fetch
+    )
+    home_home = await get_team_recent_matches(
+        db, home_team, "home", limit, before_utc=before_utc, exclude_fixture_id=exclude_fixture_id, allow_live_fetch=allow_live_fetch
+    )
+    home_away = await get_team_recent_matches(
+        db, home_team, "away", limit, before_utc=before_utc, exclude_fixture_id=exclude_fixture_id, allow_live_fetch=allow_live_fetch
+    )
+    away_all = await get_team_recent_matches(
+        db, away_team, None, limit, before_utc=before_utc, exclude_fixture_id=exclude_fixture_id, allow_live_fetch=allow_live_fetch
+    )
+    away_home = await get_team_recent_matches(
+        db, away_team, "home", limit, before_utc=before_utc, exclude_fixture_id=exclude_fixture_id, allow_live_fetch=allow_live_fetch
+    )
+    away_away = await get_team_recent_matches(
+        db, away_team, "away", limit, before_utc=before_utc, exclude_fixture_id=exclude_fixture_id, allow_live_fetch=allow_live_fetch
+    )
     return {
         "home": {"all": home_all, "home": home_home, "away": home_away},
-        "away": {"all": away_all, "home": away_home, "away": away_away}
+        "away": {"all": away_all, "home": away_home, "away": away_away},
     }
 
 async def get_endpoint_prediction_count(endpoint: str, db: AsyncSession) -> int:
@@ -7506,9 +7541,9 @@ async def persist_finished_provider_records_to_history(db: AsyncSession, records
 
 async def ensure_recent_history_populated(db: AsyncSession, days: int = 60) -> Dict[str, Any]:
     """
-    1. Hydrate verified historical matches from bundled gzip snapshot if DB is fresh/sparse (0 API credits).
-    2. Fetch any missing recent days (last `days` calendar days) from ESPN's free keyless scoreboard API
-       (plus yesterday from Live-Football-API) and store finished scores in historical_matches.
+    Hydrate strictly Live Football API (`live-football-api`) verified completed matches
+    from bundled snapshot if DB has sparse `live-football-api` history.
+    NEVER ingests or substitutes ESPN (`espn-public`), seed, or manual rows.
     """
     global _history_backfill_done
     if _history_backfill_done:
@@ -7519,14 +7554,12 @@ async def ensure_recent_history_populated(db: AsyncSession, days: int = 60) -> D
             return {"skipped": True, "reason": "already_checked"}
 
         snapshot_loaded = 0
-        backfilled_days = 0
-        backfilled_matches = 0
-
         try:
             ver_cnt = (
                 await db.execute(
                     select(func.count(HistoricalMatch.id)).where(
                         and_(
+                            HistoricalMatch.provider == "live-football-api",
                             HistoricalMatch.source_classification == "provider_verified",
                             HistoricalMatch.home_score.isnot(None),
                             HistoricalMatch.away_score.isnot(None),
@@ -7536,103 +7569,25 @@ async def ensure_recent_history_populated(db: AsyncSession, days: int = 60) -> D
             ).scalar() or 0
 
             snapshot_path = Path(BASE_DIR) / "static" / "data" / "verified_historical_snapshot.json.gz"
-            if ver_cnt < 1000 and snapshot_path.exists():
+            if ver_cnt < 500 and snapshot_path.exists():
                 import gzip
                 with gzip.open(snapshot_path, "rt", encoding="utf-8") as gz_f:
                     snap_rows = json.load(gz_f)
-                if isinstance(snap_rows, list) and snap_rows:
-                    for idx in range(0, len(snap_rows), 500):
-                        snapshot_loaded += await persist_finished_provider_records_to_history(db, snap_rows[idx:idx + 500])
-                    logger.info(f"Hydrated {snapshot_loaded} verified historical matches from bundled snapshot.")
-
-            # Determine which of the last N Lagos dates lack sufficient verified finished fixtures (< 40)
-            lagos_today = now_lagos()
-            target_past_dates = [(lagos_today - timedelta(days=d)).strftime("%Y-%m-%d") for d in range(1, max(1, days) + 1)]
-            min_date_str = target_past_dates[-1]
-            day_rows = (
-                await db.execute(
-                    select(
-                        func.substr(func.cast(HistoricalMatch.match_date, String), 1, 10),
-                        func.count(HistoricalMatch.id),
-                    )
-                    .where(
-                        and_(
-                            HistoricalMatch.source_classification == "provider_verified",
-                            HistoricalMatch.home_score.isnot(None),
-                            func.substr(func.cast(HistoricalMatch.match_date, String), 1, 10) >= min_date_str,
-                        )
-                    )
-                    .group_by(func.substr(func.cast(HistoricalMatch.match_date, String), 1, 10))
-                )
-            ).fetchall()
-            day_counts = {str(r[0]): int(r[1]) for r in day_rows if r[0]}
-            missing_dates = [dt for dt in target_past_dates if day_counts.get(dt, 0) < 40]
-
-            if missing_dates:
-                from football_ingestion import fetch_espn_finished_matches_for_date
-                sem = asyncio.Semaphore(4)
-                async with aiohttp.ClientSession() as http_sess:
-                    async def _pull_espn(dt_s: str):
-                        async with sem:
-                            return dt_s, await fetch_espn_finished_matches_for_date(dt_s, session=http_sess)
-
-                    espn_results = await asyncio.gather(*[_pull_espn(dt) for dt in missing_dates], return_exceptions=True)
-                    records_to_store: List[Dict[str, Any]] = []
-                    for item_res in espn_results:
-                        if isinstance(item_res, Exception):
-                            continue
-                        _dt_s, recs = item_res
-                        if recs:
-                            backfilled_days += 1
-                            records_to_store.extend(recs)
-                    for idx in range(0, len(records_to_store), 500):
-                        backfilled_matches += await persist_finished_provider_records_to_history(db, records_to_store[idx:idx + 500])
-
-            # Enrich sparse active ESPN senior clubs (e.g. clubs with < 5 home/away over 60d) via full season schedule
-            try:
-                from football_ingestion import fetch_espn_team_schedule_matches
-                recent_cutoff = (now_lagos() - timedelta(days=5)).strftime("%Y-%m-%d")
-                sparse_res = await db.execute(
-                    select(
-                        HistoricalMatch.home_team_id,
-                        HistoricalMatch.away_team_id,
-                    ).where(
-                        and_(
-                            HistoricalMatch.external_id.like("espn_%"),
-                            HistoricalMatch.league_id.notin_(["ESP_NCAADIV", "ESP_CLUBFRI", "ENG_PL2"]),
-                            func.substr(func.cast(HistoricalMatch.match_date, String), 1, 10) >= recent_cutoff,
-                        )
-                    )
-                )
-                espn_tids = set()
-                for h_tid_r, a_tid_r in sparse_res.fetchall():
-                    if h_tid_r and str(h_tid_r).startswith("espn_t_"):
-                        espn_tids.add(str(h_tid_r).replace("espn_t_", ""))
-                    if a_tid_r and str(a_tid_r).startswith("espn_t_"):
-                        espn_tids.add(str(a_tid_r).replace("espn_t_", ""))
-                target_tids = list(espn_tids)[:45]
-                if target_tids:
-                    sem_s = asyncio.Semaphore(8)
-                    async with aiohttp.ClientSession() as http_sess2:
-                        async def _pull_sched(tid_s: str):
-                            async with sem_s:
-                                return await fetch_espn_team_schedule_matches(tid_s, session=http_sess2)
-
-                        sched_batches = await asyncio.gather(*[_pull_sched(t) for t in target_tids], return_exceptions=True)
-                        sched_recs: List[Dict[str, Any]] = []
-                        for sb in sched_batches:
-                            if isinstance(sb, list):
-                                sched_recs.extend(sb)
-                        for idx in range(0, len(sched_recs), 500):
-                            backfilled_matches += await persist_finished_provider_records_to_history(db, sched_recs[idx:idx + 500])
-            except Exception as sched_ex:
-                logger.debug(f"ESPN season schedule enrichment skip: {sched_ex}")
+                lfa_only = [
+                    r for r in (snap_rows or [])
+                    if isinstance(r, dict) and str(r.get("provider") or "").strip().lower() == "live-football-api"
+                ]
+                if lfa_only:
+                    for idx in range(0, len(lfa_only), 500):
+                        snapshot_loaded += await persist_finished_provider_records_to_history(db, lfa_only[idx:idx + 500])
+                    logger.info(f"Hydrated {snapshot_loaded} Live Football API verified historical matches from snapshot.")
 
             _history_backfill_done = True
-            logger.info(
-                f"History population complete: snapshot_loaded={snapshot_loaded}, "
-                f"backfilled_days={backfilled_days}/{len(missing_dates)}, backfilled_matches={backfilled_matches}"
-            )
+            return {
+                "skipped": False,
+                "snapshot_loaded": snapshot_loaded,
+                "existing_lfa_verified": ver_cnt,
+            }
         except Exception as e:
             logger.warning(f"History population notice: {e}")
 
@@ -7643,12 +7598,21 @@ async def ensure_recent_history_populated(db: AsyncSession, days: int = 60) -> D
         }
 
 
-async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: PredictorService, endpoint: Optional[str] = "all"):
+async def format_fixture_cards_helper(
+    fixtures,
+    db: AsyncSession,
+    predictor: PredictorService,
+    endpoint: Optional[str] = "all",
+    *,
+    sync_candidate_slice: Optional[List[Any]] = None,
+    allow_live_form_fetch: bool = True,
+):
+    from team_form_integrity_service import get_team_form_integrity_engine, parse_to_utc_aware
     endpoint_counts = {ep["id"]: 0 for ep in ALL_33_ENDPOINTS_METADATA}
     match_cards = []
     ep_filter = (endpoint or "all").strip().lower()
 
-    # Batch lookups for league table overall form, canonical in-memory historical form index, and locked pre-match predictions
+    # Authoritative Live Football API form hydration (pre-kickoff only, General/Home/Away strictly independent)
     all_team_names = set()
     all_ext_ids = []
     for m in fixtures:
@@ -7659,31 +7623,15 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
         if getattr(m, "external_id", None):
             all_ext_ids.append(str(m.external_id).strip())
 
-    all_team_lower_set = {t.lower().strip() for t in all_team_names if t}
-    all_team_canon_set = {_canon_team_keys(t)[0] for t in all_team_names if t}
-    team_league_map = {}
     locked_preds_map: Dict[str, PredictionLog] = {}
-
-    if all_team_names:
-        try:
-            lt_res = await db.execute(
-                select(LeagueTable).where(func.lower(LeagueTable.team_name).in_(list(all_team_lower_set | all_team_canon_set)))
-            )
-            for lt_row in lt_res.scalars().all():
-                if lt_row.team_name and lt_row.last_5_form:
-                    t_low = lt_row.team_name.lower().strip()
-                    t_fc, _ = _canon_team_keys(lt_row.team_name)
-                    team_league_map[t_low] = lt_row.last_5_form
-                    if t_fc:
-                        team_league_map[t_fc] = lt_row.last_5_form
-                    if lt_row.league_id:
-                        team_league_map[f"{lt_row.league_id}::{t_low}"] = lt_row.last_5_form
-                        if t_fc:
-                            team_league_map[f"{lt_row.league_id}::{t_fc}"] = lt_row.last_5_form
-        except Exception as e:
-            logger.warning(f"Batch league table form query notice: {e}")
-
-    hist_idx = await _get_history_form_index(db) if all_team_names else None
+    integrity_engine = get_team_form_integrity_engine()
+    integrity_forms_map = await integrity_engine.hydrate_fixtures_batch(
+        db,
+        fixtures,
+        sync_candidate_slice=sync_candidate_slice,
+        allow_live_fetch=allow_live_form_fetch,
+        limit=5,
+    ) if fixtures else {}
 
     if all_ext_ids:
         try:
@@ -7699,9 +7647,11 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
         except Exception as e:
             logger.warning(f"Batch prediction lock lookup notice: {e}")
     
-    for m in fixtures:
+    for _fx_idx, m in enumerate(fixtures):
         if m.external_id and (m.external_id.startswith("SYN-") or m.external_id.startswith("auto_")):
             continue
+        _fx_key = str(getattr(m, "external_id", None) or f"idx_{_fx_idx}").strip()
+        _fb_bundle = integrity_forms_map.get(_fx_key) or {}
 
         league_id = m.league_id
         country = get_league_country(league_id)
@@ -7771,10 +7721,18 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
                 "away_prob_pct": 0,
                 "home_logo": getattr(m, "home_logo", None),
                 "away_logo": getattr(m, "away_logo", None),
-                "home_form": [],
-                "home_venue_form": [],
-                "away_form": [],
-                "away_venue_form": [],
+                "home_form": list(_fb_bundle.get("home_form") or []),
+                "home_venue_form": list(_fb_bundle.get("home_venue_form") or []),
+                "away_form": list(_fb_bundle.get("away_form") or []),
+                "away_venue_form": list(_fb_bundle.get("away_venue_form") or []),
+                "home_form_details": list(_fb_bundle.get("home_form_details") or []),
+                "home_venue_form_details": list(_fb_bundle.get("home_venue_form_details") or []),
+                "away_form_details": list(_fb_bundle.get("away_form_details") or []),
+                "away_venue_form_details": list(_fb_bundle.get("away_venue_form_details") or []),
+                "form_completeness": _fb_bundle.get("form_completeness"),
+                "form_provider": _fb_bundle.get("form_provider", "live-football-api"),
+                "form_error_code": _fb_bundle.get("form_error_code"),
+                "form_error_message": _fb_bundle.get("form_error_message"),
                 "status": norm_rec["status"],
                 "home_score": norm_rec["home_score"],
                 "away_score": norm_rec["away_score"],
@@ -7820,7 +7778,17 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
         home_i = {}
         away_i = {}
         try:
-            probs = await predictor.get_probabilities(db, m.home_team, m.away_team, m.league_id)
+            probs = await predictor.get_probabilities(
+                db,
+                m.home_team,
+                m.away_team,
+                m.league_id,
+                target_kickoff_utc=parse_to_utc_aware(norm_rec.get("match_date_utc") or m.match_date),
+                exclude_fixture_id=m.external_id,
+                home_team_id=getattr(m, "home_team_id", None),
+                away_team_id=getattr(m, "away_team_id", None),
+                allow_live_fetch=False,
+            )
             home_i = probs.get("home_info", {}) or {}
             away_i = probs.get("away_info", {}) or {}
             if (home_i.get("points") == 18 and home_i.get("played") == 12) or \
@@ -8381,72 +8349,11 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
             m.external_id and (m.external_id.startswith("auto_") or m.external_id.startswith("SYN-") or m.external_id.startswith("demo_"))
         )
         
-        # Authentic multi-tier deduplicated forms (tid + exact league + domestic/cup family + unambiguous fallback)
-        h_key = m.home_team.lower().strip() if m.home_team else ""
-        a_key = m.away_team.lower().strip() if m.away_team else ""
-        h_full, h_short = _canon_team_keys(m.home_team)
-        a_full, a_short = _canon_team_keys(m.away_team)
-        h_tid_k = str(getattr(m, "home_team_id", "") or "").strip()
-        a_tid_k = str(getattr(m, "away_team_id", "") or "").strip()
-        lg_k = str(league_id or "").strip()
-        fam_k = _league_family_key(lg_k)
-
-        def _pick_club_form(tid_val: str, full_c: str, short_c: str, lg_val: str, fam_val: str, scope: str) -> List[str]:
-            if not hist_idx:
-                return []
-            seen_sigs = set()
-            merged: List[Tuple[str, str]] = []  # (date_str, ch)
-
-            def _collect(recs):
-                for sig, ch in recs:
-                    if sig in seen_sigs:
-                        continue
-                    seen_sigs.add(sig)
-                    merged.append((sig[0], ch))
-
-            if tid_val:
-                _collect(hist_idx[f"tid_{scope}"].get(tid_val, ()))
-            if lg_val and full_c:
-                _collect(hist_idx[f"lg_full_{scope}"].get((lg_val, full_c), ()))
-            if lg_val and short_c:
-                _collect(hist_idx[f"lg_short_{scope}"].get((lg_val, short_c), ()))
-            if fam_val and full_c:
-                _collect(hist_idx[f"fam_full_{scope}"].get((fam_val, full_c), ()))
-            if fam_val and short_c:
-                _collect(hist_idx[f"fam_short_{scope}"].get((fam_val, short_c), ()))
-            if full_c and len(hist_idx["full_families"].get(full_c, set())) <= 1:
-                _collect(hist_idx[f"full_{scope}"].get(full_c, ()))
-            elif full_c and fam_val in ("FAM_BRA", "FAM_COL", "FAM_ENG", "FAM_ESP", "FAM_ITA", "FAM_GER", "FAM_FRA", "CL", "UEL", "UECL", "SOU_CONM"):
-                # Also pull continental club competition matches (CL/UEL/UECL/Libertadores/Sudamericana) for matching club full_canon
-                for cont_code in ("CL", "UEL", "UECL", "SOU_CONM"):
-                    _collect(hist_idx[f"lg_full_{scope}"].get((cont_code, full_c), ()))
-
-            merged.sort(key=lambda pair: pair[0], reverse=True)
-            return [ch for _, ch in merged[:5]]
-
-        h_form = _pick_club_form(h_tid_k, h_full, h_short, lg_k, fam_k, "gen")
-        a_form = _pick_club_form(a_tid_k, a_full, a_short, lg_k, fam_k, "gen")
-
-        if not h_form:
-            home_raw_form = (
-                (home_i.get("last_5_form", "") if (isinstance(home_i, dict) and home_i.get("last_5_form")) else "")
-                or team_league_map.get(f"{lg_k}::{h_key}", "")
-                or team_league_map.get(f"{lg_k}::{h_full}", "")
-                or (team_league_map.get(h_key, "") if len(hist_idx["full_families"].get(h_full, set()) if hist_idx else set()) <= 1 else "")
-            )
-            h_form = [c.upper() for c in home_raw_form if c.upper() in ('W', 'D', 'L')][:5] if home_raw_form else []
-
-        if not a_form:
-            away_raw_form = (
-                (away_i.get("last_5_form", "") if (isinstance(away_i, dict) and away_i.get("last_5_form")) else "")
-                or team_league_map.get(f"{lg_k}::{a_key}", "")
-                or team_league_map.get(f"{lg_k}::{a_full}", "")
-                or (team_league_map.get(a_key, "") if len(hist_idx["full_families"].get(a_full, set()) if hist_idx else set()) <= 1 else "")
-            )
-            a_form = [c.upper() for c in away_raw_form if c.upper() in ('W', 'D', 'L')][:5] if away_raw_form else []
-
-        h_venue_form = _pick_club_form(h_tid_k, h_full, h_short, lg_k, fam_k, "home")
-        a_venue_form = _pick_club_form(a_tid_k, a_full, a_short, lg_k, fam_k, "away")
+        # Strictly verified Live Football API forms (General / Home / Away calculated independently, pre-kickoff only)
+        h_form = list(_fb_bundle.get("home_form") or [])
+        h_venue_form = list(_fb_bundle.get("home_venue_form") or [])
+        a_form = list(_fb_bundle.get("away_form") or [])
+        a_venue_form = list(_fb_bundle.get("away_venue_form") or [])
 
         # Pre-match Prediction Lock Enforcement (#6 / #12): once recorded/kicked-off, never mutate pick, odds, or prob_pct
         prediction_locked = False
@@ -8501,6 +8408,14 @@ async def format_fixture_cards_helper(fixtures, db: AsyncSession, predictor: Pre
             "home_venue_form": h_venue_form,
             "away_form": a_form,
             "away_venue_form": a_venue_form,
+            "home_form_details": list(_fb_bundle.get("home_form_details") or []),
+            "home_venue_form_details": list(_fb_bundle.get("home_venue_form_details") or []),
+            "away_form_details": list(_fb_bundle.get("away_form_details") or []),
+            "away_venue_form_details": list(_fb_bundle.get("away_venue_form_details") or []),
+            "form_completeness": _fb_bundle.get("form_completeness"),
+            "form_provider": _fb_bundle.get("form_provider", "live-football-api"),
+            "form_error_code": _fb_bundle.get("form_error_code"),
+            "form_error_message": _fb_bundle.get("form_error_message"),
             "status": m_status,
             "home_score": h_score,
             "away_score": a_score,
@@ -8789,7 +8704,16 @@ async def get_calendar_daily_slate(
             calendar_slate_cache.delete(cache_key)
             return Response(content=json.dumps(empty_payload), media_type="application/json", headers=no_cache_hdrs)
 
-        match_cards, endpoint_counts = await format_fixture_cards_helper(fixture_items, db, predictor, ep_filter)
+        offset_up = (safe_page - 1) * safe_limit
+        sync_slice_up = fixture_items[offset_up:offset_up + min(safe_limit, 20)] if ep_filter == "all" else fixture_items[:20]
+        match_cards, endpoint_counts = await format_fixture_cards_helper(
+            fixture_items,
+            db,
+            predictor,
+            ep_filter,
+            sync_candidate_slice=sync_slice_up,
+            allow_live_form_fetch=True,
+        )
         match_cards.sort(key=lambda c: (str(c.get("match_date_wat") or "9999-99-99"), str(c.get("time_wat") or "99:99")))
 
         for ep_entry in endpoints_response:
@@ -8869,7 +8793,16 @@ async def get_calendar_daily_slate(
         return Response(content=json.dumps(empty_payload), media_type="application/json", headers=no_cache_hdrs)
 
     # Process through statistical model & 33 prediction endpoints
-    match_cards, endpoint_counts = await format_fixture_cards_helper(fixture_items, db, predictor, ep_filter)
+    offset_day = (safe_page - 1) * safe_limit
+    sync_slice_day = fixture_items[offset_day:offset_day + min(safe_limit, 20)] if ep_filter == "all" else fixture_items[:20]
+    match_cards, endpoint_counts = await format_fixture_cards_helper(
+        fixture_items,
+        db,
+        predictor,
+        ep_filter,
+        sync_candidate_slice=sync_slice_day,
+        allow_live_form_fetch=True,
+    )
 
     for ep_entry in endpoints_response:
         ep_entry["count"] = endpoint_counts.get(ep_entry["id"], 0)
@@ -9600,29 +9533,85 @@ async def get_match_analytics(
     away_team: str,
     league_id: str = "PL",
     personality_mode: str = "PROFESSIONAL",
+    external_id: Optional[str] = None,
+    match_date: Optional[str] = None,
+    home_team_id: Optional[str] = None,
+    away_team_id: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
     predictor: PredictorService = Depends(get_predictor)
 ):
+    from team_form_integrity_service import get_team_form_integrity_engine, parse_to_utc_aware
     is_banter = personality_mode.upper() == "BANTER"
+    integrity_engine = get_team_form_integrity_engine()
     
-    # 1. Fetch real fixture odds from DB if available
-    match_res = await db.execute(
-        select(HistoricalMatch)
-        .where(HistoricalMatch.home_team == home_team, HistoricalMatch.away_team == away_team)
-        .order_by(HistoricalMatch.match_date.desc())
-        .limit(1)
+    # 1. Fetch real fixture record from DB (strictly Live Football API / ID match first)
+    curr_match = None
+    if external_id:
+        ext_res = await db.execute(
+            select(HistoricalMatch).where(HistoricalMatch.external_id == str(external_id).strip()).limit(1)
+        )
+        curr_match = ext_res.scalar_one_or_none()
+    if curr_match is None:
+        match_res = await db.execute(
+            select(HistoricalMatch)
+            .where(
+                HistoricalMatch.home_team == home_team,
+                HistoricalMatch.away_team == away_team,
+                HistoricalMatch.provider == "live-football-api",
+            )
+            .order_by(HistoricalMatch.match_date.desc())
+            .limit(1)
+        )
+        curr_match = match_res.scalar_one_or_none()
+
+    resolved_ext_id = str(external_id or getattr(curr_match, "external_id", "") or "").strip() or None
+    resolved_h_id = str(home_team_id or getattr(curr_match, "home_team_id", "") or "").strip() or None
+    resolved_a_id = str(away_team_id or getattr(curr_match, "away_team_id", "") or "").strip() or None
+    target_kickoff_utc = parse_to_utc_aware(match_date or getattr(curr_match, "match_date", None))
+    
+    # Fetch strictly verified Live Football API overall + venue-specific forms & H2H strictly before kickoff
+    form_bundle = await integrity_engine.get_fixture_forms(
+        db,
+        home_team=home_team,
+        away_team=away_team,
+        home_team_id=resolved_h_id,
+        away_team_id=resolved_a_id,
+        league_id=league_id,
+        country=get_league_country(league_id),
+        target_kickoff_utc=target_kickoff_utc,
+        target_external_id=resolved_ext_id,
+        allow_live_fetch=True,
+        limit=5,
     )
-    curr_match = match_res.scalar_one_or_none()
-    
-    # Pre-fetch authentic historical matches for form (never hardcode fictitious streaks)
-    h_recent_matches = await get_team_recent_matches(db, home_team, None, 5)
-    a_recent_matches = await get_team_recent_matches(db, away_team, None, 5)
-    real_h_form = "".join([x["result"] for x in h_recent_matches]) if h_recent_matches else "N/A"
-    real_a_form = "".join([x["result"] for x in a_recent_matches]) if a_recent_matches else "N/A"
+    h2h_bundle = await integrity_engine.get_head_to_head(
+        db,
+        home_team=home_team,
+        away_team=away_team,
+        home_team_id=resolved_h_id,
+        away_team_id=resolved_a_id,
+        target_kickoff_utc=target_kickoff_utc,
+        target_external_id=resolved_ext_id,
+        allow_live_fetch=True,
+        limit=5,
+    )
+    h_recent_matches = list(form_bundle.get("home_form_details") or [])
+    a_recent_matches = list(form_bundle.get("away_form_details") or [])
+    real_h_form = "".join(form_bundle.get("home_form") or []) or "N/A"
+    real_a_form = "".join(form_bundle.get("away_form") or []) or "N/A"
 
     # 2. Compute probabilities across all 33 endpoints using PredictorService
     try:
-        probs_data = await predictor.get_probabilities(db, home_team, away_team, league_id)
+        probs_data = await predictor.get_probabilities(
+            db,
+            home_team,
+            away_team,
+            league_id,
+            target_kickoff_utc=target_kickoff_utc,
+            exclude_fixture_id=resolved_ext_id,
+            home_team_id=resolved_h_id,
+            away_team_id=resolved_a_id,
+            allow_live_fetch=False,
+        )
         all_probs = probs_data.get("all_probs", {})
         home_prob = probs_data.get("home_prob", 0.45)
         draw_prob = probs_data.get("draw_prob", 0.28)
@@ -9673,21 +9662,27 @@ async def get_match_analytics(
     
     home_info = probs_data.get("home_info", {})
     away_info = probs_data.get("away_info", {})
-    home_streak = home_info.get("last_5_form", "N/A")
-    away_streak = away_info.get("last_5_form", "N/A")
+    home_streak = real_h_form if real_h_form != "N/A" else (home_info.get("last_5_form") or "N/A")
+    away_streak = real_a_form if real_a_form != "N/A" else (away_info.get("last_5_form") or "N/A")
+    if home_info and real_h_form != "N/A":
+        home_info = {**home_info, "last_5_form": real_h_form}
+    if away_info and real_a_form != "N/A":
+        away_info = {**away_info, "last_5_form": real_a_form}
     
     home_implied = 1.0 / home_odds if home_odds > 1.0 else 0.5
     home_edge = (home_prob - home_implied) * 100.0
     away_implied = 1.0 / away_odds if away_odds > 1.0 else 0.5
     away_edge = (away_prob - away_implied) * 100.0
 
-    # Form verification: NEVER claim undefeated if any loss exists or if form is unrecorded
+    # Form verification: NEVER claim undefeated if fewer than 5 verified games or any loss exists
     home_has_real_form = bool(home_streak and home_streak != "N/A")
     away_has_real_form = bool(away_streak and away_streak != "N/A")
-    home_undefeated = home_has_real_form and "L" not in home_streak and len(home_streak) >= 3
-    away_undefeated = away_has_real_form and "L" not in away_streak and len(away_streak) >= 3
-    home_form_desc = f"undefeated form ({home_streak})" if home_undefeated else (f"recent form ({home_streak})" if home_has_real_form else "baseline modeling expectation")
-    away_form_desc = f"undefeated form ({away_streak})" if away_undefeated else (f"recent form ({away_streak})" if away_has_real_form else "baseline modeling expectation")
+    h_verified_cnt = len([c for c in home_streak if c in ("W", "D", "L")]) if home_has_real_form else 0
+    a_verified_cnt = len([c for c in away_streak if c in ("W", "D", "L")]) if away_has_real_form else 0
+    home_undefeated = home_has_real_form and "L" not in home_streak and h_verified_cnt >= 4
+    away_undefeated = away_has_real_form and "L" not in away_streak and a_verified_cnt >= 4
+    home_form_desc = f"undefeated form ({home_streak})" if home_undefeated else (f"verified form ({home_streak}, {h_verified_cnt}/5)" if home_has_real_form else "recent form unavailable")
+    away_form_desc = f"undefeated form ({away_streak})" if away_undefeated else (f"verified form ({away_streak}, {a_verified_cnt}/5)" if away_has_real_form else "recent form unavailable")
 
     # Determine mathematical advantage dynamically
     if home_prob >= away_prob + 0.08:
@@ -10020,69 +10015,61 @@ async def get_match_analytics(
         )
     ]
 
-    # 7. Recent Form and Head-to-Head History from Real Match Data
-    h_recent_matches = await get_team_recent_matches(db, home_team, None, 5)
-    a_recent_matches = await get_team_recent_matches(db, away_team, None, 5)
+    # 7. Recent Form (General + Venue-Specific) and Head-to-Head History from TeamFormIntegrityEngine
+    h_home_matches = list(form_bundle.get("home_venue_form_details") or [])
+    a_away_matches = list(form_bundle.get("away_venue_form_details") or [])
 
     def format_recent_match_display(m):
-        raw_d = m.get("date") or m.get("match_date") or ""
-        date_str = ""
-        if raw_d:
-            try:
-                dt = datetime.fromisoformat(str(raw_d).replace("Z", "+00:00"))
-                date_str = dt.strftime("%b %d")
-            except Exception:
-                date_str = str(raw_d)[:10]
         return {
+            "fixture_id": m.get("fixture_id"),
             "opp": m.get("opponent", "Opponent"),
             "score": m.get("score", "0 - 0"),
             "res": m.get("result", "D"),
-            "date": date_str or "Recent",
-            "venue": m.get("venue", "home")
+            "date": m.get("date_display") or "Recent",
+            "kickoff_utc": m.get("kickoff_utc"),
+            "kickoff_wat": m.get("kickoff_wat"),
+            "competition": m.get("competition", ""),
+            "venue": m.get("venue", "home"),
+            "provider": m.get("provider", "live-football-api"),
         }
 
-    # Head-to-Head real historical lookup
-    h2h_stmt = select(HistoricalMatch).where(
-        or_(
-            and_(HistoricalMatch.home_team == home_team, HistoricalMatch.away_team == away_team),
-            and_(HistoricalMatch.home_team == away_team, HistoricalMatch.away_team == home_team)
-        ),
-        HistoricalMatch.home_score.isnot(None),
-        HistoricalMatch.away_score.isnot(None)
-    ).order_by(HistoricalMatch.match_date.desc()).limit(10)
-    h2h_matches = (await db.execute(h2h_stmt)).scalars().all()
+    h2h_count = int(h2h_bundle.get("total_matches") or 0)
+    h2h_home_wins = int(h2h_bundle.get("home_wins") or 0)
+    h2h_draws = int(h2h_bundle.get("draws") or 0)
+    h2h_away_wins = int(h2h_bundle.get("away_wins") or 0)
+    avg_goals_str = f"{h2h_bundle['avg_goals']} goals/game" if h2h_count > 0 and h2h_bundle.get("avg_goals") not in (None, "N/A") else "N/A"
 
-    h2h_home_wins = 0
-    h2h_away_wins = 0
-    h2h_draws = 0
-    h2h_total_goals = 0
-
-    for hm in h2h_matches:
-        try:
-            h2h_total_goals += (int(hm.home_score) + int(hm.away_score))
-            if hm.home_score == hm.away_score:
-                h2h_draws += 1
-            elif (hm.home_team == home_team and hm.home_score > hm.away_score) or \
-                 (hm.away_team == home_team and hm.away_score > hm.home_score):
-                h2h_home_wins += 1
-            else:
-                h2h_away_wins += 1
-        except (ValueError, TypeError):
-            continue
-
-    h2h_count = len(h2h_matches)
-    avg_goals_str = f"{(h2h_total_goals / max(1, h2h_count)):.1f} goals/game" if h2h_count > 0 else "N/A"
+    h_overall_meta = form_bundle.get("home_overall") or {}
+    h_home_meta = form_bundle.get("home_home") or {}
+    a_overall_meta = form_bundle.get("away_overall") or {}
+    a_away_meta = form_bundle.get("away_away") or {}
 
     form_and_h2h = {
         "home": {
             "name": home_team,
-            "form": "".join([x["result"] for x in h_recent_matches]) if h_recent_matches else (home_streak if home_streak != "N/A" else "N/A"),
-            "matches": [format_recent_match_display(x) for x in h_recent_matches]
+            "form": h_overall_meta.get("string") or "N/A",
+            "home_form": h_home_meta.get("string") or "N/A",
+            "status": h_overall_meta.get("status", "unavailable"),
+            "label": h_overall_meta.get("label", "Recent form unavailable"),
+            "home_status": h_home_meta.get("status", "unavailable"),
+            "home_label": h_home_meta.get("label", "Recent form unavailable"),
+            "error_code": h_overall_meta.get("error_code"),
+            "error_message": h_overall_meta.get("error_message"),
+            "matches": [format_recent_match_display(x) for x in h_recent_matches],
+            "home_matches": [format_recent_match_display(x) for x in h_home_matches],
         },
         "away": {
             "name": away_team,
-            "form": "".join([x["result"] for x in a_recent_matches]) if a_recent_matches else (away_streak if away_streak != "N/A" else "N/A"),
-            "matches": [format_recent_match_display(x) for x in a_recent_matches]
+            "form": a_overall_meta.get("string") or "N/A",
+            "away_form": a_away_meta.get("string") or "N/A",
+            "status": a_overall_meta.get("status", "unavailable"),
+            "label": a_overall_meta.get("label", "Recent form unavailable"),
+            "away_status": a_away_meta.get("status", "unavailable"),
+            "away_label": a_away_meta.get("label", "Recent form unavailable"),
+            "error_code": a_overall_meta.get("error_code"),
+            "error_message": a_overall_meta.get("error_message"),
+            "matches": [format_recent_match_display(x) for x in a_recent_matches],
+            "away_matches": [format_recent_match_display(x) for x in a_away_matches],
         },
         "h2h": {
             "total_matches": h2h_count,
@@ -10090,7 +10077,9 @@ async def get_match_analytics(
             "draws": h2h_draws,
             "away_wins": h2h_away_wins,
             "avg_goals": avg_goals_str,
-            "message": f"Historical clash record between {home_team} and {away_team}" if h2h_count > 0 else "First recorded meeting in tracked database"
+            "matches": list(h2h_bundle.get("matches") or []),
+            "provider": "live-football-api",
+            "message": f"Verified Live Football API H2H ({h2h_count} matches)" if h2h_count > 0 else "No prior verified H2H recorded before kickoff"
         }
     }
 
@@ -10152,6 +10141,35 @@ async def get_match_analytics(
         "form_and_h2h": form_and_h2h,
         "standings": standings_list
     }
+
+
+@app.get("/api/team-form")
+async def get_verified_team_form(
+    team_name: str = Query(...),
+    team_id: Optional[str] = None,
+    venue: Optional[str] = None,
+    league_id: str = "",
+    country: Optional[str] = None,
+    before_utc: Optional[str] = None,
+    exclude_fixture_id: Optional[str] = None,
+    limit: int = Query(5, ge=1, le=10),
+    db: AsyncSession = Depends(get_db),
+):
+    from team_form_integrity_service import get_team_form_integrity_engine, parse_to_utc_aware
+    cutoff = parse_to_utc_aware(before_utc) if before_utc else None
+    dataset = await get_team_form_integrity_engine().get_team_form(
+        db,
+        team_name=team_name,
+        team_id=team_id,
+        venue=venue,
+        league_id=league_id,
+        country=country,
+        before_utc=cutoff,
+        exclude_fixture_id=exclude_fixture_id,
+        allow_live_fetch=True,
+        limit=limit,
+    )
+    return dataset
 
 # =================================================================
 # ALL 33 ENDPOINTS – 32 ORIGINAL + 1 NEW
