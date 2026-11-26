@@ -1270,6 +1270,7 @@ class TeamFormIntegrityEngine:
         country: Optional[str] = None,
         target_kickoff_utc: Optional[datetime] = None,
         force_refresh: bool = False,
+        persist_to_db: bool = True,
     ) -> Tuple[List[Dict[str, Any]], Optional[Dict[str, Optional[str]]]]:
         """
         Sync a team's historical matches from Live Football API `/team_matches`
@@ -1322,7 +1323,7 @@ class TeamFormIntegrityEngine:
                 self._team_memory_records[tid] = matches
                 self._team_sync_ts[tid] = time.time()
                 self._team_errors.pop(tid, None)
-                if db is not None and matches:
+                if persist_to_db and db is not None and matches:
                     await self._persist_verified_matches_to_db(db, matches)
                 return (matches, None)
 
@@ -1461,16 +1462,26 @@ class TeamFormIntegrityEngine:
             need_home = h_gen["verified_count"] < limit or h_hm["verified_count"] < limit
             need_away = a_gen["verified_count"] < limit or a_aw["verified_count"] < limit
             if need_home:
-                tasks.append(("home", self.sync_team_history_if_needed(
-                    db, team_name=home_team, team_id=home_team_id, country=country, target_kickoff_utc=cutoff
-                )))
+                tasks.append(("home", home_team, home_team_id))
             if need_away:
-                tasks.append(("away", self.sync_team_history_if_needed(
-                    db, team_name=away_team, team_id=away_team_id, country=country, target_kickoff_utc=cutoff
-                )))
+                tasks.append(("away", away_team, away_team_id))
             if tasks:
-                results = await asyncio.gather(*(t[1] for t in tasks), return_exceptions=True)
-                for (side, _), res in zip(tasks, results):
+                results = await asyncio.gather(
+                    *(
+                        self.sync_team_history_if_needed(
+                            None,
+                            team_name=spec_name,
+                            team_id=spec_id,
+                            country=country,
+                            target_kickoff_utc=cutoff,
+                            persist_to_db=False,
+                        )
+                        for _, spec_name, spec_id in tasks
+                    ),
+                    return_exceptions=True,
+                )
+                to_persist: List[Dict[str, Any]] = []
+                for (side, _, _), res in zip(tasks, results):
                     if isinstance(res, Exception):
                         err_val = {"error_code": "PROVIDER_ERROR", "error_message": str(res)}
                         if side == "home":
@@ -1481,10 +1492,13 @@ class TeamFormIntegrityEngine:
                         recs, err_val = res
                         if recs:
                             pool = self._combine_pool(recs, pool)
+                            to_persist.extend(recs)
                         if side == "home":
                             h_err = err_val
                         else:
                             a_err = err_val
+                if db is not None and to_persist:
+                    await self._persist_verified_matches_to_db(db, to_persist)
 
                 h_gen = compute_independent_team_form(
                     pool, team_name=home_team, team_id=home_team_id, league_id=league_id,
@@ -1647,21 +1661,26 @@ class TeamFormIntegrityEngine:
                     if self._is_circuit_open():
                         return mk, [], self._is_circuit_open()
                     recs, err = await self.sync_team_history_if_needed(
-                        db,
+                        None,
                         team_name=spec["team_name"],
                         team_id=spec["team_id"],
                         country=spec.get("country"),
                         target_kickoff_utc=spec.get("target_kickoff_utc"),
+                        persist_to_db=False,
                     )
                     return mk, recs, err
 
             batch_res = await asyncio.gather(*(_fetch_one(mk, spec) for mk, spec in missing_teams.items()))
             fetched_pools: List[List[Dict[str, Any]]] = []
+            flat_to_persist: List[Dict[str, Any]] = []
             for mk, recs, err in batch_res:
                 if err:
                     team_err_by_key[mk] = err
                 if recs:
                     fetched_pools.append(recs)
+                    flat_to_persist.extend(recs)
+            if db is not None and flat_to_persist:
+                await self._persist_verified_matches_to_db(db, flat_to_persist)
             if fetched_pools:
                 pool = self._combine_pool(pool, *fetched_pools)
 
