@@ -15,6 +15,7 @@ import math
 import hashlib
 import logging
 import asyncio
+import unicodedata
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Any
 import aiohttp
@@ -1205,3 +1206,220 @@ class FootballDataService:
             "status": "success",
             "message": f"Prediction settlement feedback loop processed. Evaluated {len(finished_matches)} finished fixtures; updated {settled_count} prediction logs."
         }
+
+
+_EXCLUDED_ESPN_LEAGUE_IDS = {"5487", "2320", "3935", "19973"}
+
+
+def map_espn_season_slug_to_code(slug: str, uid: str = "", season_display: str = "") -> Optional[str]:
+    """Map ESPN soccer season slug / uid to canonical TipAlgo league codes. Returns None for youth/college/women/friendlies."""
+    s = f"{slug or ''} {season_display or ''}".strip().lower()
+    uid_str = (uid or "").strip().lower()
+    if any(term in s for term in ("ncaa", "college", "friendly", "friendlies", "women", "femenin", "femminil", "nwsl", "wsl", "youth", "u18", "u19", "u20", "u21", "u23", "premier league 2", "premier-league-2", "efl trophy")):
+        return None
+    if "~l:5487~" in uid_str:
+        return None
+    uid_map = {
+        "~l:700~": "PL",
+        "~l:3914~": "ELC",
+        "~l:3918~": "FAC",
+        "~l:3920~": "EFL",
+        "~l:740~": "PD",
+        "~l:730~": "SA",
+        "~l:720~": "BL1",
+        "~l:710~": "FL1",
+        "~l:775~": "CL",
+        "~l:776~": "UEL",
+        "~l:20296~": "UECL",
+        "~l:630~": "BSA",
+        "~l:650~": "COL",
+        "~l:745~": "ARG",
+        "~l:760~": "MEX_MX",
+        "~l:770~": "MLS",
+        "~l:783~": "SOU_CONM",
+        "~l:5454~": "SOU_CONM",
+        "~l:725~": "DED",
+        "~l:715~": "PPL",
+        "~l:3946~": "TUR",
+        "~l:3901~": "BEL",
+        "~l:735~": "SC0",
+        "~l:3943~": "EL_PRIM",
+    }
+    for token, code in uid_map.items():
+        if token in uid_str:
+            return code
+    if "english-premier-league" in s:
+        return "PL"
+    if "-laliga" in s or s.endswith("laliga") or "spanish laliga" in s:
+        return "PD"
+    if "italian-serie-a" in s:
+        return "SA"
+    if "german-bundesliga" in s:
+        return "BL1"
+    if "french-ligue-1" in s:
+        return "FL1"
+    if "english-league-championship" in s or "efl-championship" in s:
+        return "ELC"
+    if "english-fa-cup" in s:
+        return "FAC"
+    if "carabao" in s or "efl-cup" in s:
+        return "EFL"
+    if "uefa champions league" in s or "uefa-champions-league" in s:
+        return "CL"
+    if "uefa europa league" in s or "uefa-europa-league" in s:
+        return "UEL"
+    if "uefa conference league" in s or "uefa-conference-league" in s or "uefa-europa-conference" in s:
+        return "UECL"
+    if "uefa-nations-league" in s or "uefa nations league" in s:
+        return "UNL"
+    if "brazilian-serie-a" in s or "brasileir" in s:
+        return "BSA"
+    if "copa-do-brasil" in s or "copa do brasil" in s:
+        return "BRA_COPA"
+    if "colombian-primera-a" in s or "colombian primera a" in s or "liga-betplay" in s or "cuadrangulares" in s:
+        return "COL"
+    if "copa-colombia" in s or "copa colombia" in s:
+        return "COL_CUP"
+    if "argentin" in s and ("primera" in s or "liga-profesional" in s):
+        return "ARG"
+    if "liga-mx" in s or "mexican" in s:
+        return "MEX_MX"
+    if "salvadoran" in s:
+        return "EL_PRIM"
+    if "conmebol-libertadores" in s or "copa-libertadores" in s or "copa-sudamericana" in s or "conmebol-sudamericana" in s:
+        return "SOU_CONM"
+    if "major-league-soccer" in s or "eastern-conference" in s or "western-conference" in s or "mls-cup" in s:
+        return "MLS"
+    if "eredivisie" in s:
+        return "DED"
+    if "primeira-liga" in s or "portuguese-liga" in s:
+        return "PPL"
+    if "scottish-premiership" in s:
+        return "SC0"
+    if "turkish-super-lig" in s:
+        return "TUR"
+    if "belgian-pro-league" in s:
+        return "BEL"
+    clean = "".join(ch for ch in (slug or s).replace("2026-27-", "").replace("2025-26-", "").replace("2026-", "")[:8].upper() if ch.isalnum())
+    return f"ESP_{clean}" if clean else "INT"
+
+
+def _parse_espn_event_record(ev: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    comp = (ev.get("competitions") or [{}])[0]
+    if not comp.get("status", {}).get("type", {}).get("completed"):
+        return None
+    competitors = comp.get("competitors") or []
+    home_c = next((c for c in competitors if c.get("homeAway") == "home"), None)
+    away_c = next((c for c in competitors if c.get("homeAway") == "away"), None)
+    if not home_c or not away_c:
+        return None
+    h_team = str(home_c.get("team", {}).get("displayName") or "").strip()
+    a_team = str(away_c.get("team", {}).get("displayName") or "").strip()
+    if not h_team or not a_team:
+        return None
+    low_teams = f"{h_team} {a_team}".lower()
+    if any(tok in low_teams for tok in (" u18", " u19", " u20", " u21", " u23", "(w)", " women")):
+        return None
+    season_obj = ev.get("season") or {}
+    lg_code = map_espn_season_slug_to_code(
+        season_obj.get("slug", ""),
+        ev.get("uid", ""),
+        season_obj.get("displayName", ""),
+    )
+    if lg_code is None:
+        return None
+    raw_hs = home_c.get("score")
+    raw_as = away_c.get("score")
+    if isinstance(raw_hs, dict):
+        raw_hs = raw_hs.get("value", raw_hs.get("displayValue"))
+    if isinstance(raw_as, dict):
+        raw_as = raw_as.get("value", raw_as.get("displayValue"))
+    try:
+        hs = int(float(str(raw_hs).strip()))
+        as_ = int(float(str(raw_as).strip()))
+    except (TypeError, ValueError):
+        return None
+    ev_id = str(ev.get("id") or "").strip()
+    if not ev_id:
+        return None
+    return {
+        "external_id": f"espn_{ev_id}",
+        "home_team": h_team,
+        "away_team": a_team,
+        "home_team_id": f"espn_t_{home_c.get('team', {}).get('id')}" if home_c.get("team", {}).get("id") else None,
+        "away_team_id": f"espn_t_{away_c.get('team', {}).get('id')}" if away_c.get("team", {}).get("id") else None,
+        "home_logo": home_c.get("team", {}).get("logo"),
+        "away_logo": away_c.get("team", {}).get("logo"),
+        "home_score": hs,
+        "away_score": as_,
+        "league_id": lg_code,
+        "match_date": ev.get("date"),
+        "status": "finished",
+        "provider": "espn-public",
+        "provider_status": comp.get("status", {}).get("type", {}).get("name", "STATUS_FULL_TIME"),
+        "home_odds": 2.10,
+        "draw_odds": 3.25,
+        "away_odds": 3.40,
+    }
+
+
+async def fetch_espn_finished_matches_for_date(
+    target_date_yyyymmdd: str,
+    session: Optional[aiohttp.ClientSession] = None
+) -> List[Dict[str, Any]]:
+    """
+    Fetch real completed senior matches from ESPN's public keyless scoreboard endpoint for YYYYMMDD.
+    """
+    clean_dt = target_date_yyyymmdd.replace("-", "").strip()[:8]
+    if len(clean_dt) != 8 or not clean_dt.isdigit():
+        return []
+    url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/all/scoreboard?dates={clean_dt}&limit=500"
+    own_session = session is None
+    if own_session:
+        session = aiohttp.ClientSession()
+    results: List[Dict[str, Any]] = []
+    try:
+        async with session.get(url, timeout=30) as resp:
+            if resp.status != 200:
+                return []
+            payload = await resp.json()
+            for ev in (payload.get("events") or []):
+                rec = _parse_espn_event_record(ev)
+                if rec:
+                    results.append(rec)
+    except Exception as ex:
+        logger.warning(f"ESPN historical fetch error for {clean_dt}: {ex}")
+    finally:
+        if own_session:
+            await session.close()
+    return results
+
+
+async def fetch_espn_team_schedule_matches(
+    espn_team_id: str,
+    session: Optional[aiohttp.ClientSession] = None
+) -> List[Dict[str, Any]]:
+    """Fetch a club's full completed season schedule (domestic + continental cups) from ESPN public API."""
+    clean_tid = str(espn_team_id or "").replace("espn_t_", "").strip()
+    if not clean_tid or not clean_tid.isdigit():
+        return []
+    url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/all/teams/{clean_tid}/schedule"
+    own_session = session is None
+    if own_session:
+        session = aiohttp.ClientSession()
+    results: List[Dict[str, Any]] = []
+    try:
+        async with session.get(url, timeout=20) as resp:
+            if resp.status != 200:
+                return []
+            payload = await resp.json()
+            for ev in (payload.get("events") or []):
+                rec = _parse_espn_event_record(ev)
+                if rec:
+                    results.append(rec)
+    except Exception as ex:
+        logger.debug(f"ESPN team schedule skip for {clean_tid}: {ex}")
+    finally:
+        if own_session:
+            await session.close()
+    return results

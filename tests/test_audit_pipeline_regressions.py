@@ -505,3 +505,24 @@ async def test_auto_persist_finished_history_and_club_disambiguation(isolated_db
     assert saved_hm.home_team_id == "pan_udelas_1"
     assert saved_hm.source_classification == "provider_verified"
 
+    # Canonical cross-feed name matching: "Atl. Mineiro" matches "Atlético Mineiro" (BSA) & "Medellín" matches "Independiente Medellín" (COL)
+    main._invalidate_history_form_index()
+    base_d = datetime(2026, 10, 1, 20, 0)
+    db.add_all([
+        HistoricalMatch(external_id="espn_bra_1", league_id="BSA", home_team="Atlético Mineiro", away_team="Flamengo", match_date=base_d + timedelta(days=5), home_score=2, away_score=1, status="finished", source_classification="provider_verified"),
+        HistoricalMatch(external_id="live_bra_1", league_id="BSA", home_team="Atl. Mineiro", away_team="Flamengo", match_date=base_d + timedelta(days=5), home_score=2, away_score=1, status="finished", source_classification="provider_verified"),  # duplicate signature across feeds must dedup!
+        HistoricalMatch(external_id="espn_bra_2", league_id="BSA", home_team="Palmeiras", away_team="Atlético Mineiro", match_date=base_d + timedelta(days=10), home_score=1, away_score=1, status="finished", source_classification="provider_verified"),
+        HistoricalMatch(external_id="espn_col_1", league_id="COL", home_team="Independiente Medellín", away_team="Cali", match_date=base_d + timedelta(days=8), home_score=3, away_score=0, status="finished", source_classification="provider_verified"),
+    ])
+    await db.commit()
+    main._invalidate_history_form_index()
+    bra_col_fixtures = [
+        LiveFixtureItem({"id": 996001, "home": {"id": "opta_1", "name": "Atl. Mineiro"}, "away": {"id": "opta_2", "name": "Palmeiras"}, "kickoff": "23:00", "league": {"id": 630, "name": "Serie A", "country": "Brazil"}, "status": {"status": "NS", "state": "notstarted"}}, provider="live-football-api", fallback_date="2026-11-26"),
+        LiveFixtureItem({"id": 996002, "home": {"id": "opta_3", "name": "Medellín"}, "away": {"id": "opta_4", "name": "Cali"}, "kickoff": "23:30", "league": {"id": 650, "name": "Primera A", "country": "Colombia"}, "status": {"status": "NS", "state": "notstarted"}}, provider="live-football-api", fallback_date="2026-11-26"),
+    ]
+    bra_col_cards, _ = await format_fixture_cards_helper(bra_col_fixtures, db, _DummyPredictor(), endpoint="all")
+    assert bra_col_cards[0]["home_form"] == ["D", "W"]  # deduplicated + canonicalized!
+    assert bra_col_cards[0]["home_venue_form"] == ["W"]
+    assert bra_col_cards[1]["home_form"] == ["W"]
+    assert bra_col_cards[1]["home_venue_form"] == ["W"]
+
