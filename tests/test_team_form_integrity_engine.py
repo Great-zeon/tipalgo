@@ -213,6 +213,8 @@ def test_validation_rejects_seed_espn_bad_scores_and_duplicates():
     assert validate_provider_historical_fixture(_lfa_match("123456", "2026-11-20 15:00", "Arsenal", "Chelsea", None, 1)) is None
     assert validate_provider_historical_fixture(_lfa_match("123457", "2026-11-20 15:00", "Arsenal", "Chelsea", True, 1)) is None
     assert validate_provider_historical_fixture(_lfa_match("123458", "2026-11-20 15:00", "Arsenal", "Chelsea", -1, 1)) is None
+    # Legacy 25-char base36 hex IDs lacking team IDs (ambiguous clubs + WAT-shifted dates) must be rejected
+    assert validate_provider_historical_fixture(_lfa_match("dy4takngn3a54mps14x3ddi50", "2026-11-07 23:00", "Independiente", "Real Tomayapo", 0, 2, home_id="", away_id="")) is None
 
     # Deduplicate same fixture_id and same-day / ±48h legacy hex duplicate (numeric ID always wins)
     dups = [

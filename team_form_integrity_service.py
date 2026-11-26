@@ -308,6 +308,15 @@ def validate_provider_historical_fixture(
     home_team_id = str(raw.get("home_team_id") or home_obj.get("id") or "").strip() or None
     away_team_id = str(raw.get("away_team_id") or away_obj.get("id") or "").strip() or None
 
+    # Reject legacy pre-v1 24-26 char base36 hex IDs when missing team IDs (ambiguous clubs + WAT-shifted DB rows)
+    if (
+        not home_team_id
+        and not away_team_id
+        and re.fullmatch(r"[a-z0-9]{22,28}", ext_id.lower())
+        and not ext_id.isdigit()
+    ):
+        return None
+
     # Validate completion status strictly
     st_low, st_disp, is_live = extract_status_strings(
         raw.get("status") if raw.get("status") is not None else raw.get("provider_status"),
@@ -406,6 +415,11 @@ def _match_touches_team(
         # When both records carry explicit provider team IDs and neither matches `tid`,
         # never fall back to name matching (prevents Inter Milan vs Inter El Salvador collisions).
         if h_id and a_id:
+            return None
+        # Also if record is missing team IDs completely and league differs, never match ambiguous names against a real team ID
+        rec_lg = str(rec.get("league_id") or "").strip().lower()
+        req_lg = str(league_id or "").strip().lower()
+        if req_lg and rec_lg and rec_lg != req_lg:
             return None
 
     # Canonical name checks
