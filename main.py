@@ -5181,10 +5181,8 @@ async def lifespan(app: FastAPI):
                     await ensure_recent_history_populated(session, days=60)
                 predictor_bg = PredictorService()
                 today_str = now_lagos().strftime("%Y-%m-%d")
-                await get_calendar_daily_slate(date=today_str, endpoint="all", db=session, predictor=predictor_bg)
                 await get_leagues_and_teams(db=session)
-                await get_banker_slate(db=session, predictor=predictor_bg)
-                logger.info(f"Startup cache & 14-day history successfully pre-warmed for {today_str}")
+                logger.info(f"Startup cache & DB integrity pre-warm completed for {today_str} (0 extra /team_matches credits spent).")
         except Exception as e:
             logger.warning(f"Startup cache pre-warm error: {e}")
 
@@ -8705,7 +8703,7 @@ async def get_calendar_daily_slate(
             return Response(content=json.dumps(empty_payload), media_type="application/json", headers=no_cache_hdrs)
 
         offset_up = (safe_page - 1) * safe_limit
-        sync_slice_up = fixture_items[offset_up:offset_up + min(safe_limit, 20)] if ep_filter == "all" else fixture_items[:20]
+        sync_slice_up = fixture_items[offset_up:offset_up + min(safe_limit, 8)] if ep_filter == "all" else fixture_items[:8]
         match_cards, endpoint_counts = await format_fixture_cards_helper(
             fixture_items,
             db,
@@ -8794,7 +8792,7 @@ async def get_calendar_daily_slate(
 
     # Process through statistical model & 33 prediction endpoints
     offset_day = (safe_page - 1) * safe_limit
-    sync_slice_day = fixture_items[offset_day:offset_day + min(safe_limit, 20)] if ep_filter == "all" else fixture_items[:20]
+    sync_slice_day = fixture_items[offset_day:offset_day + min(safe_limit, 8)] if ep_filter == "all" else fixture_items[:8]
     match_cards, endpoint_counts = await format_fixture_cards_helper(
         fixture_items,
         db,

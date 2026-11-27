@@ -965,7 +965,7 @@ class LiveFootballHistoryClient:
         team_name: str = "",
         target_kickoff_utc: Optional[datetime] = None,
         min_venue_count: int = 5,
-        max_extra_seasons: int = 2,
+        max_extra_seasons: int = 1,
     ) -> Dict[str, Any]:
         """
         Fetch authentic completed matches for `team_id` from `/api/v1/team_matches`,

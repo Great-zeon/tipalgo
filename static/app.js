@@ -400,7 +400,28 @@
     headers['X-Device-Id'] = getOrCreateDeviceId();
     headers['Content-Type'] = 'application/json';
 
-    const res = await fetch(path, { cache: options.cache || 'no-store', ...options, headers });
+    const timeoutMs = Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : 25000;
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
+    let res;
+    try {
+      res = await fetch(path, {
+        cache: options.cache || 'no-store',
+        ...options,
+        headers,
+        signal: options.signal || (controller ? controller.signal : undefined)
+      });
+    } catch (fetchErr) {
+      if (timeoutId) clearTimeout(timeoutId);
+      if (fetchErr && fetchErr.name === 'AbortError') {
+        throw new Error('Request timed out while contacting SportyMill server. Please try again.');
+      }
+      throw fetchErr;
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+    }
+
     if (!res.ok) {
       if (res.status === 422) {
         const data = await res.json().catch(() => null);
@@ -590,6 +611,7 @@
 
   // App Bootstrap
   async function init() {
+    state.calendar.isLoading = true;
     if (typeof renderShimmeringSkeletonCards === 'function') {
       renderShimmeringSkeletonCards();
     }
@@ -598,6 +620,9 @@
       state.personalityMode = (savedTone === 'BANTER') ? 'BANTER' : 'PROFESSIONAL';
       applyLanguageMode(state.personalityMode);
     } catch (e) { }
+    if (typeof renderCalendarDateStrip === 'function') {
+      renderCalendarDateStrip();
+    }
 
     setupEventListeners();
     setupSecurityGate();
@@ -6385,15 +6410,22 @@
   function updateCalendarDropdownTrigger() {
     const todayStr = getSystemTodayDateStr();
     const curr = state.calendar.selectedDate || todayStr;
-    const totalMatches = state.calendar.data ? (state.calendar.data.total_fixtures || state.calendar.data.matches_count || 0) : 0;
+    const calData = state.calendar.data;
+    const isErr = Boolean(calData && (calData.provider_status === 'error' || calData.status === 'error'));
+    const isLoading = Boolean(state.calendar.isLoading || !calData);
+    const totalMatches = calData ? (calData.total_fixtures || calData.matches_count || 0) : 0;
 
     const isMultiDay = curr === 'next-5-days' || curr === 'upcoming';
     if (isMultiDay) {
-      const daysCovered = Array.isArray(state.calendar.data?.dates_covered) && state.calendar.data.dates_covered.length
-        ? state.calendar.data.dates_covered.length
-        : (state.calendar.data?.horizon_days || 7);
+      const daysCovered = Array.isArray(calData?.dates_covered) && calData.dates_covered.length
+        ? calData.dates_covered.length
+        : (calData?.horizon_days || 7);
       if (dom.calDropdownDateText) dom.calDropdownDateText.textContent = `All Upcoming (${daysCovered}-Day Live API Window)`;
-      if (dom.calDropdownDateSub) dom.calDropdownDateSub.textContent = `${totalMatches} Upcoming Fixtures • Multi-Day View`;
+      if (dom.calDropdownDateSub) {
+        dom.calDropdownDateSub.textContent = isLoading
+          ? 'Loading upcoming matches...'
+          : (isErr ? 'Provider Offline' : `${totalMatches} Upcoming Fixtures • Multi-Day View`);
+      }
     } else {
       const parts = curr.split('-').map(Number);
       if (parts.length === 3) {
@@ -6412,7 +6444,9 @@
 
         const mainText = `${dayName}, ${dayNum} ${monthStr} ${yearNum}`;
         const relativeLabel = isToday ? 'Today' : isYesterday ? 'Yesterday' : isTomorrow ? 'Tomorrow' : 'Selected Slate';
-        const subText = `${relativeLabel} • ${totalMatches} Matches Available`;
+        const subText = isLoading
+          ? `${relativeLabel} • Loading schedule...`
+          : (isErr ? `${relativeLabel} • Provider Offline` : `${relativeLabel} • ${totalMatches} Matches Available`);
 
         if (dom.calDropdownDateText) dom.calDropdownDateText.textContent = mainText;
         if (dom.calDropdownDateSub) dom.calDropdownDateSub.textContent = subText;
@@ -6804,9 +6838,14 @@
           const dayName = dayNamesLong[dObj.getUTCDay()];
           const dateFormatted = `${dayName}, ${String(dObj.getUTCDate()).padStart(2, '0')} ${shortMonths[dObj.getUTCMonth()]} ${dObj.getUTCFullYear()}`;
           const isToday = curr === todayStr;
-          const totalCount = state.calendar.data ? (state.calendar.data.total_fixtures || state.calendar.data.matches_count || 0) : 0;
+          const calData = state.calendar.data;
+          const isErr = Boolean(calData && (calData.provider_status === 'error' || calData.status === 'error'));
+          const isLoading = Boolean(state.calendar.isLoading || !calData);
+          const totalCount = calData ? (calData.total_fixtures || calData.matches_count || 0) : 0;
           dom.calPickerBtnTitle.textContent = dateFormatted;
-          dom.calPickerBtnSub.textContent = `${isToday ? 'Today • ' : ''}${totalCount} Matches Available`;
+          dom.calPickerBtnSub.textContent = isLoading
+            ? `${isToday ? 'Today • ' : ''}Loading schedule...`
+            : (isErr ? `${isToday ? 'Today • ' : ''}Provider Offline` : `${isToday ? 'Today • ' : ''}${totalCount} Matches Available`);
           dom.btnCalPicker.classList.add('has-custom-date');
         }
       }
@@ -7706,11 +7745,13 @@
 
       const isProviderError = Boolean(
         state.calendar.data &&
-        state.calendar.data.provider_status === 'error'
+        (state.calendar.data.provider_status === 'error' || state.calendar.data.status === 'error')
       );
+      const providerErrCode = (state.calendar.data && state.calendar.data.provider_error_code) || '';
       const providerMsg = (state.calendar.data && state.calendar.data.provider_message) || '';
 
       const isSyncPending = Boolean(
+        !isProviderError &&
         state.calendar.data &&
         (state.calendar.data.provider_sync_pending || (providerMsg && (providerMsg.toLowerCase().includes('in progress') || providerMsg.toLowerCase().includes('timed out')))) &&
         !state.calendar.searchQuery &&
@@ -7746,7 +7787,9 @@
       let emptyMsg = `No matches are scheduled or recorded for <strong>${esc(dateTitle)}</strong>.`;
 
       if (isProviderError) {
-        emptyTitle = 'Live Football Provider Offline';
+        emptyTitle = providerErrCode === 'INSUFFICIENT_CREDITS'
+          ? 'Live Football API Credits Exhausted'
+          : (providerErrCode === 'AUTH_FAILURE' ? 'Live Football API Authentication Error' : 'Live Football Provider Offline');
         emptyMsg = providerMsg ? esc(providerMsg) : `Live football data is currently unavailable from our data provider. Please check provider account credits or connectivity.`;
       } else if (state.calendar.searchQuery) {
         emptyMsg = `No matches match your search "<strong>${esc(state.calendar.searchQuery)}</strong>" on ${esc(dateTitle)}.`;
